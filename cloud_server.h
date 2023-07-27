@@ -26,7 +26,6 @@ class base_station;
 
 class cloud_server {
     using bs_ref_type = std::reference_wrapper<base_station>;
-    using model_type  = std::function<std::pair<Ipv4Address, uint16_t>(const task&, const std::vector<bs_ref_type>&)>;
 
 
 public:
@@ -44,18 +43,16 @@ public:
 
     auto push_base_station(bs_ref_type bs) -> void;
 
-    auto set_offload_model(model_type model) -> void;
-
     auto offload_task(const task&) const -> std::pair<Ipv4Address, uint16_t>;
 
 private:
     // 处理请求回调函数
-    auto handle_request(Ptr<Packet> packet, const Address& remote_address) -> void;
+    auto on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void;
+    auto on_dispatching_failure_message(Ptr<Packet> packet, const Address& remote_address) -> void;
 
 private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;
-    model_type m_model;
     std::vector<bs_ref_type> m_base_stations;
 };
 

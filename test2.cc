@@ -4,16 +4,10 @@
 #include "ns3/internet-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/point-to-point-module.h"
-#include "EdgeCommunicatorApplication.h"
-#include "Task.h"
-#include "Resource.h"
 #include <iostream>
 
 #include "format_helper.hpp"
 #include "okec.hpp"
-
-
-#include "Resource.h"
 
 
 using namespace ns3;
@@ -42,7 +36,6 @@ void ResourceCpuContextTrace(std::string context, int oldval, int newval)
 }
 
 
-
 auto main(int argc, char **argv) -> int
 {
     CommandLine cmd;
@@ -58,47 +51,44 @@ auto main(int argc, char **argv) -> int
 
     okec::base_station bs;
     okec::cloud_server cs;
-    okec::edge_device_container edge_devices(4);
+    okec::edge_device_container edge_devices(10);
     okec::client_device_container client_devices(4);
     bs.connect_device(edge_devices);
     // okec::initialize_communication(bs, clientDeviceContainer);
     okec::initialize_communication(client_devices, bs, cs);
     bs.link_cloud(cs);
+    cs.push_base_station(bs);
 
-    okec::task t;
-    t.id("0001");
-    t.budget(50);
-    t.deadline(5);
-    t.needed_cpu_cycles(150);
-    t.needed_memory(200);
-    t.priority(99);
+    okec::task_container t_container(50);
+    t_container.random_initialization();
+    t_container.print();
 
+    // 配置资源
+    okec::resource_container client_rcontainer(client_devices.size());
+    okec::resource_container edge_rcontainer(edge_devices.size());
+    client_rcontainer.random_initialization();
+    client_rcontainer.print("Client Device Resources:");
+    edge_rcontainer.random_initialization();
+    edge_rcontainer.print("Edge Device Resources:");
+
+    client_devices.install_resources(client_rcontainer); // 一键为所有用户设备配置资源
+    edge_devices.install_resources(edge_rcontainer);     // 一键为所有边缘设备安装资源
+
+    // okec::resource_container r_container(edge_devices.size() + 1);
+    // r_container.random_initialization();
+    // r_container.print();
+
+    // auto device_0 = client_devices.get_device(0);
+    // device_0->install_resource(r_container[0]); // 对当前设备配置资源
+
+    // edge_devices.install_resources(r_container, 1); // 一键为所有边缘设备安装资源
+    // auto server_2 = edge_devices.get_device(2);
+    // server_2->install_resource(r_container[1]);
+
+    // 发送任务
     auto device_0 = client_devices.get_device(0);
-
-    // 必须使用 CreateObject 创建，否则报错
-    auto res = okec::make_resource();
-    res->cpu_cycles(200);
-    res->memory(250);
-    res->price(999);
-    device_0->install_resource(res);
-
-
-    // client_devices.get_device(0)->send_task(bs, t);
-    device_0->set_offload_model(
-        [](const okec::task& t, const okec::client_device& client, const okec::cloud_server& cs) {
-        // 可以本地执行
-        if (client.free_cpu_cycles() > t.needed_cpu_cycles() &&
-            client.free_memory() > t.needed_memory()) {
-            return std::make_pair(client.get_address(), client.get_port());
-        }
-
-        // 本地无法执行，需要转发，则 cs 来完成实际转发目的
-        return cs.offload_task(t);
-    });
-    device_0->send_task(bs, t);
-    // device_0->handle_task(t, cs);
+    device_0->send_tasks(bs, cs, t_container);
     
-
 
     Simulator::Stop(Seconds(20));
     Simulator::Run();

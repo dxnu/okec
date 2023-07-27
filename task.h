@@ -61,6 +61,35 @@ private:
 };
 
 
+class task_container
+{
+public:
+    task_container(std::size_t n);
+
+    auto operator[](std::size_t index) -> Ptr<task>;
+    auto operator()(std::size_t index) -> Ptr<task>;
+
+    auto get(std::size_t index) -> Ptr<task>;
+
+    auto random_initialization() -> void;
+
+    auto size() const -> std::size_t;
+
+    auto begin() {
+        return m_tasks.begin();
+    }
+
+    auto end() {
+        return m_tasks.end();
+    }
+
+    auto print(std::string title = "") -> void;
+
+private:
+    std::vector<Ptr<task>> m_tasks;
+};
+
+
 } // namespace okec
 
 #endif // OKEC_TASK_H

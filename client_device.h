@@ -44,17 +44,14 @@ public:
 
     auto get_node() -> Ptr<Node>;
 
-    // 处理任务
-    auto handle_task(const task& t, const cloud_server& cs) -> void;
-
     // 为当前设备安装资源
     auto install_resource(Ptr<resource> res) -> void;
 
-    auto set_offload_model(model_type model) -> void;
-
     // 发送任务
     // 发送时间如果是0s，因为UdpApplication的StartTime也是0s，所以m_socket可能尚未初始化，此时Write将无法发送
-    auto send_task(const base_station& bs, task &t, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
+    auto send_task(const base_station& bs, const cloud_server& cs, Ptr<task> t, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
+
+    auto send_tasks(const base_station& bs, const cloud_server& cs, task_container& container, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
 
 private:
     // 处理请求回调
@@ -84,7 +81,7 @@ public:
 
     // 与基站建立WIFI通信
     // Note: 基站的地址也是在这里分配的
-    auto ConnectWithBaseStationWIFI(base_station& bs, const Ipv4Address network, const Ipv4Mask mask) -> void
+    auto ConnectWithBaseStationWIFI(base_station& bs, const Ipv4Address network, const ns3::Ipv4Mask mask) -> void
     {
         // ns3::NodeContainer wifiStaNodes;
         // this->GetNodes(wifiStaNodes);
@@ -189,6 +186,9 @@ public:
         return m_devices[index];
     }
 
+    auto size() -> std::size_t;
+
+    auto install_resources(resource_container& res, int offset = 0) -> void;
 
 private:
     std::vector<pointer_type> m_devices;

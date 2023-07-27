@@ -1,19 +1,20 @@
 #ifndef SIMEG_EDGE_DEVICE_H
 #define SIMEG_EDGE_DEVICE_H
 
-#include "Resource.h"
+#include "resource.h"
 #include "udp_application.h"
 
 
 namespace okec
 {
 
+class task;
+
+
 class edge_device
 {
 public:
     edge_device();
-    auto set_resource() -> void;
-    auto handle_task(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
 
     auto free_cpu_cycles() const -> int;
 
@@ -29,9 +30,18 @@ public:
 
     auto get_node() -> ns3::Ptr<ns3::Node>;
 
+    // 获取当前设备绑定的资源
+    auto get_resource() -> Ptr<resource>;
+
+    // 为当前设备安装资源
+    auto install_resource(Ptr<resource> res) -> void;
+
+private:
+    auto handle_task(Ptr<task> t) -> void;
+    auto on_handling_message(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
+
 public:
     ns3::Ptr<Node> m_node;
-    ns3::Ptr<ns3::Resource> m_resource;
     ns3::Ptr<okec::udp_application> m_udp_application;
 };
 
@@ -56,6 +66,10 @@ public:
     auto end() -> std::vector<pointer_type>::iterator {
         return m_devices.end();
     }
+
+    auto size() -> std::size_t;
+
+    auto install_resources(resource_container& res, int offset = 0) -> void;
 
 private:
     std::vector<pointer_type> m_devices;

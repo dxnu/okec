@@ -70,7 +70,7 @@ auto udp_application::read_handler(Ptr<Socket> socket) -> void
         // print_packet(socket, packet, remote_address);
 
         // 处理消息
-        auto content = to_string(packet);
+        auto content = packet_helper::to_string(packet);
         NS_LOG_INFO(PURPLE_CODE << "packet: \"" << content << "\" size: " << content.size() << END_CODE);
         // fmt::print("handling message. begin-----------------------\n");
         if (packet) {
@@ -150,7 +150,7 @@ inline auto udp_application::print_packet(Ptr<Socket> socket, Ptr<Packet> packet
         << Now().GetSeconds() << " from " << address.GetIpv4() << END_CODE);
 
     // 打印Packet
-    auto content = to_string(packet);
+    auto content = packet_helper::to_string(packet);
     NS_LOG_INFO(PURPLE_CODE << "packet: \"" << content << "\" size: " << content.size() << END_CODE);
 
     // 打印任务信息
@@ -161,11 +161,11 @@ inline auto udp_application::print_packet(Ptr<Socket> socket, Ptr<Packet> packet
     }
 
     // 获取资源信息
-    auto resource = socket->GetNode()->GetObject<Resource>();
-    if (resource == nullptr) {
+    auto res = socket->GetNode()->GetObject<okec::resource>();
+    if (res == nullptr) {
         NS_LOG_INFO(YELLOW_CODE << " The Node " << address.GetIpv4() << " is on doesn't install any resource." << END_CODE);
     } else {
-        auto resourceInfo = fmt::format("{:r}", *resource);
+        auto resourceInfo = fmt::format("{:r}", *res);
         NS_LOG_INFO(CYAN_CODE << resourceInfo << END_CODE);
     }
 }

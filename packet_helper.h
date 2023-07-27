@@ -9,11 +9,14 @@
 using json = nlohmann::json;
 
 
-namespace okec
-{
+namespace okec {
 
 using ns3::Ptr;
 using ns3::Packet;
+
+class task;
+
+namespace packet_helper {
 
 
 auto make_packet(std::string_view sv) -> Ptr<Packet>;
@@ -24,14 +27,10 @@ auto to_string(Ptr<Packet> packet) -> std::string;
 // 
 auto to_json(Ptr<Packet> packet) -> json;
 
-/**
- * \brief Make a task packet.
-*/
-Ptr<Packet> MakeTaskPacket(std::string_view taskId, double taskMemory, double taskCPU);
+auto to_task(Ptr<Packet> packet) -> Ptr<task>;
 
 
-
-
+} // namespace packet_helper
 } // namespace okec
 
 #endif // OKEC_PACKET_HELPER_H

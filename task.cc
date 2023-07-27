@@ -1,5 +1,12 @@
 #include "task.h"
+#include "format_helper.hpp"
 #include "ns3/ptr.h"
+#include <algorithm>
+#include <random>
+
+
+#define CHECK_INDEX(index) \
+if (index > size()) throw std::out_of_range{"index out of range"}
 
 
 namespace okec
@@ -77,7 +84,7 @@ auto task::id() const -> std::string
 
 auto task::id(std::string id) -> void
 {
-    m_task["id"] = id;
+    m_task["id"] = std::move(id);
 }
 
 auto task::empty() -> bool
@@ -87,7 +94,7 @@ auto task::empty() -> bool
 
 auto task::to_packet() const -> Ptr<Packet>
 {
-    return make_packet(m_task.dump());
+    return packet_helper::make_packet(m_task.dump());
 }
 
 auto task::to_string() const -> std::string
@@ -103,7 +110,7 @@ auto task::size() -> std::size_t
 auto task::from_packet(Ptr<Packet> packet) -> Ptr<task>
 {
     Ptr<task> t = ns3::Create<task>();
-    json j = to_json(packet);
+    json j = packet_helper::to_json(packet);
 
     // 可以解析任务，则构建任务
     if (!j.is_null()) {
@@ -117,6 +124,83 @@ auto task::from_packet(Ptr<Packet> packet) -> Ptr<task>
     }
 
     return t;
+}
+
+task_container::task_container(std::size_t n)
+{
+    m_tasks.reserve(n);
+    for (std::size_t i = 0; i < n; ++i)
+        m_tasks.emplace_back(ns3::Create<task>());
+}
+
+auto task_container::operator[](std::size_t index) -> Ptr<task>
+{
+    return this->get(index);
+}
+
+auto task_container::operator()(std::size_t index) -> Ptr<task>
+{
+    return this->get(index);
+}
+
+auto task_container::get(std::size_t index) -> Ptr<task>
+{
+    CHECK_INDEX(index);
+    return m_tasks[index];
+}
+
+auto task_container::random_initialization() -> void
+{
+    // 生成 ID
+    int id_len = this->size();
+    int width = 8;
+    std::vector<int> id_vec(id_len);
+    std::vector<std::string> id_data(id_len);
+    std::iota(id_vec.begin(), id_vec.end(), 0);
+    std::transform(id_vec.begin(), id_vec.end(), id_data.begin(), [&width](int n) {
+        auto sn = std::to_string(n);
+        return std::string(width - std::min(width, (int)sn.length()), '0') + sn; 
+    });
+
+    // 生成预算
+    using rng = std::default_random_engine;
+    static rng dre{ (rng::result_type)time(0) };
+    std::uniform_int_distribution<uint> budget_uid(0, 10000);
+
+    // 生成时限
+    std::uniform_int_distribution<uint> deadline_uid(0, 100);
+
+    // 生成需要的 cpu_cycles
+    std::uniform_int_distribution<uint> cpu_cycles_uid(0, 5000);
+
+    // 生成需要的 memory
+    std::uniform_int_distribution<uint> memory_uid(0, 4000);
+
+    // 生成优先级
+    std::uniform_int_distribution<uint> priority_uid(0, 100);
+
+    for (std::size_t i = 0; i < size(); ++i) {
+        m_tasks[i]->id(id_data[i]);
+        m_tasks[i]->budget(budget_uid(dre));
+        m_tasks[i]->deadline(deadline_uid(dre));
+        m_tasks[i]->needed_cpu_cycles(cpu_cycles_uid(dre));
+        m_tasks[i]->needed_memory(memory_uid(dre));
+        m_tasks[i]->priority(priority_uid(dre));
+    }
+
+}
+
+auto task_container::size() const -> std::size_t
+{
+    return m_tasks.size();
+}
+
+auto task_container::print(std::string title) -> void
+{
+    if (!title.empty())
+        fmt::print("{}\n", title);
+    
+    fmt::print("{:ts}\n", *this);
 }
 
 } // namespace okec

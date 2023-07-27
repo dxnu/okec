@@ -24,11 +24,13 @@ public:
     auto type(std::string_view sv) -> void;
     auto type() -> std::string;
 
-    static auto to_task(Ptr<Packet> packet) -> Ptr<task>;
+    auto to_task() -> Ptr<task>;
 
     auto to_packet() -> Ptr<Packet>;
 
-    auto content(task& t) -> void;
+    static auto from_packet(Ptr<Packet> packet) -> message;
+
+    auto content(Ptr<task> t) -> void;
 
     template <typename Type>
     auto content() -> Type {
@@ -41,6 +43,8 @@ public:
 
     operator json&() { return j_; }
 
+    auto valid() -> bool;
+
 private:
     json j_;
 };
@@ -48,6 +52,9 @@ private:
 
 inline constexpr std::string_view message_offloading_task { "offloading-task" };
 inline constexpr std::string_view message_response { "response" };
+inline constexpr std::string_view message_handling { "handling" };
+inline constexpr std::string_view message_dispatching { "dispatching" };
+inline constexpr std::string_view message_dispatching_failure { "dispatching-failure" };
 // inline constexpr std::string_view 
 
 } // namespace okec

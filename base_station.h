@@ -31,10 +31,9 @@ public:
     auto link_cloud(const cloud_server& cs) -> void;
     
 private:
-    auto dispatch_task() -> void;
  
     // default version
-    auto handle_request(Ptr<Packet>, const Address& remoteAddress) -> void;
+    auto on_dispatching_message(Ptr<Packet>, const Address& remoteAddress) -> void;
 
 
 public:

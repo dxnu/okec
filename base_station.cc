@@ -15,8 +15,8 @@ namespace okec
 
 base_station::base_station()
     : m_edge_devices{ nullptr },
-      m_udp_application{ CreateObject<udp_application>() },
-      m_node{ CreateObject<Node>() }
+      m_udp_application{ ns3::CreateObject<udp_application>() },
+      m_node{ ns3::CreateObject<Node>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
     m_udp_application->SetStopTime(Seconds(10));
@@ -25,8 +25,8 @@ base_station::base_station()
     m_node->AddApplication(m_udp_application);
 
     // 设置处理回调函数
-    m_udp_application->set_request_handler(message_offloading_task, [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->handle_request(packet, remote_address);
+    m_udp_application->set_request_handler(message_dispatching, [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_dispatching_message(packet, remote_address);
     });
 }
 
@@ -81,21 +81,37 @@ auto base_station::link_cloud(const okec::cloud_server& cs) -> void
     m_cs_address = std::make_pair(cs.get_address(), cs.get_port());
 }
 
-auto base_station::dispatch_task() -> void
+auto base_station::on_dispatching_message(Ptr<Packet> packet, const Address& remote_address) -> void
 {
-}
-
-auto base_station::handle_request(Ptr<Packet> packet, const Address& remote_address) -> void
-{
-    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remote_address);
-    fmt::print("bs[{:ip}] handles request from {:ip}, dispatching it to {:ip}.\n", 
+    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
+    fmt::print("bs[{:ip}] receives the request from {:ip},", 
         get_address(), inetRemoteAddress.GetIpv4(), m_edge_devices->get_device(0)->get_address());
 
-    // 转发任务到具体的EdgeDeivce
-    m_udp_application->write(packet, m_edge_devices->get_device(0)->get_address(), m_edge_devices->get_device(0)->get_port());
+    bool handled{};
+    auto msg = message::from_packet(packet);
+    auto t = msg.to_task();
 
-    // 转发任务到云端
-    m_udp_application->write(packet, m_cs_address.first, m_cs_address.second);
+    for (auto device : *m_edge_devices) {
+        if (device->free_cpu_cycles() > t->needed_cpu_cycles() &&
+            device->free_memory() > t->needed_memory() &&
+            device->price() <= t->budget()) {
+
+            fmt::print(" dispatching it to {:ip} to handle the concrete tasks.\n", device->get_address());
+
+            // 能够处理
+            msg.type(message_handling);
+            m_udp_application->write(msg.to_packet(), device->get_address(), device->get_port());
+            handled = true;
+            break;
+        }
+    }
+
+    // 不能处理，消息需要再次转发
+    if (!handled) {
+        fmt::print(" dispatching it to {:ip} bacause of lacking resource.\n", m_cs_address.first);
+        msg.type(message_dispatching_failure);
+        m_udp_application->write(msg.to_packet(), m_cs_address.first, m_cs_address.second);
+    }
 }
 
 } // namespace simeg

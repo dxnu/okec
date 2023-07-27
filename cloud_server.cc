@@ -1,6 +1,7 @@
 #include "cloud_server.h"
 #include "base_station.h"
 #include "message.h"
+#include "format_helper.hpp"
 
 
 namespace okec
@@ -18,19 +19,11 @@ cloud_server::cloud_server()
 
     // 设置响应回调函数
     m_udp_application->set_request_handler(message_offloading_task, [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->handle_request(packet, remote_address);
+        this->on_offloading_message(packet, remote_address);
     });
 
-    // 卸载模型
-    set_offload_model([this](const task& t, const std::vector<bs_ref_type>& base_stations) {
-        // BS是否有足够资源
-        for (const auto& bs : base_stations) {
-            if (bs.get().has_free_resource(t))
-                return std::make_pair(bs.get().get_address(), bs.get().get_port());
-        }
-
-        // BS没有足够资源，云端处理
-        return std::make_pair(this->get_address(), this->get_port());
+    m_udp_application->set_request_handler(message_dispatching_failure, [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_dispatching_failure_message(packet, remote_address);
     });
 }
 
@@ -60,30 +53,52 @@ auto cloud_server::push_base_station(bs_ref_type bs) -> void
     m_base_stations.push_back(bs);
 }
 
-auto cloud_server::set_offload_model(model_type model) -> void
+auto cloud_server::on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    m_model = model;
-}
-
-auto cloud_server::offload_task(const task& t) const -> std::pair<Ipv4Address, uint16_t>
-{
-    return m_model(t, m_base_stations);
-}
-
-auto cloud_server::handle_request(Ptr<Packet> packet, const Address& remote_address) -> void
-{
-    fmt::print("cloud handle request\n");
-
-    // 返回响应结果
-    auto t = message::to_task(packet);
-    auto [ip, port] = t->from();
-    fmt::print("cloud server response to {}:{}\n", ip, port);
+    fmt::print("cloud[{:ip}] handles the request\n", this->get_address());
     
-    message msg {
-        { "msgtype", message_response },
-        { "content", "response value: 10000000" }
+    auto msg = message::from_packet(packet);
+    msg.type(message_dispatching);
+
+    m_udp_application->write(msg.to_packet(), m_base_stations[0].get().get_address(), m_base_stations[0].get().get_port());
+}
+
+auto cloud_server::on_dispatching_failure_message(Ptr<Packet> packet, 
+    const Address& remote_address) -> void
+{
+    fmt::print("cloud[{:ip}] handles the request\n", this->get_address());
+
+    // 失败的 IP 地址
+    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
+    auto failed_addr = fmt::format("{:ip}", inetRemoteAddress.GetIpv4());
+
+    auto is_same_address = [&failed_addr](bs_ref_type bs) {
+        auto current_addr = fmt::format("{:ip}", bs.get().get_address());
+        return current_addr == failed_addr;
     };
-    m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
+
+
+    if (auto it = std::find_if(std::begin(m_base_stations), std::end(m_base_stations), 
+        is_same_address); ++it != std::end(m_base_stations)) {
+
+        // 当前 BS 后面仍有 BS，则交给其他 BS 处理
+        auto msg = message::from_packet(packet);
+        msg.type(message_dispatching);
+        m_udp_application->write(msg.to_packet(), it->get().get_address(), it->get().get_port());
+    } else {
+
+        // 当前 BS 后面没有 BS，直接云端处理
+        auto t = packet_helper::to_task(packet);
+        auto [ip, port] = t->from();
+        fmt::print("cloud returns response to {}:{}\n", ip, port);
+        
+        message msg {
+            { "msgtype", message_response },
+            { "content", "response value: 10000000" }
+        };
+        m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
+    }
+
 }
 
 } // namespace okec
