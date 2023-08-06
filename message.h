@@ -19,6 +19,8 @@ public:
     message(Ptr<Packet> packet);
     message(std::initializer_list<std::pair<std::string_view, std::string_view>> values);
 
+    auto attribute(std::string_view key, std::string_view value) -> void;
+
     auto dump() -> std::string;
 
     auto type(std::string_view sv) -> void;
@@ -55,6 +57,7 @@ inline constexpr std::string_view message_response { "response" };
 inline constexpr std::string_view message_handling { "handling" };
 inline constexpr std::string_view message_dispatching { "dispatching" };
 inline constexpr std::string_view message_dispatching_failure { "dispatching-failure" };
+inline constexpr std::string_view message_dispatching_success { "dispatching-success" };
 // inline constexpr std::string_view 
 
 } // namespace okec

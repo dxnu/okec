@@ -49,9 +49,9 @@ public:
 
     // 发送任务
     // 发送时间如果是0s，因为UdpApplication的StartTime也是0s，所以m_socket可能尚未初始化，此时Write将无法发送
-    auto send_task(const base_station& bs, const cloud_server& cs, Ptr<task> t, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
+    auto send_task(std::shared_ptr<base_station> bs, const cloud_server& cs, Ptr<task> t, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
 
-    auto send_tasks(const base_station& bs, const cloud_server& cs, task_container& container, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
+    auto send_tasks(std::shared_ptr<base_station> bs, const cloud_server& cs, task_container& container, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
 
 private:
     // 处理请求回调

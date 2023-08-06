@@ -4,7 +4,9 @@
 #include "cloud_server.h"
 #include "edge_device.h"
 #include "task.h"
+#include "fmt/color.h"
 #include <functional> // for std::reference_wrapper
+
 
 namespace okec
 {
@@ -41,6 +43,46 @@ public:
     Ptr<udp_application> m_udp_application;
     Ptr<Node> m_node;
     std::pair<ns3::Ipv4Address, uint16_t> m_cs_address;
+};
+
+
+class base_station_container
+{
+    using pointer_t = std::shared_ptr<base_station>;
+public:
+    base_station_container(std::size_t n);
+
+    template <typename... EdgeDeviceContainers>
+    auto connect_device(EdgeDeviceContainers&... containers) -> bool {
+        if (sizeof...(containers) != size()) {
+            fmt::print(fg(fmt::color::red), "Error base_station_container::connect_device. Arguments size does not match the container size!\n");
+            return false;
+        }
+
+        auto iter = std::begin(m_base_stations);
+        ((*iter++)->connect_device(containers), ...);
+        return true;
+    }
+
+    auto link_cloud(const cloud_server& cs) -> void;
+
+    auto operator[](std::size_t index) -> pointer_t;
+    auto operator()(std::size_t index) -> pointer_t;
+
+    auto get(std::size_t index) -> pointer_t;
+
+    auto begin() {
+        return m_base_stations.begin();
+    }
+
+    auto end() {
+        return m_base_stations.end();
+    }
+
+    auto size() -> std::size_t;
+
+private:
+    std::vector<pointer_t> m_base_stations;
 };
 
 } // namespace okec

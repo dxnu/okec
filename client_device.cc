@@ -60,7 +60,7 @@ auto client_device::install_resource(Ptr<resource> res) -> void
     res->install(m_node);
 }
 
-auto client_device::send_task(const base_station& bs, const cloud_server& cs, Ptr<task> t, const ns3::Time& delay) -> void
+auto client_device::send_task(std::shared_ptr<base_station> bs, const cloud_server& cs, Ptr<task> t, const ns3::Time& delay) -> void
 {
     t->from(fmt::format("{:ip}", this->get_address()), this->get_port());
 
@@ -82,7 +82,7 @@ auto client_device::send_task(const base_station& bs, const cloud_server& cs, Pt
     ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, cs.get_address(), cs.get_port());
 }
 
-auto client_device::send_tasks(const base_station& bs, const cloud_server& cs,
+auto client_device::send_tasks(std::shared_ptr<base_station> bs, const cloud_server& cs,
     task_container& container, const ns3::Time& delay) -> void
 {
     double launch_time = delay.ToDouble(ns3::Time::S);

@@ -10,6 +10,10 @@
 #include <algorithm>  // for std::ranges::for_each
 
 
+#define CHECK_INDEX(index) \
+if (index > size()) throw std::out_of_range{"index out of range"}
+
+
 namespace okec
 {
 
@@ -102,6 +106,11 @@ auto base_station::on_dispatching_message(Ptr<Packet> packet, const Address& rem
             msg.type(message_handling);
             m_udp_application->write(msg.to_packet(), device->get_address(), device->get_port());
             handled = true;
+
+            // 反服务器返回分发成功消息，以便服务器清除某些记录
+            msg.type(message_dispatching_success);
+            m_udp_application->write(msg.to_packet(), m_cs_address.first, m_cs_address.second);
+
             break;
         }
     }
@@ -114,4 +123,39 @@ auto base_station::on_dispatching_message(Ptr<Packet> packet, const Address& rem
     }
 }
 
-} // namespace simeg
+base_station_container::base_station_container(std::size_t n)
+{
+    m_base_stations.reserve(n);
+    for (std::size_t i = 0; i < n; ++i)
+        m_base_stations.emplace_back(std::make_shared<base_station>());
+}
+
+auto base_station_container::link_cloud(const cloud_server& cs) -> void
+{
+    std::for_each(std::begin(m_base_stations), std::end(m_base_stations), [&cs](pointer_t bs) {
+        bs->link_cloud(cs);
+    });
+}
+
+auto base_station_container::operator[](std::size_t index) -> pointer_t
+{
+    return this->get(index);
+}
+
+auto base_station_container::operator()(std::size_t index) -> pointer_t
+{
+    return this->get(index);
+}
+
+auto base_station_container::get(std::size_t index) -> pointer_t
+{
+    CHECK_INDEX(index);
+    return m_base_stations[index];
+}
+
+auto base_station_container::size() -> std::size_t
+{
+    return m_base_stations.size();
+}
+
+} // namespace okec

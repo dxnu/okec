@@ -18,6 +18,11 @@ message::message(std::initializer_list<std::pair<std::string_view, std::string_v
     }
 }
 
+auto message::attribute(std::string_view key, std::string_view value) -> void
+{
+    j_[key] = value;
+}
+
 auto message::dump() -> std::string
 {
     return j_.dump();

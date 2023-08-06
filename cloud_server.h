@@ -22,10 +22,12 @@ using ns3::Socket;
 
 
 class base_station;
+class base_station_container;
 
 
 class cloud_server {
     using bs_ref_type = std::reference_wrapper<base_station>;
+    using bs_pointer_t = std::shared_ptr<base_station>;
 
 
 public:
@@ -41,7 +43,8 @@ public:
     // 返回当前设备的端口号
     auto get_port() const -> uint16_t;
 
-    auto push_base_station(bs_ref_type bs) -> void;
+    auto push_base_station(bs_pointer_t bs) -> void;
+    auto push_base_stations(base_station_container* base_stations) -> void;
 
     auto offload_task(const task&) const -> std::pair<Ipv4Address, uint16_t>;
 
@@ -49,11 +52,15 @@ private:
     // 处理请求回调函数
     auto on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void;
     auto on_dispatching_failure_message(Ptr<Packet> packet, const Address& remote_address) -> void;
+    auto on_dispatching_success_message(Ptr<Packet> packet, const Address& remote_address) -> void;
+    
 
 private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;
-    std::vector<bs_ref_type> m_base_stations;
+    // std::vector<bs_ref_type> m_base_stations;
+    std::vector<bs_pointer_t> m_base_stations;
+    std::multimap<std::string, std::string> m_task_dispatching_record; // [task_id, bs_ip] 
 };
 
 
