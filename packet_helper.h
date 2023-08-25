@@ -15,6 +15,7 @@ using ns3::Ptr;
 using ns3::Packet;
 
 class task;
+class response;
 
 namespace packet_helper {
 
@@ -28,6 +29,8 @@ auto to_string(Ptr<Packet> packet) -> std::string;
 auto to_json(Ptr<Packet> packet) -> json;
 
 auto to_task(Ptr<Packet> packet) -> Ptr<task>;
+
+auto to_response(Ptr<Packet> packet) -> Ptr<response>;
 
 
 } // namespace packet_helper

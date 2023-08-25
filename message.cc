@@ -50,9 +50,23 @@ auto message::to_task() -> Ptr<task>
         t->needed_memory(j_["content"]["task"]["needed_memory"].get<int>());
         t->priority(j_["content"]["task"]["priority"].get<int>());
         t->id(j_["content"]["task"]["id"].get<std::string>());
+        t->group(j_["content"]["task"]["group"].get<std::string>());
     }
 
     return t;
+}
+
+auto message::to_response() -> Ptr<response>
+{
+    Ptr<response> r = ns3::Create<response>();
+    if (!j_.is_null()) {
+        r->task_id(j_["content"]["response"]["task_id"].get<std::string>());
+        r->handling_device(j_["content"]["response"]["device_type"].get<std::string>(),
+                           j_["content"]["response"]["device_address"].get<std::string>());
+        r->group(j_["content"]["response"]["group"].get<std::string>());
+    }
+
+    return r;
 }
 
 auto message::to_packet() -> Ptr<Packet>
@@ -75,6 +89,15 @@ auto message::content(Ptr<task> t) -> void {
     j_["content"]["task"]["needed_memory"] = t->needed_memory();
     j_["content"]["task"]["priority"] = t->priority();
     j_["content"]["task"]["id"] = t->id();
+    j_["content"]["task"]["group"] = t->group();
+}
+
+auto message::content(Ptr<response> r) -> void {
+    j_["content"]["response"]["task_id"] = r->task_id();
+    auto [device_type, device_address] = r->handling_device();
+    j_["content"]["response"]["device_type"] = device_type;
+    j_["content"]["response"]["device_address"] = device_address;
+    j_["content"]["response"]["group"] = r->group();
 }
 
 auto message::valid() -> bool

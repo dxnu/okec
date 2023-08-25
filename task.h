@@ -26,6 +26,9 @@ public:
     auto from(const std::string &ip, uint16_t port) -> void;
     auto from() -> std::pair<const std::string, uint16_t>;
 
+    auto group() const -> std::string;
+    auto group(std::string g) -> void;
+
     // 处理任务所需cpu cycles
     auto needed_cpu_cycles() const -> int;
     auto needed_cpu_cycles(int cycles) -> void;
@@ -71,7 +74,7 @@ public:
 
     auto get(std::size_t index) -> Ptr<task>;
 
-    auto random_initialization() -> void;
+    auto random_initialization(const std::string& group = "ungrouped") -> void;
 
     auto size() const -> std::size_t;
 

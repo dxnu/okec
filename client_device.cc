@@ -62,12 +62,22 @@ auto client_device::install_resource(Ptr<resource> res) -> void
 
 auto client_device::send_task(std::shared_ptr<base_station> bs, const cloud_server& cs, Ptr<task> t, const ns3::Time& delay) -> void
 {
-    t->from(fmt::format("{:ip}", this->get_address()), this->get_port());
+    auto address = fmt::format("{:ip}", this->get_address());
+    t->from(address, this->get_port());
 
     // 资源充足，本地处理
     if (this->free_cpu_cycles() > t->needed_cpu_cycles() &&
         this->free_memory() > t->needed_memory()) {
-        fmt::print("handling task at current client device.\n");
+        fmt::print("handling task(id={}) at current client device.\n", t->id());
+
+        if (auto it = std::find_if(m_details.begin(), m_details.end(), [&t](auto& detail) {
+            return t->group() == detail.group && t->id() == detail.task_id;
+        }); it != m_details.end()) {
+            (*it).device_type = "local";
+            (*it).device_address = address;
+            (*it).finished = true;
+        }
+
         return;
     }
 
@@ -79,7 +89,8 @@ auto client_device::send_task(std::shared_ptr<base_station> bs, const cloud_serv
 
     // ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, bs.get_address(), bs.get_port());
     // 
-    ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, cs.get_address(), cs.get_port());
+    // ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, cs.get_address(), cs.get_port());
+    ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, bs->get_address(), bs->get_port());
 }
 
 auto client_device::send_tasks(std::shared_ptr<base_station> bs, const cloud_server& cs,
@@ -87,6 +98,8 @@ auto client_device::send_tasks(std::shared_ptr<base_station> bs, const cloud_ser
 {
     double launch_time = delay.ToDouble(ns3::Time::S);
     std::for_each(container.begin(), container.end(), [&](Ptr<task> t) {
+        this->m_details.emplace_back(task_details{t->id(), t->group()});
+
         this->send_task(bs, cs, t, Seconds(launch_time));
         launch_time += 0.1;
     });
@@ -94,12 +107,44 @@ auto client_device::send_tasks(std::shared_ptr<base_station> bs, const cloud_ser
 
 auto client_device::handle_response(Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    fmt::print("client device[{:ip}]", m_udp_application->get_address(), m_udp_application->get_port());
+    fmt::print("client device[{:ip}] receives", m_udp_application->get_address(), m_udp_application->get_port());
 
-    message msg { packet };
-    auto response = msg.content<std::string>();
-    ns3::InetSocketAddress address = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    fmt::print(" gets response [{}] from {:ip}.\n", response, address.GetIpv4());
+    auto r = packet_helper::to_response(packet);
+    auto [device_type, device_address] = r->handling_device();
+    fmt::print(" response: task_id={}, device_type={}, device_address={}, group={}\n",
+        r->task_id(), device_type, device_address, r->group());
+
+    // for (auto& detail : m_details) {
+    //     if (r->group() == detail.group && r->task_id() == detail.task_id) {
+    //         detail.device_type = device_type;
+    //         detail.device_address = device_address;
+    //         detail.finished = true;
+    //         break;
+    //     }
+    // }
+    if (auto it = std::find_if(m_details.begin(), m_details.end(), [&r](auto& detail) {
+        return r->group() == detail.group && r->task_id() == detail.task_id;
+    }); it != m_details.end()) {
+        (*it).device_type = device_type;
+        (*it).device_address = device_address;
+        (*it).finished = true;
+    }
+
+    if (auto it = std::find_if(m_details.begin(), m_details.end(), [&r](auto& detail) {
+        return r->group() == detail.group && !detail.finished;
+    }); it != m_details.end()) {
+        // 部分完成
+        fmt::print("部分完成\n");
+    } else {
+        // 全部完成
+        fmt::print("全部完成\n");
+    }
+
+
+    // message msg { packet };
+    // auto response = msg.content<std::string>();
+    // ns3::InetSocketAddress address = ns3::InetSocketAddress::ConvertFrom(remote_address);
+    // fmt::print(" gets response [{}] from {:ip}.\n", response, address.GetIpv4());
 }
 
 auto client_device_container::size() -> std::size_t

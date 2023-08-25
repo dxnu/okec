@@ -1,5 +1,6 @@
 #include "packet_helper.h"
 #include "task.h"
+#include "response.h"
 
 
 namespace okec {
@@ -43,9 +44,24 @@ auto to_task(Ptr<Packet> packet) -> Ptr<task>
         t->needed_memory(j["content"]["task"]["needed_memory"].get<int>());
         t->priority(j["content"]["task"]["priority"].get<int>());
         t->id(j["content"]["task"]["id"].get<std::string>());
+        t->group(j["content"]["task"]["group"].get<std::string>());
     }
 
     return t;
+}
+
+auto to_response(Ptr<Packet> packet) -> Ptr<response>
+{
+    json j = to_json(packet);
+    Ptr<response> r = ns3::Create<response>();
+    if (!j.is_null()) {
+        r->task_id(j["content"]["response"]["task_id"].get<std::string>());
+        r->handling_device(j["content"]["response"]["device_type"].get<std::string>(),
+                           j["content"]["response"]["device_address"].get<std::string>());
+        r->group(j["content"]["response"]["group"].get<std::string>());
+    }
+
+    return r;
 }
 
 } // namespace packet_helper

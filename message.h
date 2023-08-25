@@ -2,6 +2,7 @@
 #define OKEC_MESSAGE_H_
 
 #include "task.h"
+#include "response.h"
 #include "nlohmann/json.hpp"
 #include <string_view>
 
@@ -28,11 +29,15 @@ public:
 
     auto to_task() -> Ptr<task>;
 
+    auto to_response() -> Ptr<response>;
+
     auto to_packet() -> Ptr<Packet>;
 
     static auto from_packet(Ptr<Packet> packet) -> message;
 
     auto content(Ptr<task> t) -> void;
+
+    auto content(Ptr<response> r) -> void;
 
     template <typename Type>
     auto content() -> Type {

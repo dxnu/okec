@@ -11,10 +11,12 @@
 namespace okec
 {
 
+class base_station_container;
+
 
 class base_station
 {
-    using value_type = std::reference_wrapper<edge_device>;
+    using value_type   = std::reference_wrapper<edge_device>;
 
 public:
     base_station();
@@ -31,11 +33,14 @@ public:
     auto get_node() -> Ptr<Node>;
     
     auto link_cloud(const cloud_server& cs) -> void;
+
+    auto push_base_stations(base_station_container* base_stations) -> void;
     
 private:
  
     // default version
     auto on_dispatching_message(Ptr<Packet>, const Address& remoteAddress) -> void;
+    auto on_offloading_message(Ptr<Packet>, const Address& remoteAddress) -> void;
 
 
 public:
@@ -43,6 +48,7 @@ public:
     Ptr<udp_application> m_udp_application;
     Ptr<Node> m_node;
     std::pair<ns3::Ipv4Address, uint16_t> m_cs_address;
+    base_station_container* m_base_stations;
 };
 
 
@@ -81,8 +87,18 @@ public:
 
     auto size() -> std::size_t;
 
+    // 记录分发处理情况
+    auto dispatching_record(const std::string& task_id, const std::string& bs_ip) -> void;
+
+    // 查询分发处理情况
+    auto dispatched(const std::string& task_id, const std::string& bs_ip) -> bool;
+
+    // 擦除分发记录
+    auto erase_dispatching_record(const std::string& task_id) -> void;
+
 private:
     std::vector<pointer_t> m_base_stations;
+    std::multimap<std::string, std::string> m_dispatching_record; // [task_id, bs_ip] 
 };
 
 } // namespace okec

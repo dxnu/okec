@@ -29,6 +29,10 @@ cloud_server::cloud_server()
     m_udp_application->set_request_handler(message_dispatching_success, [this](Ptr<Packet> packet, const Address& remote_address) {
         this->on_dispatching_success_message(packet, remote_address);
     });
+
+    m_udp_application->set_request_handler(message_handling, [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_handling_message(packet, remote_address);
+    });
 }
 
 auto cloud_server::get_node() -> Ptr<Node>
@@ -113,6 +117,7 @@ auto cloud_server::on_dispatching_failure_message(Ptr<Packet> packet,
         m_udp_application->write(msg.to_packet(), (*it)->get_address(), (*it)->get_port());
     } else {
         // 没有可用 BS，直接云端处理
+        auto t = packet_helper::to_task(packet);
         auto [ip, port] = t->from();
         fmt::print("cloud returns response to {}:{}\n", ip, port);
         
@@ -134,6 +139,30 @@ auto cloud_server::on_dispatching_success_message(Ptr<Packet> packet,
     // 清除当前任务的分发记录
     auto t = packet_helper::to_task(packet);
     m_task_dispatching_record.erase(t->id());
+}
+
+auto cloud_server::on_handling_message(Ptr<Packet> packet, const Address& remote_address) -> void
+{
+    auto t = packet_helper::to_task(packet);
+    auto [ip, port] = t->from();
+    fmt::print("cloud handles the task, and returns response to {}:{}\n", ip, port);
+    
+
+    auto r = make_response();
+    r->task_id(t->id());
+    r->handling_device("cs", fmt::format("{:ip}", this->get_address()));
+    r->group(t->group());
+    // message msg {
+    //     { "msgtype", message_response },
+    //     { "content", "response value: 10000000" }
+    // };
+    message msg;
+    msg.type(message_response);
+    msg.content(r);
+    m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
+
+    // 清除当前任务的分发记录
+    // m_task_dispatching_record.erase(t->id());
 }
 
 } // namespace okec

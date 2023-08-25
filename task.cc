@@ -47,6 +47,16 @@ auto task::from() -> std::pair<const std::string, uint16_t>
     return std::make_pair(m_task["from_ip"], m_task["from_port"]);
 }
 
+auto task::group() const -> std::string
+{
+    return m_task["group"];
+}
+
+auto task::group(std::string g) -> void
+{
+    m_task["group"] = std::move(g);
+}
+
 auto task::needed_cpu_cycles() const -> int
 {
     return m_task["needed_cpu_cycles"];
@@ -121,6 +131,7 @@ auto task::from_packet(Ptr<Packet> packet) -> Ptr<task>
         t->needed_memory(j["needed_memory"].get<int>());
         t->priority(j["priority"].get<int>());
         t->id(j["id"].get<std::string>());
+        t->group(j["group"].get<std::string>());
     }
 
     return t;
@@ -149,7 +160,7 @@ auto task_container::get(std::size_t index) -> Ptr<task>
     return m_tasks[index];
 }
 
-auto task_container::random_initialization() -> void
+auto task_container::random_initialization(const std::string& group) -> void
 {
     // 生成 ID
     int id_len = this->size();
@@ -186,8 +197,8 @@ auto task_container::random_initialization() -> void
         m_tasks[i]->needed_cpu_cycles(cpu_cycles_uid(dre));
         m_tasks[i]->needed_memory(memory_uid(dre));
         m_tasks[i]->priority(priority_uid(dre));
+        m_tasks[i]->group(group);
     }
-
 }
 
 auto task_container::size() const -> std::size_t

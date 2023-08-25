@@ -2,6 +2,7 @@
 #include "format_helper.hpp"
 #include "message.h"
 #include "task.h"
+// #include "response.h"
 #include "resource.h"
 #include "ns3/ipv4.h"
 
@@ -94,10 +95,18 @@ void edge_device::handle_task(Ptr<task> t)
     auto [ip, port] = t->from();
     fmt::print("edge server returns response to {}:{}\n", ip, port);
     
-    message msg {
-        { "msgtype", message_response },
-        { "content", "response value: 42" }
-    };
+    auto r = make_response();
+    r->task_id(t->id());
+    r->handling_device("cs", fmt::format("{:ip}", this->get_address()));
+    r->group(t->group());
+    message msg;
+    msg.type(message_response);
+    msg.content(r);
+
+    // message msg {
+    //     { "msgtype", message_response },
+    //     { "content", "response value: 42" }
+    // };
     m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
 }
 

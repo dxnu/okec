@@ -69,7 +69,7 @@ auto main(int argc, char **argv) -> int
     // cs.push_base_station(base_stations[0]);
     // cs.push_base_station(base_stations[1]);
 
-    okec::task_container t_container(2);
+    okec::task_container t_container(10);
     t_container.random_initialization();
     t_container.print();
 

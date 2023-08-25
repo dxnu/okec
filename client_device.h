@@ -18,6 +18,16 @@
 namespace okec
 {
 
+
+struct task_details {
+    std::string task_id;
+    std::string group;
+    std::string device_type;
+    std::string device_address;
+    bool finished;
+};
+
+
 using okec::udp_application;
 using okec::base_station;
 
@@ -61,6 +71,7 @@ private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;
     model_type m_model;
+    std::vector<task_details> m_details;
 };
 
 

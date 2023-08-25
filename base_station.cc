@@ -32,6 +32,10 @@ base_station::base_station()
     m_udp_application->set_request_handler(message_dispatching, [this](Ptr<Packet> packet, const Address& remote_address) {
         this->on_dispatching_message(packet, remote_address);
     });
+
+    m_udp_application->set_request_handler(message_offloading_task, [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_offloading_message(packet, remote_address);
+    });
 }
 
 auto base_station::connect_device(edge_device_container& devices) -> void
@@ -85,6 +89,11 @@ auto base_station::link_cloud(const okec::cloud_server& cs) -> void
     m_cs_address = std::make_pair(cs.get_address(), cs.get_port());
 }
 
+auto base_station::push_base_stations(base_station_container* base_stations) -> void
+{
+    m_base_stations = base_stations;
+}
+
 auto base_station::on_dispatching_message(Ptr<Packet> packet, const Address& remote_address) -> void
 {
     ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
@@ -123,11 +132,88 @@ auto base_station::on_dispatching_message(Ptr<Packet> packet, const Address& rem
     }
 }
 
+auto base_station::on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void
+{
+    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
+    fmt::print("bs[{:ip}] receives the offloading request from {:ip},", 
+        get_address(), inetRemoteAddress.GetIpv4(), m_edge_devices->get_device(0)->get_address());
+
+    bool handled{};
+    auto msg = message::from_packet(packet);
+    auto t = msg.to_task();
+
+    for (auto device : *m_edge_devices) {
+        if (device->free_cpu_cycles() > t->needed_cpu_cycles() &&
+            device->free_memory() > t->needed_memory() &&
+            device->price() <= t->budget()) {
+
+            fmt::print(" dispatching it to {:ip} to handle the concrete tasks.\n", device->get_address());
+
+            // 能够处理
+            msg.type(message_handling);
+            m_udp_application->write(msg.to_packet(), device->get_address(), device->get_port());
+            handled = true;
+            
+            // 擦除分发记录
+            m_base_stations->erase_dispatching_record(t->id());
+
+            break;
+        }
+    }
+
+    // 不能处理，消息需要再次转发
+    if (!handled) {
+
+        // 
+        // auto current_bs = [this](std::shared_ptr<base_station> bs) {
+        //     auto this_addr = fmt::format("{:ip}", this->get_address());
+        //     auto current_addr = fmt::format("{:ip}", bs->get_address());
+        //     // fmt::print("this addr: {}, current addr: {}\n", this_addr, current_addr);
+        //     return this_addr == current_addr;
+        // };
+
+        // 是否还未分发到过此基站
+        auto non_dispatched_bs = [&t, this](std::shared_ptr<base_station> bs) {
+            return m_base_stations->dispatched(t->id(), fmt::format("{:ip}", bs->get_address()));
+        };
+
+        // 标记当前基站已经处理过该任务，但没有处理成功
+        m_base_stations->dispatching_record(t->id(), fmt::format("{:ip}", this->get_address()));
+        // if (auto it = std::find_if(m_base_stations->begin(), m_base_stations->end(), 
+        //     current_bs); it != m_base_stations->end()) {
+        //     // fmt::print("current bs: {}", (*it)->get_address());
+        //     // 记录处理当前基站已经处理过该任务
+        //     m_base_stations->dispatching_record(t->id(), fmt::format("{:ip}", (*it)->get_address()));
+        // }
+
+        // 搜索看其他基站是否还没有处理过该任务
+        if (auto it = std::find_if(m_base_stations->begin(), m_base_stations->end(), 
+            non_dispatched_bs); it != m_base_stations->end()) {
+            fmt::print(" dispatching it to bs[{:ip}] bacause of lacking resource.\n", (*it)->get_address());
+            
+            // 分发到其他基站处理
+            m_udp_application->write(packet, (*it)->get_address(), (*it)->get_port());
+        } else {
+            fmt::print(" dispatching it to {:ip} bacause of lacking resource.\n", m_cs_address.first);
+
+            // 分发到云服务器处理
+            msg.type(message_handling);
+            m_udp_application->write(msg.to_packet(), m_cs_address.first, m_cs_address.second);
+
+            // 擦除分发记录
+            m_base_stations->erase_dispatching_record(t->id());
+        }
+    }
+}
+
 base_station_container::base_station_container(std::size_t n)
 {
     m_base_stations.reserve(n);
-    for (std::size_t i = 0; i < n; ++i)
-        m_base_stations.emplace_back(std::make_shared<base_station>());
+    for (std::size_t i = 0; i < n; ++i) {
+        auto bs = std::make_shared<base_station>();
+        bs->push_base_stations(this);
+        m_base_stations.emplace_back(bs);
+    }
 }
 
 auto base_station_container::link_cloud(const cloud_server& cs) -> void
@@ -156,6 +242,29 @@ auto base_station_container::get(std::size_t index) -> pointer_t
 auto base_station_container::size() -> std::size_t
 {
     return m_base_stations.size();
+}
+
+auto base_station_container::dispatching_record(const std::string& task_id, const std::string& bs_ip)
+    -> void
+{
+    m_dispatching_record.emplace(task_id, bs_ip);
+}
+
+auto base_station_container::dispatched(const std::string& task_id, const std::string& bs_ip)
+    -> bool
+{
+    auto records = m_dispatching_record.equal_range(task_id);
+    for (auto i = records.first; i != records.second; ++i) {
+        if (i->second == bs_ip)
+            return false;
+    }
+
+    return true;
+}
+
+auto base_station_container::erase_dispatching_record(const std::string& task_id) -> void
+{
+    m_dispatching_record.erase(task_id);
 }
 
 } // namespace okec

@@ -53,6 +53,7 @@ private:
     auto on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void;
     auto on_dispatching_failure_message(Ptr<Packet> packet, const Address& remote_address) -> void;
     auto on_dispatching_success_message(Ptr<Packet> packet, const Address& remote_address) -> void;
+    auto on_handling_message(Ptr<Packet> packet, const Address& remote_address) -> void;
     
 
 private:
