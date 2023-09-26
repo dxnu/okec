@@ -83,7 +83,7 @@ auto client_device::send_task(std::shared_ptr<base_station> bs, const cloud_serv
 
     // 资源不足，远端处理
     message msg;
-    msg.type(message_offloading_task);
+    msg.type(message_decision);
     msg.content(t);
     auto packet = packet_helper::make_packet(msg.dump());
 
@@ -97,7 +97,7 @@ auto client_device::send_tasks(std::shared_ptr<base_station> bs, const cloud_ser
     task_container& container, const ns3::Time& delay) -> void
 {
     double launch_time = delay.ToDouble(ns3::Time::S);
-    std::for_each(container.begin(), container.end(), [&](Ptr<task> t) {
+    std::ranges::for_each(container, [&](Ptr<task> t) {
         this->m_details.emplace_back(task_details{t->id(), t->group()});
 
         this->send_task(bs, cs, t, Seconds(launch_time));

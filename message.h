@@ -63,6 +63,7 @@ inline constexpr std::string_view message_handling { "handling" };
 inline constexpr std::string_view message_dispatching { "dispatching" };
 inline constexpr std::string_view message_dispatching_failure { "dispatching-failure" };
 inline constexpr std::string_view message_dispatching_success { "dispatching-success" };
+inline constexpr std::string_view message_decision { "decision" };
 // inline constexpr std::string_view 
 
 } // namespace okec

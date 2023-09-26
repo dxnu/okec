@@ -81,7 +81,7 @@ struct fmt::formatter<okec::task_container> {
         });
 
         ts_info += fmt::format("{0:=^{1}}\n", "", property_len);
-        return fmt::format_to(ctx.out(), ts_info);
+        return fmt::format_to(ctx.out(), fmt::runtime(ts_info));
     }
 };
 
@@ -126,7 +126,7 @@ struct fmt::formatter<okec::resource_container> {
         });
 
         rs_info += fmt::format("{0:=^{1}}\n", "", property_len);
-        return fmt::format_to(ctx.out(), rs_info);
+        return fmt::format_to(ctx.out(), fmt::runtime(rs_info));
     }
 };
 

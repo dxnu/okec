@@ -8,6 +8,21 @@
 namespace okec
 {
 
+struct task_header
+{
+    int budget;
+    int deadline;
+    std::string from_ip;
+    uint16_t from_port;
+    std::string group;
+    std::string id;
+    int needed_cpu_cycles;
+    int needed_memory;
+    int priority;
+};
+
+struct task_body {};
+
 
 class task : public ns3::SimpleRefCount<task>
 {
@@ -56,11 +71,16 @@ public:
     // 任务大小
     auto size() -> std::size_t;
 
+    auto get_header() -> task_header;
+
+    auto get_body() -> task_body;
+
     // construct task from packet
     static auto from_packet(Ptr<Packet> packet) -> Ptr<task>;
 
 private:
     json m_task;
+    task_header m_header;
 };
 
 

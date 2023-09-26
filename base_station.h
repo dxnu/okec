@@ -5,6 +5,7 @@
 #include "edge_device.h"
 #include "task.h"
 #include "fmt/color.h"
+#include <concepts>
 #include <functional> // for std::reference_wrapper
 
 
@@ -13,10 +14,16 @@ namespace okec
 
 class base_station_container;
 
+template <typename T>
+concept decision_maker_t = requires (T t) { t.make_decision(task_header{}); };
 
 class base_station
 {
-    using value_type   = std::reference_wrapper<edge_device>;
+public:
+    using value_type     = std::reference_wrapper<edge_device>;
+    using callback_type  = std::function<void(base_station*, Ptr<Packet>, const Address&)>;
+    using detach_predicate_type = std::function<bool(std::shared_ptr<base_station> base)>;
+    using detach_result_type = std::function<void(const ns3::Ipv4Address&, uint16_t)>;
 
 public:
     base_station();
@@ -35,7 +42,30 @@ public:
     auto link_cloud(const cloud_server& cs) -> void;
 
     auto push_base_stations(base_station_container* base_stations) -> void;
+
+    auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
     
+    auto get_edge_devices() const -> edge_device_container;
+
+    auto write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) const -> void;
+
+    auto erase_dispatching_record(const std::string& task_id) const -> void;
+
+    auto dispatched(const std::string& task_id, const std::string& bs_ip) const -> bool;
+
+    auto dispatching_record(const std::string& task_id) const -> void;
+
+    auto detach(detach_predicate_type pred, detach_result_type yes, detach_result_type no) const -> void;
+
+    auto task_sequence(Ptr<task> t) -> void;
+
+    auto make_decision(decision_maker_t auto& dmaker, task_header header) -> void
+    {
+        // dmaker.make_decision(std::move(header));
+
+        fmt::print("决策完成\n");
+    }
+
 private:
  
     // default version
@@ -49,12 +79,16 @@ public:
     Ptr<Node> m_node;
     std::pair<ns3::Ipv4Address, uint16_t> m_cs_address;
     base_station_container* m_base_stations;
+    std::vector<Ptr<task>> m_task_sequence;
 };
 
 
 class base_station_container
 {
-    using pointer_t = std::shared_ptr<base_station>;
+public:
+    using pointer_t     = std::shared_ptr<base_station>;
+    using callback_type = base_station::callback_type;
+
 public:
     base_station_container(std::size_t n);
 
@@ -85,6 +119,14 @@ public:
         return m_base_stations.end();
     }
 
+    auto cbegin() const {
+        return m_base_stations.cbegin();
+    }
+
+    auto cend() const {
+        return m_base_stations.cend();
+    }
+
     auto size() -> std::size_t;
 
     // 记录分发处理情况
@@ -95,6 +137,8 @@ public:
 
     // 擦除分发记录
     auto erase_dispatching_record(const std::string& task_id) -> void;
+
+    auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
 
 private:
     std::vector<pointer_t> m_base_stations;

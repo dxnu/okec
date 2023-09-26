@@ -117,6 +117,25 @@ auto task::size() -> std::size_t
     return m_task.size();
 }
 
+auto task::get_header() -> task_header
+{
+    auto [ip, port] = this->from();
+
+    task_header header {
+        .budget = this->budget(),
+        .deadline = this->deadline(),
+        .from_ip = ip,
+        .from_port = port,
+        .group = this->group(),
+        .id = this->id(),
+        .needed_cpu_cycles = this->needed_cpu_cycles(),
+        .needed_memory = this->needed_memory(),
+        .priority = this->priority()
+    };
+
+    return header;
+}
+
 auto task::from_packet(Ptr<Packet> packet) -> Ptr<task>
 {
     Ptr<task> t = ns3::Create<task>();
