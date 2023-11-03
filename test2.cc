@@ -120,7 +120,6 @@ auto on_decision_message(okec::base_station* bs, Ptr<Packet> packet, const Addre
 }
 
 
-
 auto main(int argc, char **argv) -> int
 {
     CommandLine cmd;
@@ -139,24 +138,18 @@ auto main(int argc, char **argv) -> int
     okec::client_device_container client_devices(4);
     okec::edge_device_container edge_devices1(1);
     okec::edge_device_container edge_devices2(3);
-    // bs->connect_device(edge_devices1);
-    // base_stations[0]->connect_device(edge_devices1);
-    // base_stations[1]->connect_device(edge_devices2);
     if (!base_stations.connect_device(edge_devices1, edge_devices2))
         return EXIT_FAILURE;
-    // okec::initialize_communication(client_devices, *bs, cs);
     okec::initialize_communication(client_devices, base_stations, cs);
 
-    // bs->link_cloud(cs);
     base_stations.link_cloud(cs);
-    cs.push_base_stations(&base_stations);
+    // cs.push_base_stations(&base_stations);
 
     // 初始化决策设备信息
     dmaker.initialize_device(&base_stations, &cs);
 
     base_stations.set_request_handler(okec::message_decision, &on_decision_message);
     
-
     okec::task_container t_container(10);
     t_container.random_initialization();
     t_container.print();
@@ -176,9 +169,15 @@ auto main(int argc, char **argv) -> int
     edge_devices1.install_resources(edge1_rcontainer);   // 一键为所有边缘设备安装资源
     edge_devices2.install_resources(edge2_rcontainer);   // 一键为所有边缘设备安装资源
 
+    auto cloud_resource = okec::make_resource();
+    cloud_resource->cpu_cycles(20000);
+    cloud_resource->memory(50000);
+    cs.install_resource(cloud_resource);
+
+
     // 发送任务
     auto device_0 = client_devices.get_device(0);
-    device_0->send_tasks(base_stations[1], cs, t_container);
+    device_0->send_tasks(base_stations[0], cs, t_container);
     
 
     Simulator::Stop(Seconds(20));

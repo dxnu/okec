@@ -20,6 +20,37 @@ resource::resource()
 {
 }
 
+resource::resource(const resource& other)
+    : m_cpu_cycles { other.m_cpu_cycles }
+    , m_memory { other.m_memory }
+    , m_id { other.m_id }
+    , m_price { other.m_price }
+{
+}
+
+resource::resource(resource&& other) noexcept
+    : m_cpu_cycles { std::exchange(other.m_cpu_cycles, 0) }
+    , m_memory { std::exchange(other.m_memory, 0) }
+    , m_id { std::exchange(other.m_id, {}) }
+    , m_price { std::exchange(other.m_price, {}) }
+{
+}
+
+resource& resource::operator=(resource other) noexcept
+{
+    swap(*this, other);
+    return *this;
+}
+
+resource& resource::operator=(resource&& other) noexcept
+{
+    m_cpu_cycles = std::exchange(other.m_cpu_cycles, 0);
+    m_memory = std::exchange(other.m_memory, 0);
+    m_id = std::exchange(other.m_id, {});
+    m_price = std::exchange(other.m_price, {});
+    return *this;
+}
+
 auto resource::GetTypeId() -> TypeId
 {
     static TypeId tid = TypeId("okec::resource")
@@ -38,9 +69,9 @@ auto resource::cpu_cycles() const -> int
     return m_cpu_cycles;
 }
 
-auto resource::cpu_cycles(int cycles) -> void
+auto resource::cpu_cycles(int cycles) -> int
 {
-    m_cpu_cycles = cycles;
+    return std::exchange(m_cpu_cycles, cycles);
 }
 
 auto resource::id() const -> std::string
@@ -71,6 +102,15 @@ auto resource::price() const -> price_type
 auto resource::price(price_type money) -> void
 {
     m_price = money;
+}
+
+void swap(resource& lhs, resource& rhs) noexcept
+{
+    using std::swap;
+    swap(lhs.m_cpu_cycles, rhs.m_cpu_cycles);
+    swap(lhs.m_memory, rhs.m_memory);
+    swap(lhs.m_id, rhs.m_id);
+    swap(lhs.m_price, rhs.m_price);
 }
 
 auto make_resource() -> Ptr<resource>
@@ -119,7 +159,7 @@ auto resource_container::random_initialization() -> void
     static rng dre{ (rng::result_type)time(0) };
 
     // 生成需要的 cpu_cycles
-    std::uniform_int_distribution<uint> cpu_cycles_uid(0, 5000);
+    std::uniform_int_distribution<uint> cpu_cycles_uid(2000, 5000);
 
     // 生成需要的 memory
     std::uniform_int_distribution<uint> memory_uid(0, 4000);

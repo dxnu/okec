@@ -39,6 +39,7 @@ public:
 private:
     auto handle_task(Ptr<task> t) -> void;
     auto on_handling_message(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
+    auto on_get_resource_information(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
 
 public:
     ns3::Ptr<Node> m_node;

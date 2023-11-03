@@ -18,9 +18,29 @@ message::message(std::initializer_list<std::pair<std::string_view, std::string_v
     }
 }
 
+message::message(const message& other)
+    : j_ { other.j_ }
+{
+}
+
+message& message::operator=(message other) noexcept
+{
+    swap(*this, other);
+    return *this;
+}
+
 auto message::attribute(std::string_view key, std::string_view value) -> void
 {
     j_[key] = value;
+}
+
+auto message::get_value(std::string_view key) -> std::string
+{
+    std::string result{};
+    if (j_.contains(key))
+        result = j_[key].get<std::string>();
+    
+    return result;
 }
 
 auto message::dump() -> std::string
@@ -106,6 +126,12 @@ auto message::valid() -> bool
         return true;
     else
         return false;
+}
+
+void swap(message& lhs, message& rhs) noexcept
+{
+    using std::swap;
+    swap(lhs.j_, rhs.j_);
 }
 
 } // namespace okec

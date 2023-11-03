@@ -3,10 +3,12 @@
 
 #include "cloud_server.h"
 #include "edge_device.h"
+#include "message.h"
 #include "task.h"
 #include "fmt/color.h"
 #include <concepts>
 #include <functional> // for std::reference_wrapper
+#include <ranges>
 
 
 namespace okec
@@ -61,9 +63,24 @@ public:
 
     auto make_decision(decision_maker_t auto& dmaker, task_header header) -> void
     {
-        // dmaker.make_decision(std::move(header));
+        auto [target_ip, target_port] = dmaker.make_decision(header);
+        fmt::print("决策完成 target ip: {}, target port: {}\n", target_ip, target_port);
 
-        fmt::print("决策完成\n");
+        auto pred = [&header](Ptr<task> t) {
+            return header.id == t->id();
+        };
+
+        if (auto it = std::ranges::find_if(m_task_sequence, pred); 
+            it != m_task_sequence.end()) {
+            message msg {
+                { "msgtype", message_handling },
+                { "content", (*it)->get_body().instructions },
+                { "task_id", header.id },
+                { "cpu_demand", std::to_string((*it)->needed_cpu_cycles()) }
+            };
+            // fmt::print("task: {}\n", msg.dump());
+            m_udp_application->write(msg.to_packet(), ns3::Ipv4Address(target_ip.c_str()), target_port);
+        }
     }
 
 private:
@@ -71,6 +88,7 @@ private:
     // default version
     auto on_dispatching_message(Ptr<Packet>, const Address& remoteAddress) -> void;
     auto on_offloading_message(Ptr<Packet>, const Address& remoteAddress) -> void;
+    auto on_response(Ptr<Packet>, const Address& remoteAddress) -> void;
 
 
 public:

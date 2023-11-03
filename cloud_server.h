@@ -2,6 +2,7 @@
 #define OKEC_CLOUD_DEVICE_H
 
 #include "task.h"
+#include "resource.h"
 #include "udp_application.h"
 #include "ns3/internet-module.h"
 #include "ns3/node-container.h"
@@ -47,6 +48,12 @@ public:
     auto push_base_stations(base_station_container* base_stations) -> void;
 
     auto offload_task(const task&) const -> std::pair<Ipv4Address, uint16_t>;
+
+    // 获取当前设备绑定的资源
+    auto get_resource() -> Ptr<resource>;
+
+    // 为当前设备安装资源
+    auto install_resource(Ptr<resource> res) -> void;
 
 private:
     // 处理请求回调函数

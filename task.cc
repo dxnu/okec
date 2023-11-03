@@ -136,6 +136,11 @@ auto task::get_header() -> task_header
     return header;
 }
 
+auto task::get_body() -> task_body
+{
+    return task_body{"100"}; // fixed instruction size
+}
+
 auto task::from_packet(Ptr<Packet> packet) -> Ptr<task>
 {
     Ptr<task> t = ns3::Create<task>();
@@ -198,10 +203,10 @@ auto task_container::random_initialization(const std::string& group) -> void
     std::uniform_int_distribution<uint> budget_uid(0, 10000);
 
     // 生成时限
-    std::uniform_int_distribution<uint> deadline_uid(0, 100);
+    std::uniform_int_distribution<uint> deadline_uid(1, 5);
 
     // 生成需要的 cpu_cycles
-    std::uniform_int_distribution<uint> cpu_cycles_uid(0, 5000);
+    std::uniform_int_distribution<uint> cpu_cycles_uid(3000, 30000);
 
     // 生成需要的 memory
     std::uniform_int_distribution<uint> memory_uid(0, 4000);

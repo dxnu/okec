@@ -21,7 +21,10 @@ struct task_header
     int priority;
 };
 
-struct task_body {};
+struct task_body
+{
+    std::string instructions;
+};
 
 
 class task : public ns3::SimpleRefCount<task>
@@ -80,7 +83,6 @@ public:
 
 private:
     json m_task;
-    task_header m_header;
 };
 
 

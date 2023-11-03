@@ -17,6 +17,11 @@ class resource : public ns3::Object
 
 public:
     resource();
+    resource(const resource& other);
+    resource(resource&& other) noexcept;
+    resource& operator=(resource other) noexcept;
+    resource& operator=(resource&& other) noexcept;
+    friend void swap(resource& lhs, resource& rhs) noexcept;
 
     static auto GetTypeId() -> TypeId;
 
@@ -24,7 +29,7 @@ public:
 
     // CPU
     auto cpu_cycles() const -> int;
-    auto cpu_cycles(int cycles) -> void;
+    auto cpu_cycles(int cycles) -> int;
 
     auto id() const -> std::string;
     auto id(std::string id) -> void;

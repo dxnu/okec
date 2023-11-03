@@ -68,7 +68,18 @@ auto cloud_server::push_base_stations(base_station_container* base_stations) -> 
     }
 }
 
-auto cloud_server::on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void
+auto cloud_server::get_resource() -> Ptr<resource>
+{
+    return m_node->GetObject<resource>();
+}
+
+auto cloud_server::install_resource(Ptr<resource> res) -> void
+{
+    res->install(m_node);
+}
+
+auto
+cloud_server::on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void
 {
     fmt::print("cloud[{:ip}] handles the request\n", this->get_address());
     
@@ -143,26 +154,53 @@ auto cloud_server::on_dispatching_success_message(Ptr<Packet> packet,
 
 auto cloud_server::on_handling_message(Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    auto t = packet_helper::to_task(packet);
-    auto [ip, port] = t->from();
-    fmt::print("cloud handles the task, and returns response to {}:{}\n", ip, port);
+    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remote_address);
+
+    message msg { packet };
+    auto instructions = msg.content<std::string>();
+    auto cpu_demand = msg.get_value("cpu_demand");
+    auto task_id = msg.get_value("task_id");
+
+    auto processing_time = std::stod(cpu_demand) / get_resource()->cpu_cycles();
+
+    fmt::print("cloud server handles instructions: {}, processing_time: {}\n", 
+        instructions, processing_time);
+
+    // 执行任务
+    Simulator::Schedule(ns3::Seconds(processing_time), +[](const ns3::Time& time, double processing_time, cloud_server* self, const std::string& task_id, const ns3::Ipv4Address& desination) {
+
+        auto device_address = fmt::format("{:ip}", self->get_address());
+        // 返回消息
+        message response {
+            { "msgtype", "response" },
+            { "task_id", task_id },
+            { "device_type", "cs" },
+            { "device_address", device_address },
+            { "processing_time", fmt::format("{}", processing_time) }
+        };
+        self->m_udp_application->write(response.to_packet(), desination, self->get_port());
+    }, Simulator::Now(), processing_time, this, task_id, inetRemoteAddress.GetIpv4());
+
+    // auto t = packet_helper::to_task(packet);
+    // auto [ip, port] = t->from();
+    // fmt::print("cloud handles the task, and returns response to {}:{}\n", ip, port);
     
 
-    auto r = make_response();
-    r->task_id(t->id());
-    r->handling_device("cs", fmt::format("{:ip}", this->get_address()));
-    r->group(t->group());
-    // message msg {
-    //     { "msgtype", message_response },
-    //     { "content", "response value: 10000000" }
-    // };
-    message msg;
-    msg.type(message_response);
-    msg.content(r);
-    m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
+    // auto r = make_response();
+    // r->task_id(t->id());
+    // r->handling_device("cs", fmt::format("{:ip}", this->get_address()));
+    // r->group(t->group());
+    // // message msg {
+    // //     { "msgtype", message_response },
+    // //     { "content", "response value: 10000000" }
+    // // };
+    // message msg;
+    // msg.type(message_response);
+    // msg.content(r);
+    // m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
 
-    // 清除当前任务的分发记录
-    // m_task_dispatching_record.erase(t->id());
+    // // 清除当前任务的分发记录
+    // // m_task_dispatching_record.erase(t->id());
 }
 
 } // namespace okec

@@ -65,6 +65,17 @@ auto client_device::send_task(std::shared_ptr<base_station> bs, const cloud_serv
     auto address = fmt::format("{:ip}", this->get_address());
     t->from(address, this->get_port());
 
+    // 计算传输时延
+    Ptr<NetDevice> device = m_node->GetDevice(0);
+    Ptr<Channel> channel = device->GetChannel();
+    if (channel) {
+        StringValue bandwidth, channelGain;
+        channel->GetAttribute("DataRate", bandwidth);
+        // channel->GetAttribute("RxGain", channelGain);
+        fmt::print("设备的信道带宽：{}，信道增益：\n", bandwidth.Get()/*, channelGain.Get()*/);
+    }
+
+
     // 资源充足，本地处理
     if (this->free_cpu_cycles() > t->needed_cpu_cycles() &&
         this->free_memory() > t->needed_memory()) {
@@ -109,10 +120,18 @@ auto client_device::handle_response(Ptr<Packet> packet, const Address& remote_ad
 {
     fmt::print("client device[{:ip}] receives", m_udp_application->get_address(), m_udp_application->get_port());
 
-    auto r = packet_helper::to_response(packet);
-    auto [device_type, device_address] = r->handling_device();
-    fmt::print(" response: task_id={}, device_type={}, device_address={}, group={}\n",
-        r->task_id(), device_type, device_address, r->group());
+    // auto r = packet_helper::to_response(packet);
+    // auto [device_type, device_address] = r->handling_device();
+
+    message msg(packet);
+    auto task_id = msg.get_value("task_id");
+    auto device_type = msg.get_value("device_type");
+    auto device_address = msg.get_value("device_address");
+    auto group = msg.get_value("group");
+    auto processing_time = msg.get_value("processing_time");
+
+    fmt::print(" response: task_id={}, device_type={}, device_address={}, group={}, processing_time={}\n",
+        task_id, device_type, device_address, group, processing_time);
 
     // for (auto& detail : m_details) {
     //     if (r->group() == detail.group && r->task_id() == detail.task_id) {
@@ -122,16 +141,16 @@ auto client_device::handle_response(Ptr<Packet> packet, const Address& remote_ad
     //         break;
     //     }
     // }
-    if (auto it = std::find_if(m_details.begin(), m_details.end(), [&r](auto& detail) {
-        return r->group() == detail.group && r->task_id() == detail.task_id;
+    if (auto it = std::ranges::find_if(m_details, [&task_id, &group](auto& detail) {
+        return group == detail.group && task_id == detail.task_id;
     }); it != m_details.end()) {
         (*it).device_type = device_type;
         (*it).device_address = device_address;
         (*it).finished = true;
     }
 
-    if (auto it = std::find_if(m_details.begin(), m_details.end(), [&r](auto& detail) {
-        return r->group() == detail.group && !detail.finished;
+    if (auto it = std::ranges::find_if(m_details, [&task_id, &group](auto& detail) {
+        return group == detail.group && !detail.finished;
     }); it != m_details.end()) {
         // 部分完成
         fmt::print("部分完成\n");

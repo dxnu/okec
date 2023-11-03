@@ -19,8 +19,12 @@ public:
     message() = default;
     message(Ptr<Packet> packet);
     message(std::initializer_list<std::pair<std::string_view, std::string_view>> values);
+    message(const message& other);
+    message& operator=(message other) noexcept;
+    friend void swap(message& lhs, message& rhs) noexcept;
 
     auto attribute(std::string_view key, std::string_view value) -> void;
+    auto get_value(std::string_view key) -> std::string;
 
     auto dump() -> std::string;
 

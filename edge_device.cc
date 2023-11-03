@@ -27,6 +27,10 @@ edge_device::edge_device()
     m_udp_application->set_request_handler(message_handling, [this](Ptr<Packet> packet, const Address& remote_address) {
         this->on_handling_message(packet, remote_address);
     });
+
+    m_udp_application->set_request_handler("get_resource_information", [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_get_resource_information(packet, remote_address);
+    });
 }
 
 auto edge_device::free_cpu_cycles() const -> int
@@ -103,28 +107,81 @@ void edge_device::handle_task(Ptr<task> t)
     msg.type(message_response);
     msg.content(r);
 
-    // message msg {
-    //     { "msgtype", message_response },
-    //     { "content", "response value: 42" }
-    // };
     m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
 }
 
 auto edge_device::on_handling_message(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
-    // InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remote_address);
+    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remote_address);
     // fmt::print("edge device handle request from {:ip}, done it.\n", inetRemoteAddress.GetIpv4());
-    fmt::print("edge server[{:ip}] handles the request\n", this->get_address());
+    fmt::print("edge server[{:ip}] handles the request from {:ip}\n", this->get_address(), inetRemoteAddress.GetIpv4());
     
-    auto t = packet_helper::to_task(packet);
+    message msg { packet };
+    auto instructions = msg.content<std::string>();
+    auto cpu_demand = msg.get_value("cpu_demand");
+    auto task_id = msg.get_value("task_id");
 
-    // 能到这里，说明设备上必须有资源
-    auto res = this->get_resource();
-    res->cpu_cycles(res->cpu_cycles() - t->needed_cpu_cycles()); // 标记资源已使用
-    res->memory(res->memory() - t->needed_memory());             // 标记资源已使用
+    auto processing_time = std::stod(cpu_demand) / get_resource()->cpu_cycles();
+
+    fmt::print("edge server handles instructions: {}, "
+        "cpu demand: {}, processing time: {}\n", instructions, cpu_demand, processing_time);
+
+    // 通知资源更新情况
+    auto old_cpu_cycles = get_resource()->cpu_cycles(0); // 标记资源已用完
+    message notify_msg {
+        { "msgtype", "resource_changed" },
+        { "ip", fmt::format("{:ip}", this->get_address()) },
+        { "port", std::to_string(get_port()) },
+        { "cpu_cycles", std::to_string(get_resource()->cpu_cycles()) }
+    };
+    fmt::print("<<<<<<<<<<<<packet: {}\n", notify_msg.dump());
+    m_udp_application->write(notify_msg.to_packet(), inetRemoteAddress.GetIpv4(), this->get_port());
     
-    // 处理任务
-    handle_task(t);
+
+    // 执行任务
+    Simulator::Schedule(ns3::Seconds(processing_time), +[](const ns3::Time& time, double processing_time, edge_device* self, int old_cpu_cycles, const std::string& task_id, const ns3::Ipv4Address& desination) {
+        auto begin_time = time.GetMilliSeconds();
+        auto end_time = Simulator::Now().GetMilliSeconds();
+        fmt::print("======begin time: {}, end time: {}, processing_time: {}, duration:{}\n", 
+            begin_time, end_time, processing_time,  end_time - begin_time);
+
+        // 释放资源
+        self->get_resource()->cpu_cycles(old_cpu_cycles);
+        auto device_address = fmt::format("{:ip}", self->get_address());
+        message notify_msg {
+            { "msgtype", "resource_changed" },
+            { "ip", device_address },
+            { "port", std::to_string(self->get_port()) },
+            { "cpu_cycles", std::to_string(old_cpu_cycles) }
+        };
+        self->m_udp_application->write(notify_msg.to_packet(), desination, self->get_port());
+
+        // 返回消息
+        message response {
+            { "msgtype", "response" },
+            { "task_id", task_id },
+            { "device_type", "es" },
+            { "device_address", device_address },
+            { "processing_time", fmt::format("{}", processing_time) }
+        };
+        self->m_udp_application->write(response.to_packet(), desination, self->get_port());
+    }, Simulator::Now(), processing_time, this, old_cpu_cycles, task_id, inetRemoteAddress.GetIpv4());
+}
+
+auto edge_device::on_get_resource_information(
+    ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
+{
+    // fmt::print("on_get_resource_information from {:ip}\n", InetSocketAddress::ConvertFrom(remote_address).GetIpv4());
+    message msg {
+        { "msgtype", "resource_information" },
+        { "ip", fmt::format("{:ip}", this->get_address()) },
+        { "port", fmt::format("{}", this->get_port()) },
+        { "cycles", fmt::format("{}", this->free_cpu_cycles()) },
+        { "memory", fmt::format("{}", this->free_memory()) }
+    };
+
+    // fmt::print("resource information: {}\n", msg.dump());
+    m_udp_application->write(msg.to_packet(), InetSocketAddress::ConvertFrom(remote_address).GetIpv4(), 8860);
 }
 
 edge_device_container::edge_device_container(std::size_t n)

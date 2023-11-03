@@ -1,7 +1,6 @@
 #include "base_station.h"
 #include "cloud_server.h"
 #include "format_helper.hpp"
-#include "message.h"
 #include "ns3/ipv4.h"
 #include "ns3/csma-module.h"
 #include "ns3/internet-module.h"
@@ -36,6 +35,9 @@ base_station::base_station()
     // m_udp_application->set_request_handler(message_offloading_task, [this](Ptr<Packet> packet, const Address& remote_address) {
     //     this->on_offloading_message(packet, remote_address);
     // });
+    m_udp_application->set_request_handler("response", [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_response(packet, remote_address);
+    });
 }
 
 auto base_station::connect_device(edge_device_container& devices) -> void
@@ -254,6 +256,25 @@ auto base_station::on_offloading_message(Ptr<Packet> packet, const Address& remo
             // 擦除分发记录
             m_base_stations->erase_dispatching_record(t->id());
         }
+    }
+}
+
+auto base_station::on_response(Ptr<Packet> packet, const Address& remoteAddress) -> void
+{
+    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remoteAddress);
+    fmt::print("I received a response from {:ip}\n", inetRemoteAddress.GetIpv4());
+
+    message msg(packet);
+
+    auto pred = [&msg](Ptr<task> t) {
+        return msg.get_value("task_id") == t->id();
+    };
+
+    if (auto it = std::ranges::find_if(m_task_sequence, pred);
+        it != m_task_sequence.end()) {
+        auto [ip, port] = (*it)->from();
+        msg.attribute("group", (*it)->group());
+        m_udp_application->write(msg.to_packet(), ns3::Ipv4Address(ip.c_str()), port);
     }
 }
 
