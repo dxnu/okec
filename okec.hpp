@@ -1,6 +1,12 @@
 #ifndef OKEC_HPP
 #define OKEC_HPP
 
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/point-to-point-module.h"
 #include "base_station.h"
 #include "client_device.h"
 #include "resource.h"
@@ -185,7 +191,7 @@ void initialize_communication(client_device_container& client,
 
     // 连接用户设备和基站间的路由器
     ns3::CsmaHelper csma1;
-    csma1.SetChannelAttribute("DataRate", StringValue("100Mbps"));
+    csma1.SetChannelAttribute("DataRate", StringValue("50Mbps"));
     csma1.SetChannelAttribute("Delay", TimeValue(NanoSeconds (6560)));
     for (i = 0; i < bs_size; ++i) {
         lan_client.Add(router_level_one[i].Get(0));

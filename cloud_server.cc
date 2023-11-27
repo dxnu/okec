@@ -2,6 +2,7 @@
 #include "base_station.h"
 #include "message.h"
 #include "format_helper.hpp"
+#include "ns3/mobility-module.h"
 
 
 namespace okec
@@ -12,26 +13,14 @@ cloud_server::cloud_server()
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(10));
+    m_udp_application->SetStopTime(Seconds(300));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);
 
-    // 设置响应回调函数
-    m_udp_application->set_request_handler(message_offloading_task, [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->on_offloading_message(packet, remote_address);
-    });
-
-    m_udp_application->set_request_handler(message_dispatching_failure, [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->on_dispatching_failure_message(packet, remote_address);
-    });
-
-    m_udp_application->set_request_handler(message_dispatching_success, [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->on_dispatching_success_message(packet, remote_address);
-    });
-
-    m_udp_application->set_request_handler(message_handling, [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->on_handling_message(packet, remote_address);
+    // 设置默认回调函数
+    m_udp_application->set_request_handler(message_get_resource_information, [this](Ptr<Packet> packet, const Address& remote_address) {
+        this->on_get_resource_information(packet, remote_address);
     });
 }
 
@@ -56,18 +45,6 @@ auto cloud_server::get_port() const -> uint16_t
     return m_udp_application->get_port();
 }
 
-auto cloud_server::push_base_station(bs_pointer_t bs) -> void
-{
-    m_base_stations.push_back(bs);
-}
-
-auto cloud_server::push_base_stations(base_station_container* base_stations) -> void
-{
-    for (auto bs : *base_stations) {
-        this->push_base_station(bs);
-    }
-}
-
 auto cloud_server::get_resource() -> Ptr<resource>
 {
     return m_node->GetObject<resource>();
@@ -78,129 +55,54 @@ auto cloud_server::install_resource(Ptr<resource> res) -> void
     res->install(m_node);
 }
 
-auto
-cloud_server::on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void
+auto cloud_server::set_position(double x, double y, double z) -> void
 {
-    fmt::print("cloud[{:ip}] handles the request\n", this->get_address());
-    
-    auto msg = message::from_packet(packet);
-    msg.type(message_dispatching);
-    
-    m_udp_application->write(msg.to_packet(), m_base_stations[0]->get_address(), m_base_stations[0]->get_port());
-    
-    // 记录当前任务的转发信息
-    auto task = msg.to_task();
-    auto bs_ip = fmt::format("{:ip}", m_base_stations[0]->get_address());
-    m_task_dispatching_record.emplace(task->id(), bs_ip);
-}
-
-auto cloud_server::on_dispatching_failure_message(Ptr<Packet> packet, 
-    const Address& remote_address) -> void
-{
-    fmt::print("cloud[{:ip}] handles the request\n", this->get_address());
-
-    // 失败的 IP 地址
-    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    auto failed_addr = fmt::format("{:ip}", inetRemoteAddress.GetIpv4());
-
-    auto msg = message::from_packet(packet);
-    auto t = msg.to_task();
-
-    auto non_dispatched_base_station = [&t, this](bs_pointer_t bs) {
-        auto task_id = t->id();
-        auto current_addr = fmt::format("{:ip}", bs->get_address());
-        auto records = m_task_dispatching_record.equal_range(task_id);
-        for (auto i = records.first; i != records.second; ++i) {
-            if (i->second == current_addr) { // record_ip == current_ip
-                // fmt::print("record ip:{}, current ip:{}\n", i->second, current_addr);
-                return false;
-            }
-        }
-        return true;
-    };
-
-    if (auto it = std::find_if(std::begin(m_base_stations), std::end(m_base_stations), 
-        non_dispatched_base_station); it != std::end(m_base_stations)) {
-        // 交给其他 BS 处理
-        msg.type(message_dispatching);
-        auto bs_ip = fmt::format("{:ip}", (*it)->get_address());
-        m_task_dispatching_record.emplace(t->id(), bs_ip);
-        m_udp_application->write(msg.to_packet(), (*it)->get_address(), (*it)->get_port());
+    Ptr<MobilityModel> mobility = m_node->GetObject<MobilityModel>();
+    if (!mobility) {
+        mobility = CreateObject<ConstantPositionMobilityModel>();
+        mobility->SetPosition(Vector(x, y, z));
+        m_node->AggregateObject(mobility);
     } else {
-        // 没有可用 BS，直接云端处理
-        auto t = packet_helper::to_task(packet);
-        auto [ip, port] = t->from();
-        fmt::print("cloud returns response to {}:{}\n", ip, port);
-        
-        message msg {
-            { "msgtype", message_response },
-            { "content", "response value: 10000000" }
-        };
-        m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
-
-        // 清除当前任务的分发记录
-        m_task_dispatching_record.erase(t->id());
+        mobility->SetPosition(Vector(x, y, z));
     }
-
 }
 
-auto cloud_server::on_dispatching_success_message(Ptr<Packet> packet, 
-    const Address& remote_address) -> void
+auto cloud_server::get_position() -> Vector
 {
-    // 清除当前任务的分发记录
-    auto t = packet_helper::to_task(packet);
-    m_task_dispatching_record.erase(t->id());
+    Ptr<MobilityModel> mobility = m_node->GetObject<MobilityModel>();
+    return mobility ? mobility->GetPosition() : Vector();
 }
 
-auto cloud_server::on_handling_message(Ptr<Packet> packet, const Address& remote_address) -> void
+auto cloud_server::set_request_handler(std::string_view msg_type, callback_type callback) -> void
 {
-    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remote_address);
-
-    message msg { packet };
-    auto instructions = msg.content<std::string>();
-    auto cpu_demand = msg.get_value("cpu_demand");
-    auto task_id = msg.get_value("task_id");
-
-    auto processing_time = std::stod(cpu_demand) / get_resource()->cpu_cycles();
-
-    fmt::print("cloud server handles instructions: {}, processing_time: {}\n", 
-        instructions, processing_time);
-
-    // 执行任务
-    Simulator::Schedule(ns3::Seconds(processing_time), +[](const ns3::Time& time, double processing_time, cloud_server* self, const std::string& task_id, const ns3::Ipv4Address& desination) {
-
-        auto device_address = fmt::format("{:ip}", self->get_address());
-        // 返回消息
-        message response {
-            { "msgtype", "response" },
-            { "task_id", task_id },
-            { "device_type", "cs" },
-            { "device_address", device_address },
-            { "processing_time", fmt::format("{}", processing_time) }
-        };
-        self->m_udp_application->write(response.to_packet(), desination, self->get_port());
-    }, Simulator::Now(), processing_time, this, task_id, inetRemoteAddress.GetIpv4());
-
-    // auto t = packet_helper::to_task(packet);
-    // auto [ip, port] = t->from();
-    // fmt::print("cloud handles the task, and returns response to {}:{}\n", ip, port);
-    
-
-    // auto r = make_response();
-    // r->task_id(t->id());
-    // r->handling_device("cs", fmt::format("{:ip}", this->get_address()));
-    // r->group(t->group());
-    // // message msg {
-    // //     { "msgtype", message_response },
-    // //     { "content", "response value: 10000000" }
-    // // };
-    // message msg;
-    // msg.type(message_response);
-    // msg.content(r);
-    // m_udp_application->write(msg.to_packet(), Ipv4Address{ip.c_str()}, port);
-
-    // // 清除当前任务的分发记录
-    // // m_task_dispatching_record.erase(t->id());
+    m_udp_application->set_request_handler(msg_type, 
+        [callback, this](Ptr<Packet> packet, const Address& remote_address) {
+            callback(this, packet, remote_address);
+        });
 }
+
+auto cloud_server::write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) const -> void
+{
+    m_udp_application->write(packet, destination, port);
+}
+
+auto cloud_server::on_get_resource_information(Ptr<Packet> packet, const Address& remote_address) -> void
+{
+    auto device_resource = get_resource();
+    if (!device_resource || device_resource->empty())
+        return; // 没有安装资源，或资源为空，都不返回任何消息
+
+
+    message msg {
+        { "msgtype", "resource_information" },
+        { "device_type", "cs" },
+        { "pos_x", fmt::format("{}", get_position().x) },
+        { "pos_y", fmt::format("{}", get_position().y) },
+        { "pos_z", fmt::format("{}", get_position().z) }
+    };
+    msg.content(*device_resource);
+    m_udp_application->write(msg.to_packet(), InetSocketAddress::ConvertFrom(remote_address).GetIpv4(), 8860);
+}
+
 
 } // namespace okec

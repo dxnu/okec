@@ -2,7 +2,6 @@
 #define OKEC_MESSAGE_HANDLER_
 
 #include "utils/delegate.hpp"
-#include "utils/singleton.hpp"
 #include <functional>
 #include <string>
 
@@ -12,11 +11,6 @@ namespace okec
 {
 
 
-/**
- * Message type:
- * - distributing_task
- * - response
-*/
 template <typename CallbackType = std::function<void()>>
 class message_handler {
 	using delegate_type = utils::delegate<std::string_view, CallbackType>;

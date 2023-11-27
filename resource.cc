@@ -12,44 +12,6 @@ namespace okec
 
 NS_OBJECT_ENSURE_REGISTERED(resource);
 
-resource::resource()
-    : m_cpu_cycles{}
-    , m_memory{}
-    , m_id{}
-    , m_price{}
-{
-}
-
-resource::resource(const resource& other)
-    : m_cpu_cycles { other.m_cpu_cycles }
-    , m_memory { other.m_memory }
-    , m_id { other.m_id }
-    , m_price { other.m_price }
-{
-}
-
-resource::resource(resource&& other) noexcept
-    : m_cpu_cycles { std::exchange(other.m_cpu_cycles, 0) }
-    , m_memory { std::exchange(other.m_memory, 0) }
-    , m_id { std::exchange(other.m_id, {}) }
-    , m_price { std::exchange(other.m_price, {}) }
-{
-}
-
-resource& resource::operator=(resource other) noexcept
-{
-    swap(*this, other);
-    return *this;
-}
-
-resource& resource::operator=(resource&& other) noexcept
-{
-    m_cpu_cycles = std::exchange(other.m_cpu_cycles, 0);
-    m_memory = std::exchange(other.m_memory, 0);
-    m_id = std::exchange(other.m_id, {});
-    m_price = std::exchange(other.m_price, {});
-    return *this;
-}
 
 auto resource::GetTypeId() -> TypeId
 {
@@ -64,53 +26,55 @@ auto resource::install(Ptr<Node> node) -> void
     node->AggregateObject(this);
 }
 
-auto resource::cpu_cycles() const -> int
+resource::resource(json item) noexcept
 {
-    return m_cpu_cycles;
+    if (item.contains("/resource"_json_pointer)) {
+        j_ = std::move(item);
+    }
 }
 
-auto resource::cpu_cycles(int cycles) -> int
+auto resource::attribute(std::string_view key, std::string_view value) -> void
 {
-    return std::exchange(m_cpu_cycles, cycles);
+    j_["resource"][key] = value;
 }
 
-auto resource::id() const -> std::string
+auto resource::reset_value(std::string_view key, std::string_view value) -> std::string
 {
-    return m_id;
+    return std::exchange(j_["resource"][key], value);
 }
 
-auto resource::id(std::string id) -> void
+auto resource::get_value(std::string_view key) const -> std::string
 {
-    m_id = std::move(id);
+    std::string result{};
+    json::json_pointer j_key{ "/resource/" + std::string(key) };
+    if (j_.contains(j_key))
+        j_.at(j_key).get_to(result);
+    
+    return result;
 }
 
-auto resource::memory() const -> int
+auto resource::dump() -> std::string
 {
-    return m_memory;
+    return j_.dump();
 }
 
-auto resource::memory(int mem) -> void
+auto resource::empty() const -> bool
 {
-    m_memory = mem;
+    return !j_.contains("/resource"_json_pointer);
 }
 
-auto resource::price() const -> price_type
+auto resource::j_data() const -> json
 {
-    return m_price;
+    return j_;
 }
 
-auto resource::price(price_type money) -> void
+auto resource::from_msg_packet(Ptr<Packet> packet) -> resource
 {
-    m_price = money;
-}
-
-void swap(resource& lhs, resource& rhs) noexcept
-{
-    using std::swap;
-    swap(lhs.m_cpu_cycles, rhs.m_cpu_cycles);
-    swap(lhs.m_memory, rhs.m_memory);
-    swap(lhs.m_id, rhs.m_id);
-    swap(lhs.m_price, rhs.m_price);
+    json j = packet_helper::to_json(packet);
+    if (!j.is_null() && j.contains("/content/resource"_json_pointer))
+        return resource(j["content"]);
+    
+    return resource{};
 }
 
 auto make_resource() -> Ptr<resource>
@@ -159,7 +123,7 @@ auto resource_container::random_initialization() -> void
     static rng dre{ (rng::result_type)time(0) };
 
     // 生成需要的 cpu_cycles
-    std::uniform_int_distribution<uint> cpu_cycles_uid(2000, 5000);
+    std::uniform_int_distribution<uint> cpu_cycles_uid(2000, 10000);
 
     // 生成需要的 memory
     std::uniform_int_distribution<uint> memory_uid(0, 4000);
@@ -168,10 +132,10 @@ auto resource_container::random_initialization() -> void
     std::uniform_int_distribution<uint> price_uid(0, 10000);
 
     for (std::size_t i = 0; i < size(); ++i) {
-        m_resources[i]->id(id_data[i]);
-        m_resources[i]->cpu_cycles(cpu_cycles_uid(dre));
-        m_resources[i]->memory(memory_uid(dre));
-        m_resources[i]->price(price_uid(dre));
+        m_resources[i]->attribute("id", id_data[i]);
+        m_resources[i]->attribute("cpu_cycle", std::to_string(cpu_cycles_uid(dre)));
+        m_resources[i]->attribute("memory", std::to_string(memory_uid(dre)));
+        m_resources[i]->attribute("price", std::to_string(price_uid(dre)));
     }
 }
 

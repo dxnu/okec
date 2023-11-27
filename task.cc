@@ -3,6 +3,8 @@
 #include "ns3/ptr.h"
 #include <algorithm>
 #include <random>
+#include <sstream>
+#include <fstream>
 
 
 #define CHECK_INDEX(index) \
@@ -12,230 +14,368 @@ if (index > size()) throw std::out_of_range{"index out of range"}
 namespace okec
 {
 
-task::task()
+task_element::task_element(json* item) noexcept
+{
+    if (item->contains("/header"_json_pointer)) {
+        elem_ = item; // ref
+        is_dynamically_allocated = false;
+    }
+    else
+        elem_ = nullptr;
+}
+
+task_element::task_element(json item) noexcept
+{
+    if (item.contains("/header"_json_pointer)) {
+        elem_ = new json(std::move(item)); // copy
+        is_dynamically_allocated = true;
+    }
+    else
+        elem_ = nullptr;
+}
+
+task_element::task_element(const task_element& other) noexcept
+{
+    if (this != &other) {
+        elem_ = new json(*other.elem_); // copy
+        is_dynamically_allocated = true;
+    }
+}
+
+task_element& task_element::operator=(const task_element& other) noexcept
+{
+    if (this != &other) {
+        elem_ = new json(*other.elem_); // copy
+        is_dynamically_allocated = true;
+    }
+
+    return *this;
+}
+
+task_element::task_element(task_element&& other) noexcept
+    : elem_ { std::exchange(other.elem_, nullptr) }
+    , is_dynamically_allocated { std::exchange(other.is_dynamically_allocated, false) }
 {
 }
 
-auto task::budget() const -> int
+task_element& task_element::operator=(task_element&& other) noexcept
 {
-    return m_task["budget"];
+    elem_ = std::exchange(other.elem_, nullptr);
+    is_dynamically_allocated = std::exchange(other.is_dynamically_allocated, false);
+    return *this;
 }
 
-auto task::budget(int money) -> void
+task_element::~task_element()
 {
-    m_task["budget"] = money;
+    if (elem_ != nullptr && is_dynamically_allocated)
+        delete elem_;
 }
 
-auto task::deadline() const -> int
+auto task_element::get_header(const std::string& key) const -> std::string
 {
-    return m_task["deadline"];
+    std::string result{};
+    json::json_pointer j_key{ "/header/" + key };
+    if (elem_ && elem_->contains(j_key))
+        elem_->at(j_key).get_to(result);
+    
+    return result;
 }
 
-auto task::deadline(int duration) -> void
+auto task_element::set_header(std::string_view key, std::string_view value) -> bool
 {
-    m_task["deadline"] = duration;
+    if (elem_) {
+        json::json_pointer j_key{ "/header/" + std::string(key) };
+        (*elem_)[j_key] = value;
+        return true;
+    }
+
+    return false;
 }
 
-auto task::from(const std::string& ip, uint16_t port) -> void
+auto task_element::get_body(const std::string& key) const -> std::string
 {
-    m_task["from_ip"] = ip;
-    m_task["from_port"] = port;
+    std::string result{};
+    json::json_pointer j_key{ "/body/" + key };
+    if (elem_ && elem_->contains(j_key))
+        elem_->at(j_key).get_to(result);
+    
+    return result;
 }
 
-auto task::from() -> std::pair<const std::string, uint16_t>
+auto task_element::j_data() const -> json
 {
-    return std::make_pair(m_task["from_ip"], m_task["from_port"]);
+    return elem_ ? *elem_ : json{};
 }
 
-auto task::group() const -> std::string
+auto task_element::empty() const -> bool
 {
-    return m_task["group"];
+    return elem_;
 }
 
-auto task::group(std::string g) -> void
+auto task_element::from_msg_packet(Ptr<Packet> packet) -> task_element
 {
-    m_task["group"] = std::move(g);
+    json j = packet_helper::to_json(packet);
+    if (!j.is_null() && j.contains("/content/header"_json_pointer))
+        return task_element(j["content"]);
+    
+    return task_element{nullptr};
 }
 
-auto task::needed_cpu_cycles() const -> int
+auto task_element::dump() const -> std::string
 {
-    return m_task["needed_cpu_cycles"];
+    std::string result{};
+    if (!elem_->is_null())
+        result = elem_->dump();
+    return result;
 }
 
-auto task::needed_cpu_cycles(int cycles) -> void
+task::task(json other)
 {
-    m_task["needed_cpu_cycles"] = cycles;
+    if (other.contains("/task/items"_json_pointer))
+        m_task = std::move(other);
 }
 
-auto task::needed_memory() const -> int
+auto task::from_packet(Ptr<Packet> packet) -> task
 {
-    return m_task["needed_memory"];
+    json j = packet_helper::to_json(packet);
+    return j.is_null() ? task{} : task(j);
 }
 
-auto task::needed_memory(int memory) -> void
+auto task::from_msg_packet(Ptr<Packet> packet) -> task
 {
-    m_task["needed_memory"] = memory;
+    json j = packet_helper::to_json(packet);
+    if (!j.is_null() && j.contains("/content/task"_json_pointer))
+        return task(j["content"]);
+    
+    return task{};
 }
 
-auto task::priority() const -> int
+auto task::emplace_back(task_header_t header_attrs, task_body_t body_attrs) -> void
 {
-    return m_task["priority"];
+    json item;
+    // Set header attributes
+    for (auto [key, value] : header_attrs) {
+        item["header"][key] = value;
+    }
+
+    // Set body attributes
+    for (auto [key, value] : body_attrs) {
+        item["body"][key] = value;
+    }
+
+    m_task["task"]["items"].emplace_back(std::move(item));
 }
 
-auto task::priority(int prior) -> void
-{
-    m_task["priority"] = prior;
-}
-
-auto task::id() const -> std::string
-{
-    return m_task["id"];
-}
-
-auto task::id(std::string id) -> void
-{
-    m_task["id"] = std::move(id);
-}
-
-auto task::empty() -> bool
-{
-    return m_task.is_null();
-}
-
-auto task::to_packet() const -> Ptr<Packet>
-{
-    return packet_helper::make_packet(m_task.dump());
-}
-
-auto task::to_string() const -> std::string
+auto task::dump() const -> std::string
 {
     return m_task.dump();
 }
 
-auto task::size() -> std::size_t
+auto task::elements() -> std::vector<task_element>
 {
-    return m_task.size();
+    std::vector<task_element> items;
+    items.reserve(this->size());
+    for (json& item : m_task["task"]["items"])
+        items.emplace_back(task_element(&item));
+
+    return items;
 }
 
-auto task::get_header() -> task_header
+auto task::data() -> json
 {
-    auto [ip, port] = this->from();
-
-    task_header header {
-        .budget = this->budget(),
-        .deadline = this->deadline(),
-        .from_ip = ip,
-        .from_port = port,
-        .group = this->group(),
-        .id = this->id(),
-        .needed_cpu_cycles = this->needed_cpu_cycles(),
-        .needed_memory = this->needed_memory(),
-        .priority = this->priority()
-    };
-
-    return header;
+    return m_task["task"]["items"];
 }
 
-auto task::get_body() -> task_body
+auto task::j_data() const -> json
 {
-    return task_body{"100"}; // fixed instruction size
+    return m_task;
 }
 
-auto task::from_packet(Ptr<Packet> packet) -> Ptr<task>
+auto task::is_null() const -> bool
 {
-    Ptr<task> t = ns3::Create<task>();
-    json j = packet_helper::to_json(packet);
+    return m_task.is_null();
+}
 
-    // 可以解析任务，则构建任务
-    if (!j.is_null()) {
-        t->budget(j["budget"].get<int>());
-        t->deadline(j["deadline"].get<int>());
-        t->from(j["from_ip"].get<std::string>(), j["from_port"].get<uint16_t>());
-        t->needed_cpu_cycles(j["needed_cpu_cycles"].get<int>());
-        t->needed_memory(j["needed_memory"].get<int>());
-        t->priority(j["priority"].get<int>());
-        t->id(j["id"].get<std::string>());
-        t->group(j["group"].get<std::string>());
+auto task::size() const -> std::size_t
+{
+    if (m_task.contains("/task/items"_json_pointer))
+        return m_task["task"]["items"].size();
+
+    return 0;
+}
+
+auto task::set_if(attributes_t values, auto f) -> void
+{
+    for (auto& item : m_task["task"]["items"]) {
+        bool cond{true};
+        for (auto [key, value] : values) {
+            if (item[key] != value)
+                cond = false;
+        }
+
+        if (cond) {
+            f(item);
+            break;
+        }
+    }
+}
+
+auto
+task::find_if(attributes_t values) -> task
+{
+    task result{};
+    for (const auto& item : m_task["task"]["items"]) {
+        bool cond{true};
+        for (auto [key, value] : values) {
+            if (item[key] != value)
+                cond = false;
+        }
+
+        if (cond) {
+            result.push_back(item);
+        }
+    }
+    return result;
+}
+
+auto task::find_if(attribute_t value) -> task
+{
+    return find_if({value});
+}
+
+auto task::contains(attributes_t values) -> bool
+{
+    for (auto& item : m_task["task"]["items"]) {
+        bool cond = true;
+        for (auto [key, value] : values) {
+            if (item[key] != value)
+                cond = false;
+        }
+
+        if (cond)
+            return true;
     }
 
-    return t;
+    return false;
 }
 
-task_container::task_container(std::size_t n)
+auto task::get_header(const json& element, const std::string& key) -> std::string
 {
-    m_tasks.reserve(n);
-    for (std::size_t i = 0; i < n; ++i)
-        m_tasks.emplace_back(ns3::Create<task>());
+    std::string result{};
+    json::json_pointer j_key{ "/header/" + key };
+    if (element.contains(j_key))
+        element.at(j_key).get_to(result);
+    
+    return result;
 }
 
-auto task_container::operator[](std::size_t index) -> Ptr<task>
+auto task::get_body(const json& element, const std::string& key) -> std::string
 {
-    return this->get(index);
+    std::string result{};
+    json::json_pointer j_key{ "/body/" + key };
+    if (element.contains(j_key))
+        element.at(j_key).get_to(result);
+    
+    return result;
 }
 
-auto task_container::operator()(std::size_t index) -> Ptr<task>
+auto task::get_unique_id() -> std::string
 {
-    return this->get(index);
+    static std::random_device              rd;
+    static std::mt19937                    gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+
+    std::stringstream ss;
+    int i;
+    ss << std::hex << std::uppercase;
+    for (i = 0; i < 8; i++) {
+        ss << dis(gen);
+    }
+    // ss << "-";
+    for (i = 0; i < 4; i++) {
+        ss << dis(gen);
+    }
+    // ss << "-4";
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    // ss << "-";
+    ss << dis2(gen);
+    for (i = 0; i < 3; i++) {
+        ss << dis(gen);
+    }
+    // ss << "-";
+    for (i = 0; i < 12; i++) {
+        ss << dis(gen);
+    };
+    return ss.str();
 }
 
-auto task_container::get(std::size_t index) -> Ptr<task>
+auto task::get_random_number(long min, long max) -> std::string
 {
-    CHECK_INDEX(index);
-    return m_tasks[index];
-}
-
-auto task_container::random_initialization(const std::string& group) -> void
-{
-    // 生成 ID
-    int id_len = this->size();
-    int width = 8;
-    std::vector<int> id_vec(id_len);
-    std::vector<std::string> id_data(id_len);
-    std::iota(id_vec.begin(), id_vec.end(), 0);
-    std::transform(id_vec.begin(), id_vec.end(), id_data.begin(), [&width](int n) {
-        auto sn = std::to_string(n);
-        return std::string(width - std::min(width, (int)sn.length()), '0') + sn; 
-    });
-
-    // 生成预算
     using rng = std::default_random_engine;
     static rng dre{ (rng::result_type)time(0) };
-    std::uniform_int_distribution<uint> budget_uid(0, 10000);
+    std::uniform_int_distribution<int> uid(min, max);
+    return std::to_string(uid(dre));
+}
 
-    // 生成时限
-    std::uniform_int_distribution<uint> deadline_uid(1, 5);
+auto task::print() -> void
+{
+    fmt::print("{0:=^{1}}\n", "Task Info", 120);
+    int index{1};
+    for (const auto& item : m_task["task"]["items"])
+    {
+        fmt::print("[{:>3}] ", index++);
+        if (item.contains("/header"_json_pointer))
+        {
+            for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
+            {
+                fmt::print("{}: {} ", it.key(), it.value());
+            }
+        }
 
-    // 生成需要的 cpu_cycles
-    std::uniform_int_distribution<uint> cpu_cycles_uid(3000, 30000);
-
-    // 生成需要的 memory
-    std::uniform_int_distribution<uint> memory_uid(0, 4000);
-
-    // 生成优先级
-    std::uniform_int_distribution<uint> priority_uid(0, 100);
-
-    for (std::size_t i = 0; i < size(); ++i) {
-        m_tasks[i]->id(id_data[i]);
-        m_tasks[i]->budget(budget_uid(dre));
-        m_tasks[i]->deadline(deadline_uid(dre));
-        m_tasks[i]->needed_cpu_cycles(cpu_cycles_uid(dre));
-        m_tasks[i]->needed_memory(memory_uid(dre));
-        m_tasks[i]->priority(priority_uid(dre));
-        m_tasks[i]->group(group);
+        if (item.contains("/body"_json_pointer))
+        {
+            for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
+            {
+                fmt::print("{}: {} ", it.key(), it.value());
+            }
+        }
+        fmt::print("\n");
     }
+
+    fmt::print("{0:=^{1}}\n", "", 120);
 }
 
-auto task_container::size() const -> std::size_t
+auto task::save_to_file(const char* file_name) -> void
 {
-    return m_tasks.size();
+    std::ofstream fout(file_name);
+    fout << std::setw(4) << m_task << std::endl;
+    fout.close();
 }
 
-auto task_container::print(std::string title) -> void
+auto task::read_from_file(const char* file_name) -> bool
 {
-    if (!title.empty())
-        fmt::print("{}\n", title);
+    std::ifstream fin(file_name);
+    if (!fin.is_open())
+        return false;
+
+    json data;
+    fin >> data;
+    fin.close();
+
+    if (!data.contains("/task/items"_json_pointer))
+        return false;
     
-    fmt::print("{:ts}\n", *this);
+    m_task = std::move(data);
+    return true;
 }
+
+auto task::push_back(const json& sub) -> void
+{
+    m_task.push_back(sub);
+}
+
 
 } // namespace okec

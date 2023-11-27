@@ -22,14 +22,9 @@ using ns3::Seconds;
 using ns3::Socket;
 
 
-class base_station;
-class base_station_container;
-
 
 class cloud_server {
-    using bs_ref_type = std::reference_wrapper<base_station>;
-    using bs_pointer_t = std::shared_ptr<base_station>;
-
+    using callback_type  = std::function<void(cloud_server*, Ptr<Packet>, const Address&)>;
 
 public:
     cloud_server();
@@ -44,31 +39,26 @@ public:
     // 返回当前设备的端口号
     auto get_port() const -> uint16_t;
 
-    auto push_base_station(bs_pointer_t bs) -> void;
-    auto push_base_stations(base_station_container* base_stations) -> void;
-
-    auto offload_task(const task&) const -> std::pair<Ipv4Address, uint16_t>;
-
     // 获取当前设备绑定的资源
     auto get_resource() -> Ptr<resource>;
 
     // 为当前设备安装资源
     auto install_resource(Ptr<resource> res) -> void;
 
+    auto set_position(double x, double y, double z) -> void;
+    auto get_position() -> Vector;
+
+    auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
+
+    auto write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) const -> void;
+
 private:
     // 处理请求回调函数
-    auto on_offloading_message(Ptr<Packet> packet, const Address& remote_address) -> void;
-    auto on_dispatching_failure_message(Ptr<Packet> packet, const Address& remote_address) -> void;
-    auto on_dispatching_success_message(Ptr<Packet> packet, const Address& remote_address) -> void;
-    auto on_handling_message(Ptr<Packet> packet, const Address& remote_address) -> void;
-    
+    auto on_get_resource_information(Ptr<Packet> packet, const Address& remote_address) -> void;
 
 private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;
-    // std::vector<bs_ref_type> m_base_stations;
-    std::vector<bs_pointer_t> m_base_stations;
-    std::multimap<std::string, std::string> m_task_dispatching_record; // [task_id, bs_ip] 
 };
 
 

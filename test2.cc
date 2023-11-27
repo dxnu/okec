@@ -1,136 +1,18 @@
-#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/csma-module.h"
-#include "ns3/point-to-point-module.h"
-#include <iostream>
-
-#include "format_helper.hpp"
+#include "default_decision_engine.h"
 #include "okec.hpp"
-#include "message.h"
-#include "decision_maker.h"
+#include "response_visulizer.hpp"
 
 
 using namespace ns3;
-
-
-NS_LOG_COMPONENT_DEFINE("MyEIP");
-
-// void ResourceMemoryTrace(double oldval, double newval)
-// {
-//     std::cout << "-->ResourceMemory changed: from " << oldval << " to " << newval << std::endl;
-// }
-
-// void ResourceCpuTrace(double oldval, double newval)
-// {
-//     std::cout << "-->ResourceCpu changed: from " << oldval << " to " << newval << std::endl;
-// }
-
-// void ResourceMemoryContextTrace(std::string context, int oldval, int newval)
-// {
-//     std::cout << context << "-->ResourceMemory changed: from " << oldval << " to " << newval << std::endl;
-// }
-
-// void ResourceCpuContextTrace(std::string context, int oldval, int newval)
-// {
-//     std::cout << context << "-->ResourceCpu changed: from " << oldval << " to " << newval << std::endl;
-// }
-
-auto on_offloading_message(const okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
-{
-    using namespace okec;
-
-    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    fmt::print("bs[{:ip}] receives the offloading request from {:ip},", 
-        bs->get_address(), inetRemoteAddress.GetIpv4());
-
-    bool handled{};
-    auto msg = message::from_packet(packet);
-    auto t = msg.to_task();
-
-    auto header = t->get_header();
-    fmt::print("header: {} {} {} {} {} {} {}\n", header.budget, header.deadline, header.from_ip, header.from_port, header.id, header.group, header.priority);
-
-    for (auto device : bs->get_edge_devices()) {
-        if (device->free_cpu_cycles() > t->needed_cpu_cycles() &&
-            device->free_memory() > t->needed_memory() &&
-            device->price() <= t->budget()) {
-
-            fmt::print(" dispatching it to {:ip} to handle the concrete tasks.\n", device->get_address());
-
-            // 能够处理
-            msg.type(message_handling);
-            bs->write(msg.to_packet(), device->get_address(), device->get_port());
-            handled = true;
-            
-            // 擦除分发记录
-            bs->erase_dispatching_record(t->id());
-
-            break;
-        }
-    }
-
-    // 不能处理，消息需要再次转发
-    if (!handled) {
-
-        // 是否还未分发到过此基站
-        auto non_dispatched_bs = [&t, &bs](std::shared_ptr<base_station> base) {
-            return bs->dispatched(t->id(), fmt::format("{:ip}", base->get_address()));
-        };
-
-        // 标记当前基站已经处理过该任务，但没有处理成功
-        bs->dispatching_record(t->id());
-
-
-        // 搜索看其他基站是否还没有处理过该任务
-        bs->detach(non_dispatched_bs, 
-            [&bs, &packet](const ns3::Ipv4Address& address, uint16_t port) {
-                fmt::print(" dispatching it to bs[{:ip}] bacause of lacking resource.\n", address);
-            
-                // 分发到其他基站处理
-                bs->write(packet, address, port);
-            },
-            [&bs, &msg, &t](const ns3::Ipv4Address& address, uint16_t port) {
-                fmt::print(" dispatching it to {:ip} bacause of lacking resource.\n", address);
-
-                // 分发到云服务器处理
-                msg.type(message_handling);
-                bs->write(msg.to_packet(), address, port);
-
-                // 擦除分发记录
-                bs->erase_dispatching_record(t->id());
-            });
-        
-    }
-}
-
-
-okec::decision_maker dmaker;
-
-auto on_decision_message(okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
-{
-    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    fmt::print("bs[{:ip}] receives the decision request from {:ip}\n", bs->get_address(), inetRemoteAddress.GetIpv4());
-
-    namespace packet_helper =  okec::packet_helper;
-    auto t = packet_helper::to_task(packet);
-    bs->task_sequence(t); // save the task to task_sequence
-    bs->make_decision(dmaker, t->get_header());
-}
-
 
 auto main(int argc, char **argv) -> int
 {
     CommandLine cmd;
     cmd.Parse(argc, argv);
 
-    Time::SetResolution(Time::NS);
-    LogComponentEnable("MyEIP", LOG_LEVEL_INFO);
-
     fmt::print("C++ version: {}\n", __cplusplus);
-    ////////////////////////////////////////////////////////////////
 
+    Time::SetResolution(Time::NS);
     LogComponentEnable("udp_application", LOG_LEVEL_INFO);
 
     okec::base_station_container base_stations(2);
@@ -142,17 +24,17 @@ auto main(int argc, char **argv) -> int
         return EXIT_FAILURE;
     okec::initialize_communication(client_devices, base_stations, cs);
 
-    base_stations.link_cloud(cs);
-    // cs.push_base_stations(&base_stations);
+    // 设置用户设备位置
+    client_devices.get_device(1)->set_position(0, 20, 30);
+    client_devices.get_device(1)->set_position(1, 1, 1);
+    client_devices.get_device(2)->set_position(2, 2, 2);
+    client_devices.get_device(3)->set_position(4, 4, 4);
+    // 设置基站位置
+    base_stations.get(0)->set_position(50, 50, 50);
+    base_stations.get(1)->set_position(80, 50, 50);
+    // 设置云服务器位置
+    cs.set_position(1000, 1000, 1000);
 
-    // 初始化决策设备信息
-    dmaker.initialize_device(&base_stations, &cs);
-
-    base_stations.set_request_handler(okec::message_decision, &on_decision_message);
-    
-    okec::task_container t_container(10);
-    t_container.random_initialization();
-    t_container.print();
 
     // 配置资源
     okec::resource_container client_rcontainer(client_devices.size());
@@ -170,17 +52,60 @@ auto main(int argc, char **argv) -> int
     edge_devices2.install_resources(edge2_rcontainer);   // 一键为所有边缘设备安装资源
 
     auto cloud_resource = okec::make_resource();
-    cloud_resource->cpu_cycles(20000);
-    cloud_resource->memory(50000);
+    cloud_resource->attribute("cpu_cycle", "20000");
+    cloud_resource->attribute("memory", "50000");
     cs.install_resource(cloud_resource);
 
+    auto decision_engine = std::make_shared<okec::default_decision_engine>(&base_stations, &cs);
+    base_stations.set_decision_engine(decision_engine);
 
-    // 发送任务
-    auto device_0 = client_devices.get_device(0);
-    device_0->send_tasks(base_stations[0], cs, t_container);
-    
 
-    Simulator::Stop(Seconds(20));
+    okec::task t3;
+    // if (!t3.read_from_file("task.json")) {
+    //     fmt::print("Failed to read task data\n");
+    //     return EXIT_FAILURE;
+    // }
+    for (int i = 0; i < 10; ++i)
+    {
+        t3.emplace_back({
+            { "task_id", okec::task::get_unique_id() },
+            { "group", "one" },
+            { "cpu_cycle", okec::task::get_random_number(1000, 10000) },
+            { "deadline", okec::task::get_random_number(1, 5) },
+            { "input_size", okec::task::get_random_number(10000, 100000) }
+        }, {
+            { "instructions", "xxx" }
+        });
+    }
+    t3.print();
+
+    // t3.save_to_file("task.json");
+
+    auto device_1 = client_devices.get_device(1);
+    device_1->send_to(base_stations[1], t3);
+    device_1->when_done([](okec::response res) {
+        fmt::print("{0:=^{1}}\n", "Response Info", 165);
+        double es_count{};
+        int index{1};
+        std::vector<double> points;
+        for (const auto& item : res.data()) {
+            fmt::print("[{:>3}] ", index++);
+            fmt::print("id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {}s, send_time: {}s, finished: {}\n",
+                item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["send_time"], item["finished"]);
+            if (item["device_type"] == "es") {
+                points.push_back(std::stod( fmt::format("{}", item["time_consuming"]) ));
+                es_count++;
+            }
+        }
+        fmt::print("task completion rate: {:.3f}\n", es_count / res.size());
+        fmt::print("Average processing time: {:.3f}s\n", std::accumulate(points.begin(), points.end(), .0) / points.size());
+        fmt::print("{0:=^{1}}\n", "", 165);
+
+        okec::draw(points);
+    });
+
+
+    Simulator::Stop(Seconds(300));
     Simulator::Run();
     Simulator::Destroy();
 }

@@ -1,16 +1,17 @@
 #include "client_device.h"
-#include "message.h"
 #include "resource.h"
+
 
 
 namespace okec
 {
+
 client_device::client_device()
     : m_node{ ns3::CreateObject<Node>() },
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(10));
+    m_udp_application->SetStopTime(Seconds(300));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);
@@ -21,22 +22,9 @@ client_device::client_device()
     });
 }
 
-auto client_device::free_cpu_cycles() const -> int
+auto client_device::get_resource() -> Ptr<resource>
 {
-    auto res = m_node->GetObject<resource>();
-    if (res == nullptr)
-        return -1;
-
-    return res->cpu_cycles();
-}
-
-auto client_device::free_memory() const -> int
-{
-    auto res = m_node->GetObject<resource>();
-    if (res == nullptr)
-        return -1;
-
-    return res->memory();
+    return m_node->GetObject<resource>();
 }
 
 auto client_device::get_address() const -> ns3::Ipv4Address
@@ -60,110 +48,105 @@ auto client_device::install_resource(Ptr<resource> res) -> void
     res->install(m_node);
 }
 
-auto client_device::send_task(std::shared_ptr<base_station> bs, const cloud_server& cs, Ptr<task> t, const ns3::Time& delay) -> void
+auto client_device::send_to(std::shared_ptr<base_station> bs, task& t) -> void
 {
-    auto address = fmt::format("{:ip}", this->get_address());
-    t->from(address, this->get_port());
-
-    // 计算传输时延
-    Ptr<NetDevice> device = m_node->GetDevice(0);
-    Ptr<Channel> channel = device->GetChannel();
-    if (channel) {
-        StringValue bandwidth, channelGain;
-        channel->GetAttribute("DataRate", bandwidth);
-        // channel->GetAttribute("RxGain", channelGain);
-        fmt::print("设备的信道带宽：{}，信道增益：\n", bandwidth.Get()/*, channelGain.Get()*/);
-    }
-
-
-    // 资源充足，本地处理
-    if (this->free_cpu_cycles() > t->needed_cpu_cycles() &&
-        this->free_memory() > t->needed_memory()) {
-        fmt::print("handling task(id={}) at current client device.\n", t->id());
-
-        if (auto it = std::find_if(m_details.begin(), m_details.end(), [&t](auto& detail) {
-            return t->group() == detail.group && t->id() == detail.task_id;
-        }); it != m_details.end()) {
-            (*it).device_type = "local";
-            (*it).device_address = address;
-            (*it).finished = true;
-        }
-
-        return;
-    }
-
-    // 资源不足，远端处理
+    // 任务不能以 task 为单位发送，因为 task 可能会非常大，导致发送的数据断页，在目的端便无法恢复数据
+    // 以 task_element 为单位发送则可以避免 task 大小可能会带来的问题
+    double launch_delay{ 1.0 };
     message msg;
     msg.type(message_decision);
-    msg.content(t);
-    auto packet = packet_helper::make_packet(msg.dump());
+    for (auto& item : t.elements())
+    {
+        m_response.emplace_back({
+            { "task_id", item.get_header("task_id") },
+            { "group", item.get_header("group") },
+            { "finished", "0" }, // 1 indicates finished, while 0 signifies the opposite.
+            { "device_type", "" },
+            { "device_address", "" },
+            { "time_consuming", "" },
+            { "send_time", "" }
+        });
 
-    // ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, bs.get_address(), bs.get_port());
-    // 
-    // ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, cs.get_address(), cs.get_port());
-    ns3::Simulator::Schedule(delay, &udp_application::write, m_udp_application, packet, bs->get_address(), bs->get_port());
+        // 追加任务发送地址信息
+        item.set_header("from_ip", fmt::format("{:ip}", this->get_address()));
+        item.set_header("from_port", std::to_string(this->get_port()));
+
+        msg.content(item);
+        ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &udp_application::write, m_udp_application, msg.to_packet(), bs->get_address(), bs->get_port());
+        launch_delay += 0.1;
+    }
 }
 
-auto client_device::send_tasks(std::shared_ptr<base_station> bs, const cloud_server& cs,
-    task_container& container, const ns3::Time& delay) -> void
+auto client_device::when_done(done_callback_t fn) -> void
 {
-    double launch_time = delay.ToDouble(ns3::Time::S);
-    std::ranges::for_each(container, [&](Ptr<task> t) {
-        this->m_details.emplace_back(task_details{t->id(), t->group()});
+    m_done_fn = fn;
+}
 
-        this->send_task(bs, cs, t, Seconds(launch_time));
-        launch_time += 0.1;
-    });
+auto client_device::set_position(double x, double y, double z) -> void
+{
+    Ptr<MobilityModel> mobility = m_node->GetObject<MobilityModel>();
+    if (!mobility) {
+        mobility = CreateObject<ConstantPositionMobilityModel>();
+        mobility->SetPosition(Vector(x, y, z));
+        m_node->AggregateObject(mobility);
+    } else {
+        mobility->SetPosition(Vector(x, y, z));
+    }
 }
 
 auto client_device::handle_response(Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    fmt::print("client device[{:ip}] receives", m_udp_application->get_address(), m_udp_application->get_port());
-
-    // auto r = packet_helper::to_response(packet);
-    // auto [device_type, device_address] = r->handling_device();
+    fmt::print(fg(fmt::color::red), "At time {:.2f}s Client device[{:ip}] receives", Simulator::Now().GetSeconds(), m_udp_application->get_address(), m_udp_application->get_port());
 
     message msg(packet);
     auto task_id = msg.get_value("task_id");
     auto device_type = msg.get_value("device_type");
     auto device_address = msg.get_value("device_address");
     auto group = msg.get_value("group");
-    auto processing_time = msg.get_value("processing_time");
+    auto time_consuming = msg.get_value("processing_time");
+    auto send_time = msg.get_value("send_time");
 
-    fmt::print(" response: task_id={}, device_type={}, device_address={}, group={}, processing_time={}\n",
-        task_id, device_type, device_address, group, processing_time);
+    fmt::print(fg(fmt::color::red), " response: task_id={}, device_type={}, device_address={}, group={}, processing_time={}, send_time={}\n",
+        task_id, device_type, device_address, group, time_consuming, send_time);
 
-    // for (auto& detail : m_details) {
-    //     if (r->group() == detail.group && r->task_id() == detail.task_id) {
-    //         detail.device_type = device_type;
-    //         detail.device_address = device_address;
-    //         detail.finished = true;
-    //         break;
-    //     }
-    // }
-    if (auto it = std::ranges::find_if(m_details, [&task_id, &group](auto& detail) {
-        return group == detail.group && task_id == detail.task_id;
-    }); it != m_details.end()) {
-        (*it).device_type = device_type;
-        (*it).device_address = device_address;
-        (*it).finished = true;
+    m_response.set_if({
+        { "group", group },
+        { "task_id", task_id }
+    }, [&device_type, &device_address, &time_consuming, &send_time](auto& item) {
+        item["device_type"] = device_type;
+        item["device_address"] = device_address;
+        item["time_consuming"] = time_consuming;
+        item["send_time"] = send_time;
+        item["finished"] = "1";
+    });
+
+    // 显示当前任务进度条
+    auto total = m_response.count_if({ "group", group });
+    auto finished = m_response.count_if({{ "group", group }, { "finished", "1" }});
+    fmt::print(fg(fmt::color::red), "Current task progress: {0:█^{1}}{0:▒^{2}} {3:.0f}%\n", "",
+        finished, total - finished, (double)finished / total * 100);
+
+    // 检查是否存在当前任务的信息
+    if (!m_response.find_if({ "group", group })) {
+        fmt::print("未发现响应信息\n"); // 说明发过去的数据被修改，或是 m_response 被无意间删除了信息
+        return;
     }
 
-    if (auto it = std::ranges::find_if(m_details, [&task_id, &group](auto& detail) {
-        return group == detail.group && !detail.finished;
-    }); it != m_details.end()) {
+
+    auto partially_finished = m_response.find_if({
+        { "group", group },
+        { "finished", "0" }
+    });
+
+    if (partially_finished) {
         // 部分完成
-        fmt::print("部分完成\n");
+        // fmt::print("部分完成\n");
     } else {
         // 全部完成
-        fmt::print("全部完成\n");
+        if (m_done_fn) {
+            std::invoke(m_done_fn, m_response.dump_with({ "group", group }));
+        }
     }
-
-
-    // message msg { packet };
-    // auto response = msg.content<std::string>();
-    // ns3::InetSocketAddress address = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    // fmt::print(" gets response [{}] from {:ip}.\n", response, address.GetIpv4());
 }
 
 auto client_device_container::size() -> std::size_t

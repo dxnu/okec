@@ -3,6 +3,7 @@
 
 #include "task.h"
 #include "response.h"
+#include "resource.h"
 #include "nlohmann/json.hpp"
 #include <string_view>
 
@@ -31,17 +32,15 @@ public:
     auto type(std::string_view sv) -> void;
     auto type() -> std::string;
 
-    auto to_task() -> Ptr<task>;
-
-    auto to_response() -> Ptr<response>;
-
     auto to_packet() -> Ptr<Packet>;
 
     static auto from_packet(Ptr<Packet> packet) -> message;
 
-    auto content(Ptr<task> t) -> void;
+    auto content(const task& t) -> void;
 
-    auto content(Ptr<response> r) -> void;
+    auto content(const task_element& item) -> void;
+
+    auto content(const resource& r) -> void;
 
     template <typename Type>
     auto content() -> Type {
@@ -61,12 +60,12 @@ private:
 };
 
 
-inline constexpr std::string_view message_offloading_task { "offloading-task" };
+inline constexpr std::string_view message_resource_changed { "resource_changed" };
 inline constexpr std::string_view message_response { "response" };
 inline constexpr std::string_view message_handling { "handling" };
 inline constexpr std::string_view message_dispatching { "dispatching" };
-inline constexpr std::string_view message_dispatching_failure { "dispatching-failure" };
-inline constexpr std::string_view message_dispatching_success { "dispatching-success" };
+inline constexpr std::string_view message_get_resource_information { "get_resource_information" };
+inline constexpr std::string_view message_resource_information { "resource_information" };
 inline constexpr std::string_view message_decision { "decision" };
 // inline constexpr std::string_view 
 

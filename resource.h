@@ -1,6 +1,7 @@
 #ifndef OKEC_RESOURCE_H
 #define OKEC_RESOURCE_H
 
+#include "packet_helper.h"
 #include "ns3/core-module.h"
 #include "ns3/node-container.h"
 
@@ -16,37 +17,39 @@ class resource : public ns3::Object
     using price_type = int;
 
 public:
-    resource();
-    resource(const resource& other);
-    resource(resource&& other) noexcept;
-    resource& operator=(resource other) noexcept;
-    resource& operator=(resource&& other) noexcept;
-    friend void swap(resource& lhs, resource& rhs) noexcept;
 
     static auto GetTypeId() -> TypeId;
 
     auto install(Ptr<Node> node) -> void;
 
-    // CPU
-    auto cpu_cycles() const -> int;
-    auto cpu_cycles(int cycles) -> int;
+    ///////////////////////////////////
+    resource() = default;
+    resource(json item) noexcept;
 
-    auto id() const -> std::string;
-    auto id(std::string id) -> void;
+    auto attribute(std::string_view key, std::string_view value) -> void;
 
-    // 内存
-    auto memory() const -> int;
-    auto memory(int mem) -> void;
+    auto reset_value(std::string_view key, std::string_view value) -> std::string;
 
-    // 价格
-    auto price() const -> price_type;
-    auto price(price_type money) -> void;
+    auto get_value(std::string_view key) const -> std::string;
+    
+    auto dump() -> std::string;
+
+    auto begin() const {
+        return this->empty() ? json::const_iterator() : j_["resource"].begin();
+    }
+
+    auto end() const {
+        return this->empty() ? json::const_iterator() : j_["resource"].end();
+    }
+
+    auto empty() const -> bool;
+
+    auto j_data() const -> json;
+
+    static auto from_msg_packet(Ptr<Packet> packet) -> resource;
 
 private:
-    int m_cpu_cycles;
-    int m_memory;
-    std::string m_id;
-    price_type m_price;
+    json j_;
 };
 
 

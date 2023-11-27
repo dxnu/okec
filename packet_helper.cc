@@ -30,39 +30,6 @@ auto to_json(Ptr<Packet> packet) -> json
     return j.accept(data) ? j.parse(data) : j;
 }
 
-auto to_task(Ptr<Packet> packet) -> Ptr<task>
-{
-    json j = to_json(packet);
-    Ptr<task> t = ns3::Create<task>();
-    // 可以解析任务，则构建任务
-    if (!j.is_null()) {
-        t->budget(j["content"]["task"]["budget"].get<int>());
-        t->deadline(j["content"]["task"]["deadline"].get<int>());
-        t->from(j["content"]["task"]["from_ip"].get<std::string>(),
-                j["content"]["task"]["from_port"].get<uint16_t>());
-        t->needed_cpu_cycles(j["content"]["task"]["needed_cpu_cycles"].get<int>());
-        t->needed_memory(j["content"]["task"]["needed_memory"].get<int>());
-        t->priority(j["content"]["task"]["priority"].get<int>());
-        t->id(j["content"]["task"]["id"].get<std::string>());
-        t->group(j["content"]["task"]["group"].get<std::string>());
-    }
-
-    return t;
-}
-
-auto to_response(Ptr<Packet> packet) -> Ptr<response>
-{
-    json j = to_json(packet);
-    Ptr<response> r = ns3::Create<response>();
-    if (!j.is_null()) {
-        r->task_id(j["content"]["response"]["task_id"].get<std::string>());
-        r->handling_device(j["content"]["response"]["device_type"].get<std::string>(),
-                           j["content"]["response"]["device_address"].get<std::string>());
-        r->group(j["content"]["response"]["group"].get<std::string>());
-    }
-
-    return r;
-}
 
 } // namespace packet_helper
 } // namespace okec

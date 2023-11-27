@@ -5,6 +5,8 @@
 #include "format_helper.hpp"
 #include "resource.h"
 #include "task.h"
+#include "message.h"
+#include "response.h"
 #include "udp_application.h"
 #include "ns3/node.h"
 #include "ns3/wifi-module.h"
@@ -19,32 +21,19 @@ namespace okec
 {
 
 
-struct task_details {
-    std::string task_id;
-    std::string group;
-    std::string device_type;
-    std::string device_address;
-    bool finished;
-};
-
-
 using okec::udp_application;
 using okec::base_station;
 
 
 class client_device
 {
-    using model_type = std::function<std::pair<Ipv4Address, uint16_t>
-        (const task&, const client_device&, const okec::cloud_server&)>;
+    using response_t = response;
+    using done_callback_t = std::function<void(const response_t&)>;
 
 public:
     client_device();
 
-    // 剩余cpu cycles
-    auto free_cpu_cycles() const -> int;
-
-    // 剩余内存
-    auto free_memory() const -> int;
+    auto get_resource() -> Ptr<resource>;
 
     // 返回当前设备的IP地址
     auto get_address() const -> ns3::Ipv4Address;
@@ -59,9 +48,11 @@ public:
 
     // 发送任务
     // 发送时间如果是0s，因为UdpApplication的StartTime也是0s，所以m_socket可能尚未初始化，此时Write将无法发送
-    auto send_task(std::shared_ptr<base_station> bs, const cloud_server& cs, Ptr<task> t, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
+    auto send_to(std::shared_ptr<base_station> bs, task& t) -> void;
 
-    auto send_tasks(std::shared_ptr<base_station> bs, const cloud_server& cs, task_container& container, const ns3::Time &delay = ns3::Seconds(1.0)) -> void;
+    auto when_done(done_callback_t fn) -> void;
+
+    auto set_position(double x, double y, double z) -> void;
 
 private:
     // 处理请求回调
@@ -70,8 +61,8 @@ private:
 private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;
-    model_type m_model;
-    std::vector<task_details> m_details;
+    response_t m_response;
+    done_callback_t m_done_fn;
 };
 
 

@@ -71,11 +71,13 @@ auto udp_application::read_handler(Ptr<Socket> socket) -> void
 
         // 处理消息
         auto content = packet_helper::to_string(packet);
-        NS_LOG_INFO(PURPLE_CODE << "packet: \"" << content << "\" size: " << content.size() << END_CODE);
+        NS_LOG_INFO(PURPLE_CODE << "At time " << fmt::format("{:.2f}", Simulator::Now().GetSeconds()) << "s "
+            << fmt::format("{:ip}", this->get_address()) << " has received a packet: \"" << content << "\" size: " << content.size() << END_CODE);
         // fmt::print("handling message. begin-----------------------\n");
         if (packet) {
             auto msg_type = get_message_type(packet);
-            NS_LOG_INFO(CYAN_CODE << "handling " << msg_type << " message......" << END_CODE);
+            NS_LOG_INFO(CYAN_CODE << "At time " << fmt::format("{:.2f}", Simulator::Now().GetSeconds()) << "s "
+                << fmt::format("{:ip}", this->get_address()) <<  " is processing " << msg_type << " message......" << END_CODE);
             m_msg_handler.dispatch(msg_type, packet, remote_address);
             // if (m_msg_handler.dispatch(msg_type, packet, remote_address)) {
                 // fmt::print("handling {} message. end------------------\n", msg_type);
@@ -94,8 +96,7 @@ auto udp_application::read_handler(Ptr<Socket> socket) -> void
 
 auto udp_application::write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) -> void
 {
-    fmt::print("At time {}s {:ip}:{} ---> {:ip}:{}\n", Simulator::Now().GetSeconds(), 
-                this->get_address(), this->get_port(), Ipv4Address::ConvertFrom(destination), port);
+    print_info(fmt::format("{:ip}:{} ---> {:ip}:{}", this->get_address(), this->get_port(), Ipv4Address::ConvertFrom(destination), port));
     NS_LOG_FUNCTION (this << packet << destination << port);
     
     // m_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(destination), port));
@@ -142,32 +143,32 @@ auto udp_application::StopApplication() -> void
 
 inline auto udp_application::print_packet(Ptr<Socket> socket, Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    Ipv4Address local_address = get_socket_address(socket);
+    // Ipv4Address local_address = get_socket_address(socket);
 
-    // 打印接收信息
-    InetSocketAddress address = InetSocketAddress::ConvertFrom(remote_address);
-    NS_LOG_INFO(PURPLE_CODE << local_address << " Received a Packet at time: " 
-        << Now().GetSeconds() << " from " << address.GetIpv4() << END_CODE);
+    // // 打印接收信息
+    // InetSocketAddress address = InetSocketAddress::ConvertFrom(remote_address);
+    // NS_LOG_INFO(PURPLE_CODE << local_address << " Received a Packet at time: " 
+    //     << Now().GetSeconds() << " from " << address.GetIpv4() << END_CODE);
 
-    // 打印Packet
-    auto content = packet_helper::to_string(packet);
-    NS_LOG_INFO(PURPLE_CODE << "packet: \"" << content << "\" size: " << content.size() << END_CODE);
+    // // 打印Packet
+    // auto content = packet_helper::to_string(packet);
+    // NS_LOG_INFO(PURPLE_CODE << "packet: \"" << content << "\" size: " << content.size() << END_CODE);
 
-    // 打印任务信息
-    auto t = task::from_packet(packet);
-    if (!t->empty()) {
-        auto task_info = fmt::format("{:t}", *t);
-        NS_LOG_INFO(CYAN_CODE << task_info << END_CODE);
-    }
+    // // 打印任务信息
+    // auto t = task::from_packet(packet);
+    // if (!t->empty()) {
+    //     auto task_info = fmt::format("{:t}", *t);
+    //     NS_LOG_INFO(CYAN_CODE << task_info << END_CODE);
+    // }
 
-    // 获取资源信息
-    auto res = socket->GetNode()->GetObject<okec::resource>();
-    if (res == nullptr) {
-        NS_LOG_INFO(YELLOW_CODE << " The Node " << address.GetIpv4() << " is on doesn't install any resource." << END_CODE);
-    } else {
-        auto resourceInfo = fmt::format("{:r}", *res);
-        NS_LOG_INFO(CYAN_CODE << resourceInfo << END_CODE);
-    }
+    // // 获取资源信息
+    // auto res = socket->GetNode()->GetObject<okec::resource>();
+    // if (res == nullptr) {
+    //     NS_LOG_INFO(YELLOW_CODE << " The Node " << address.GetIpv4() << " is on doesn't install any resource." << END_CODE);
+    // } else {
+    //     auto resourceInfo = fmt::format("{:r}", *res);
+    //     NS_LOG_INFO(CYAN_CODE << resourceInfo << END_CODE);
+    // }
 }
 
 auto udp_application::get_socket_address(Ptr<Socket> socket) -> Ipv4Address

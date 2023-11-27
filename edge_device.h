@@ -13,14 +13,10 @@ class task;
 
 class edge_device
 {
+    using callback_type  = std::function<void(edge_device*, Ptr<Packet>, const Address&)>;
+
 public:
     edge_device();
-
-    auto free_cpu_cycles() const -> int;
-
-    auto free_memory() const -> int;
-
-    auto price() const -> int;
 
     // 返回当前设备的IP地址
     auto get_address() const -> ns3::Ipv4Address;
@@ -36,9 +32,14 @@ public:
     // 为当前设备安装资源
     auto install_resource(Ptr<resource> res) -> void;
 
+    auto set_position(double x, double y, double z) -> void;
+    auto get_position() -> Vector;
+
+    auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
+
+    auto write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) const -> void;
+
 private:
-    auto handle_task(Ptr<task> t) -> void;
-    auto on_handling_message(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
     auto on_get_resource_information(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
 
 public:
