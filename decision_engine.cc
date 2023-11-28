@@ -10,37 +10,44 @@
 namespace okec
 {
 
-auto device_cache_t::dump() -> std::string
+auto device_cache::begin() -> iterator
+{
+    return this->view().begin();
+}
+
+auto device_cache::end() -> iterator
+{
+    return this->view().end();
+}
+
+auto device_cache::dump() -> std::string
 {
     return this->cache.dump();
 }
 
-auto device_cache_t::dump_first() -> std::string
-{
-    std::string result{};
-    if (this->data().size() > 0)
-        result = this->data().at(0).dump();
-    return result;
-}
-
-auto device_cache_t::data() const -> json
+auto device_cache::data() const -> value_type
 {
     return this->cache["device_cache"]["items"];
 }
 
-auto device_cache_t::size() const -> std::size_t
+auto device_cache::view() -> value_type&
+{
+    return this->cache["device_cache"]["items"];
+}
+
+auto device_cache::size() const -> std::size_t
 {
     return this->data().size();
 }
 
-auto device_cache_t::empty() const -> bool
+auto device_cache::empty() const -> bool
 {
     return this->size() < 1;
 }
 
-auto device_cache_t::emplace_back(attributes_t values) -> void
+auto device_cache::emplace_back(attributes_type values) -> void
 {
-    json item;
+    value_type item;
     for (auto [key, value] : values) {
         item[key] = value;
     }
@@ -48,36 +55,26 @@ auto device_cache_t::emplace_back(attributes_t values) -> void
     this->emplace_back(std::move(item));
 }
 
-auto device_cache_t::find_if(attributes_t values) -> device_cache_t
+auto device_cache::find_if(unary_predicate_type pred) -> iterator
 {
-    device_cache_t result{};
-    for (const auto& item : this->cache["device_cache"]["items"]) {
-        bool cond{true};
-        for (auto [key, value] : values) {
-            if (item[key] != value)
-                cond = false;
-        }
-
-        if (cond) {
-            result.emplace_back(item);
-        }
-    }
-    return result;
+    auto& items = this->view();
+    return std::find_if(items.begin(), items.end(), pred);
 }
 
-auto device_cache_t::find_if(attribute_t value) -> device_cache_t
+auto device_cache::sort(binary_predicate_type comp) -> void
 {
-    return find_if({value});
+    auto& items = this->view();
+    std::sort(items.begin(), items.end(), comp);
 }
 
-auto device_cache_t::emplace_back(json item) -> void
+auto device_cache::emplace_back(value_type item) -> void
 {
     this->cache["device_cache"]["items"].emplace_back(std::move(item));
 }
 
 auto decision_engine::calculate_distance(const Vector& pos) -> double
 {
-    Vector this_pos = m_bs_socket->get_position();
+    Vector this_pos = m_decision_device->get_position();
     double delta_x = this_pos.x - pos.x;
     double delta_y = this_pos.y - pos.y;
     double delta_z = this_pos.z - pos.z;
@@ -88,7 +85,7 @@ auto decision_engine::calculate_distance(const Vector& pos) -> double
 auto decision_engine::initialize_device(base_station_container* bs_container, cloud_server* cs) -> void
 {
     // Save a base station so we can utilize its communication component.
-    m_bs_socket = bs_container->get(0);
+    m_decision_device = bs_container->get(0);
 
     // 记录云服务器信息
     if (cs) {
@@ -105,24 +102,22 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
                 { "pos_z", std::to_string(cs_pos.z) }
             });
 
-            auto cap_resource = *cs_res;
-            m_device_cache.set_if({
-                { "device_type", "cs" }
-            }, [&cap_resource](auto& item) {
-                for (auto it = cap_resource.begin(); it != cap_resource.end(); ++it) {
-                    item[it.key()] = it.value();
-                }
-            });
+            auto find_pred = [](const device_cache::value_type& item) {
+                return item["device_type"] == "cs";
+            };
+            auto item = m_device_cache.find_if(find_pred);
+            if (item != m_device_cache.end())
+                for (auto it = cs_res->begin(); it != cs_res->end(); ++it)
+                    (*item)[it.key()] = it.value();
 
-            print_info(fmt::format("The decision engine got the cloud resource information: {}", 
-            m_device_cache.dump_first()));
+            print_info(fmt::format("The decision engine got the resource information of cloud({}).", (*item)["ip"]));
         } else {
             // 说明设备此时还未绑定资源，通过网络询问一下
             Simulator::Schedule(Seconds(1.0), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {
                 message msg;
                 msg.type("get_resource_information");
                 socket->write(msg.to_packet(), ip, port);
-            }, this->m_bs_socket, cs->get_address(), cs->get_port());
+            }, this->m_decision_device, cs->get_address(), cs->get_port());
         }
     }
 
@@ -149,27 +144,24 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
                     { "pos_z", std::to_string(es_pos.z) }
                 });
 
-                auto cap_resource = *p_resource;
-                m_device_cache.set_if({
-                    { "ip", ip },
-                    { "port", port }
-                }, [&cap_resource](auto& item) {
-                    for (auto it = cap_resource.begin(); it != cap_resource.end(); ++it) {
-                        item[it.key()] = it.value();
+                auto find_pred = [&ip, &port](const device_cache::value_type& item) {
+                    return item["ip"] == ip && item["port"] == port;
+                };
+                auto item = m_device_cache.find_if(find_pred);
+                if (item != m_device_cache.end()) {
+                    for (auto it = p_resource->begin(); it != p_resource->end(); ++it) {
+                        (*item)[it.key()] = it.value();
                     }
-                });
+                }
 
-                print_info(fmt::format("The decision engine got the device resource information: {}", 
-                    m_device_cache.find_if({ "ip", ip}).dump_first()));
-
-
+                print_info(fmt::format("The decision engine got the resource information of edge device({}).", (*item)["ip"]));
             } else {
                 // 说明设备此时还未绑定资源，通过网络询问一下
                 Simulator::Schedule(Seconds(delay), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {
                     message msg;
                     msg.type(message_get_resource_information);
                     socket->write(msg.to_packet(), ip, port);
-                }, this->m_bs_socket, device->get_address(), device->get_port());
+                }, this->m_decision_device, device->get_address(), device->get_port());
                 delay += 0.1;
             }
         }
@@ -178,7 +170,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
     // fmt::print("Info: {}\n", m_device_cache.dump());
 
     // 捕获通过网络问询的信息，更新设备信息（能收到就一定存在资源信息）
-    m_bs_socket->set_request_handler(message_resource_information, 
+    m_decision_device->set_request_handler(message_resource_information, 
         [this](okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) {
             print_info(fmt::format("The decision engine has received device resource information: {}", okec::packet_helper::to_string(packet)));
             auto msg = message::from_packet(packet);
@@ -195,14 +187,15 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
                 { "pos_z", msg.get_value("pos_z") }
             });
 
-            m_device_cache.set_if({
-                { "ip", ip },
-                { "port", port }
-            }, [&es_resource](auto& item) {
+            auto find_pred = [&ip, &port](const device_cache::value_type& item) {
+                return item["ip"] == ip && item["port"] == port;
+            };
+            auto item = m_device_cache.find_if(find_pred);
+            if (item != m_device_cache.end()) {
                 for (auto it = es_resource.begin(); it != es_resource.end(); ++it) {
-                    item[it.key()] = it.value();
+                    (*item)[it.key()] = it.value();
                 }
-            });
+            }
         });
 
     // 捕获资源变化信息
@@ -216,34 +209,25 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
             auto port = msg.get_value("port");
 
             // 更新资源信息
-            m_device_cache.set_if({
-                { "ip", ip },
-                { "port", port }
-            }, [&es_resource](auto& item) {
+            auto find_pred = [&ip, &port](const device_cache::value_type& item) {
+                return item["ip"] == ip && item["port"] == port;
+            };
+            auto item = m_device_cache.find_if(find_pred);
+            if (item != m_device_cache.end()) {
                 for (auto it = es_resource.begin(); it != es_resource.end(); ++it) {
-                    item[it.key()] = it.value();
+                    (*item)[it.key()] = it.value();
                 }
-            });
+            }
 
             // 继续处理下一个任务的分发
             bs->handle_next_task();
         });
 }
 
-auto decision_engine::device_cache() const -> json
+auto decision_engine::cache() -> device_cache&
 {
-    return m_device_cache.data();
+    return m_device_cache;
 }
 
-auto decision_engine::find_device_cache(device_cache_t::values_type values) -> json
-{
-    device_cache_t result = m_device_cache.find_if(values);
-    return result.empty() ? json{} : result.data().at(0);
-}
-
-auto decision_engine::find_device_cache(device_cache_t::value_type value) -> json
-{
-    return find_device_cache({value});
-}
 
 } // namespace okec

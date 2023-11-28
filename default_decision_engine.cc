@@ -28,29 +28,54 @@ default_decision_engine::default_decision_engine(
 
 auto default_decision_engine::make_decision(const task_element& header) -> result_t
 {
-    auto device_cache = this->device_cache();
-    for (const auto& device : device_cache) {
-        // 检查资源充足性
-        if (TO_INT(device["cpu_cycle"]) < 1 || device["device_type"] == "cs")
-            continue;
+    auto comp = [](const device_cache::value_type& lhs, const device_cache::value_type& rhs) -> bool {
+        return TO_INT(lhs["cpu_cycle"]) < TO_INT(rhs["cpu_cycle"]);
+    };
 
-        double time = std::stod(header.get_header("cpu_cycle")) / TO_DOUBLE(device["cpu_cycle"]);
+    // 获取边缘设备数据
+    auto edge_cache = this->cache().data();
+    edge_cache.erase(std::remove_if(edge_cache.begin(), edge_cache.end(), [](const json& item) {
+        return item["device_type"] == "cs";
+    }));
+
+    // 寻找资源最多的边缘设备
+    auto device_max = *std::max_element(edge_cache.begin(), edge_cache.end(), comp);
+    auto device_cpu = TO_INT(device_max["cpu_cycle"]);
+    if (device_cpu > 0) {
+        double time = std::stod(header.get_header("cpu_cycle")) / device_cpu;
         print_info(fmt::format("Decision engine assesses whether edge device can process the task: {} ---- {} (tolorable time)", time, header.get_header("deadline")));
+        // 处理时间小于可容忍时间
         if (time < std::stod(header.get_header("deadline"))) {
-            Vector position(TO_DOUBLE(device["pos_x"]), TO_DOUBLE(device["pos_y"]), TO_DOUBLE(device["pos_z"]));
-            auto distance = calculate_distance(position);
-            return std::make_tuple(device["ip"], TO_INT(device["port"]), distance);
+            Vector position(TO_DOUBLE(device_max["pos_x"]), TO_DOUBLE(device_max["pos_y"]), TO_DOUBLE(device_max["pos_z"]));
+            return std::make_tuple(device_max["ip"], TO_INT(device_max["port"]), calculate_distance(position));
         }
     }
 
+    // for (const auto& device : this->cache().view()) {
+    //     // 检查资源充足性
+    //     if (TO_INT(device["cpu_cycle"]) < 1 || device["device_type"] == "cs")
+    //         continue;
+
+    //     double time = std::stod(header.get_header("cpu_cycle")) / TO_DOUBLE(device["cpu_cycle"]);
+    //     print_info(fmt::format("Decision engine assesses whether edge device can process the task: {} ---- {} (tolorable time)", time, header.get_header("deadline")));
+    //     if (time < std::stod(header.get_header("deadline"))) {
+    //         Vector position(TO_DOUBLE(device["pos_x"]), TO_DOUBLE(device["pos_y"]), TO_DOUBLE(device["pos_z"]));
+    //         auto distance = calculate_distance(position);
+    //         return std::make_tuple(device["ip"], TO_INT(device["port"]), distance);
+    //     }
+    // }
+
     // 发送到云服务器
-    auto device = this->find_device_cache({ "device_type", "cs" });
-    if (!device.is_null()) {
+    auto it = this->cache().find_if([](const device_cache::value_type& item) {
+        return item["device_type"] == "cs";
+    });
+    if (it != this->cache().end()) {
+        const auto& device = *it;
         Vector position(TO_DOUBLE(device["pos_x"]), TO_DOUBLE(device["pos_y"]), TO_DOUBLE(device["pos_z"]));
         auto distance = calculate_distance(position);
         return std::make_tuple(device["ip"], TO_INT(device["port"]), distance);
     }
-    
+
     return result_t(); // 决策失败
 }
 

@@ -1,5 +1,5 @@
-#ifndef OKEC_DEFAULT_DECISION_ENGINE_
-#define OKEC_DEFAULT_DECISION_ENGINE_
+#ifndef OKEC_DEFAULT_DECISION_ENGINE
+#define OKEC_DEFAULT_DECISION_ENGINE
 
 #include "decision_engine.h"
 
@@ -31,4 +31,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_DEFAULT_DECISION_ENGINE_
+#endif // OKEC_DEFAULT_DECISION_ENGINE

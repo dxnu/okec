@@ -18,8 +18,8 @@ auto main(int argc, char **argv) -> int
     okec::base_station_container base_stations(2);
     okec::cloud_server cs;
     okec::client_device_container client_devices(4);
-    okec::edge_device_container edge_devices1(1);
-    okec::edge_device_container edge_devices2(3);
+    okec::edge_device_container edge_devices1(15);
+    okec::edge_device_container edge_devices2(10);
     if (!base_stations.connect_device(edge_devices1, edge_devices2))
         return EXIT_FAILURE;
     okec::initialize_communication(client_devices, base_stations, cs);
@@ -65,7 +65,7 @@ auto main(int argc, char **argv) -> int
     //     fmt::print("Failed to read task data\n");
     //     return EXIT_FAILURE;
     // }
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 20; ++i)
     {
         t3.emplace_back({
             { "task_id", okec::task::get_unique_id() },
@@ -97,7 +97,7 @@ auto main(int argc, char **argv) -> int
                 es_count++;
             }
         }
-        fmt::print("task completion rate: {:.3f}\n", es_count / res.size());
+        fmt::print("Task completion rate: {:2.0f}%\n", es_count / res.size() * 100);
         fmt::print("Average processing time: {:.3f}s\n", std::accumulate(points.begin(), points.end(), .0) / points.size());
         fmt::print("{0:=^{1}}\n", "", 165);
 

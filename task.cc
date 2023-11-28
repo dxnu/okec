@@ -322,7 +322,7 @@ auto task::get_random_number(long min, long max) -> std::string
 
 auto task::print() -> void
 {
-    fmt::print("{0:=^{1}}\n", "Task Info", 120);
+    fmt::print("{0:=^{1}}\n", "Task Info", 150);
     int index{1};
     for (const auto& item : m_task["task"]["items"])
     {
@@ -345,7 +345,7 @@ auto task::print() -> void
         fmt::print("\n");
     }
 
-    fmt::print("{0:=^{1}}\n", "", 120);
+    fmt::print("{0:=^{1}}\n", "", 150);
 }
 
 auto task::save_to_file(const char* file_name) -> void
