@@ -11,6 +11,7 @@ namespace okec
 
 class base_station;
 class base_station_container;
+class client_device;
 class cloud_server;
 
 
@@ -66,6 +67,10 @@ public:
     auto initialize_device(base_station_container* bs_container, cloud_server* cs) -> void;
     
     virtual auto make_decision(const task_element& header) -> result_t = 0;
+    
+    virtual auto local_test(const task_element& header, const client_device* client) -> bool = 0;
+
+    auto get_decision_device() const -> std::shared_ptr<base_station>;
 
     auto cache() -> device_cache&;
 
@@ -73,6 +78,8 @@ private:
     device_cache m_device_cache;
     std::pair<ns3::Ipv4Address, uint16_t> m_cs_address;
     std::tuple<ns3::Ipv4Address, uint16_t, Vector> m_cs_info;
+
+protected:
     std::shared_ptr<base_station> m_decision_device;
 };
 

@@ -69,6 +69,8 @@ public:
 
     auto random_initialization() -> void;
 
+    auto initialize(std::function<void(Ptr<resource>)> fn) -> void;
+
     auto size() const -> std::size_t;
 
     auto begin() {
@@ -79,7 +81,7 @@ public:
         return m_resources.end();
     }
 
-    auto print(std::string title = {}) -> void;
+    auto print(std::string title = "Resource Info" ) -> void;
 
 private:
     std::vector<Ptr<resource>> m_resources;

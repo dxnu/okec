@@ -1,6 +1,8 @@
 #include "default_decision_engine.h"
 #include "okec.hpp"
+#include "read_csv.h"
 #include "response_visulizer.hpp"
+#include <random>
 
 
 using namespace ns3;
@@ -42,10 +44,28 @@ auto main(int argc, char **argv) -> int
     okec::resource_container edge2_rcontainer(edge_devices2.size());
     client_rcontainer.random_initialization();
     client_rcontainer.print("Client Device Resources:");
-    edge1_rcontainer.random_initialization();
-    edge1_rcontainer.print("Edge Device 1 Resources:");
-    edge2_rcontainer.random_initialization();
-    edge2_rcontainer.print("Edge Device 2 Resources:");
+
+    // 加载数据集
+    auto chip = okec::read_chip_dataset("./datasets/chip_dataset.csv", "CPU");
+    if (!chip) {
+        fmt::print("failed to open dataset\n");
+        return EXIT_FAILURE;
+    }
+
+    // 以数据集初始化资源
+    const auto& cpus = chip.value();
+    using rng = std::default_random_engine;
+    static rng dre{ (rng::result_type)time(0) };
+    std::uniform_int_distribution<int> uid(0, cpus.size());
+    edge1_rcontainer.initialize([&cpus, &uid](auto res) {
+        res->attribute("cpu_cycle", cpus[uid(dre)][8]);
+    });
+    edge2_rcontainer.initialize([&cpus, &uid](auto res) {
+        res->attribute("cpu_cycle", cpus[uid(dre)][8]);
+    });
+    edge1_rcontainer.print("Edge Device 1 Resources");
+    edge2_rcontainer.print("Edge Device 2 Resources");
+
 
     client_devices.install_resources(client_rcontainer); // 一键为所有用户设备配置资源
     edge_devices1.install_resources(edge1_rcontainer);   // 一键为所有边缘设备安装资源
@@ -58,6 +78,7 @@ auto main(int argc, char **argv) -> int
 
     auto decision_engine = std::make_shared<okec::default_decision_engine>(&base_stations, &cs);
     base_stations.set_decision_engine(decision_engine);
+    client_devices.set_decision_engine(decision_engine);
 
 
     okec::task t3;
@@ -65,12 +86,12 @@ auto main(int argc, char **argv) -> int
     //     fmt::print("Failed to read task data\n");
     //     return EXIT_FAILURE;
     // }
-    for (int i = 0; i < 20; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         t3.emplace_back({
             { "task_id", okec::task::get_unique_id() },
             { "group", "one" },
-            { "cpu_cycle", okec::task::get_random_number(1000, 10000) },
+            { "cpu_cycle", okec::task::get_random_number(10000, 10000000000) },
             { "deadline", okec::task::get_random_number(1, 5) },
             { "input_size", okec::task::get_random_number(10000, 100000) }
         }, {
@@ -82,7 +103,7 @@ auto main(int argc, char **argv) -> int
     // t3.save_to_file("task.json");
 
     auto device_1 = client_devices.get_device(1);
-    device_1->send_to(base_stations[1], t3);
+    device_1->send_to(t3);
     device_1->when_done([](okec::response res) {
         fmt::print("{0:=^{1}}\n", "Response Info", 165);
         double es_count{};
@@ -93,12 +114,12 @@ auto main(int argc, char **argv) -> int
             fmt::print("id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {}s, send_time: {}s, finished: {}\n",
                 item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["send_time"], item["finished"]);
             if (item["device_type"] == "es") {
-                points.push_back(std::stod( fmt::format("{}", item["time_consuming"]) ));
+                points.push_back(std::stod(item["time_consuming"].template get<std::string>()) + std::stod(item["send_time"].template get<std::string>()));
                 es_count++;
             }
         }
         fmt::print("Task completion rate: {:2.0f}%\n", es_count / res.size() * 100);
-        fmt::print("Average processing time: {:.3f}s\n", std::accumulate(points.begin(), points.end(), .0) / points.size());
+        fmt::print("Average processing time: {:.9f}s\n", std::accumulate(points.begin(), points.end(), .0) / points.size());
         fmt::print("{0:=^{1}}\n", "", 165);
 
         okec::draw(points);

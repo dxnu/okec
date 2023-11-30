@@ -1,17 +1,12 @@
 #ifndef SIMEG_CLIENT_DEVICE_H
 #define SIMEG_CLIENT_DEVICE_H
 
-#include "base_station.h"
+#include "decision_engine.h"
 #include "format_helper.hpp"
 #include "resource.h"
 #include "task.h"
 #include "message.h"
 #include "response.h"
-#include "udp_application.h"
-#include "ns3/node.h"
-#include "ns3/wifi-module.h"
-#include "ns3/mobility-module.h"
-#include "ns3/internet-module.h"
 #include <functional>
 #include <vector>
 
@@ -21,8 +16,8 @@ namespace okec
 {
 
 
-using okec::udp_application;
-using okec::base_station;
+class udp_application;
+class base_station;
 
 
 class client_device
@@ -48,11 +43,13 @@ public:
 
     // 发送任务
     // 发送时间如果是0s，因为UdpApplication的StartTime也是0s，所以m_socket可能尚未初始化，此时Write将无法发送
-    auto send_to(std::shared_ptr<base_station> bs, task& t) -> void;
+    auto send_to(task& t) -> void;
 
     auto when_done(done_callback_t fn) -> void;
 
     auto set_position(double x, double y, double z) -> void;
+
+    auto set_decision_engine(std::shared_ptr<decision_engine> engine) -> void;
 
 private:
     // 处理请求回调
@@ -63,6 +60,7 @@ private:
     Ptr<udp_application> m_udp_application;
     response_t m_response;
     done_callback_t m_done_fn;
+    std::shared_ptr<decision_engine> m_decision_engine;
 };
 
 
@@ -191,6 +189,8 @@ public:
     auto size() -> std::size_t;
 
     auto install_resources(resource_container& res, int offset = 0) -> void;
+
+    auto set_decision_engine(std::shared_ptr<decision_engine> engine) -> void;
 
 private:
     std::vector<pointer_type> m_devices;

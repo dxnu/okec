@@ -85,7 +85,8 @@ auto decision_engine::calculate_distance(const Vector& pos) -> double
 auto decision_engine::initialize_device(base_station_container* bs_container, cloud_server* cs) -> void
 {
     // Save a base station so we can utilize its communication component.
-    m_decision_device = bs_container->get(0);
+    if (!m_decision_device)
+        m_decision_device = bs_container->get(0);
 
     // 记录云服务器信息
     if (cs) {
@@ -224,7 +225,13 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
         });
 }
 
-auto decision_engine::cache() -> device_cache&
+auto decision_engine::get_decision_device() const -> std::shared_ptr<base_station>
+{
+    return m_decision_device;
+}
+
+auto
+decision_engine::cache() -> device_cache&
 {
     return m_device_cache;
 }

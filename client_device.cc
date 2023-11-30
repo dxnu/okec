@@ -1,6 +1,8 @@
 #include "client_device.h"
 #include "resource.h"
-
+#include "base_station.h"
+#include "udp_application.h"
+#include "ns3/mobility-module.h"
 
 
 namespace okec
@@ -48,7 +50,7 @@ auto client_device::install_resource(Ptr<resource> res) -> void
     res->install(m_node);
 }
 
-auto client_device::send_to(std::shared_ptr<base_station> bs, task& t) -> void
+auto client_device::send_to(task& t) -> void
 {
     // 任务不能以 task 为单位发送，因为 task 可能会非常大，导致发送的数据断页，在目的端便无法恢复数据
     // 以 task_element 为单位发送则可以避免 task 大小可能会带来的问题
@@ -72,6 +74,7 @@ auto client_device::send_to(std::shared_ptr<base_station> bs, task& t) -> void
         item.set_header("from_port", std::to_string(this->get_port()));
 
         msg.content(item);
+        const auto bs = m_decision_engine->get_decision_device();
         ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &udp_application::write, m_udp_application, msg.to_packet(), bs->get_address(), bs->get_port());
         launch_delay += 0.1;
     }
@@ -92,6 +95,11 @@ auto client_device::set_position(double x, double y, double z) -> void
     } else {
         mobility->SetPosition(Vector(x, y, z));
     }
+}
+
+auto client_device::set_decision_engine(std::shared_ptr<decision_engine> engine) -> void
+{
+    m_decision_engine = engine;
 }
 
 auto client_device::handle_response(Ptr<Packet> packet, const Address& remote_address) -> void
@@ -159,6 +167,13 @@ auto client_device_container::install_resources(resource_container& res, int off
     for (std::size_t i = 0; i < this->size(); ++i) {
         if (i + offset < res.size())
             m_devices[i]->install_resource(res[i + offset]);
+    }
+}
+
+auto client_device_container::set_decision_engine(std::shared_ptr<decision_engine> engine) -> void
+{
+    for (pointer_type bs : m_devices) {
+        bs->set_decision_engine(engine);
     }
 }
 

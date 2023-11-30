@@ -247,7 +247,6 @@ auto base_station_container::set_decision_engine(std::shared_ptr<decision_engine
     for (pointer_t bs : m_base_stations) {
         bs->set_decision_engine(engine);
     }
-
 }
 
 } // namespace okec

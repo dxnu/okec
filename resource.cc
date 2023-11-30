@@ -139,6 +139,13 @@ auto resource_container::random_initialization() -> void
     }
 }
 
+auto resource_container::initialize(std::function<void(Ptr<resource>)> fn) -> void
+{
+    for (auto& item : m_resources) {
+        fn(item);
+    }
+}
+
 std::size_t resource_container::size() const
 {
     return m_resources.size();
@@ -146,10 +153,21 @@ std::size_t resource_container::size() const
 
 auto resource_container::print(std::string title) -> void
 {
-    if (!title.empty())
-        fmt::print("{}\n", title);
+    fmt::print("{0:=^{1}}\n", title, 150);
 
-    fmt::print("{:rs}\n", *this);
+    int index{1};
+    for (const auto& item : m_resources)
+    {
+        fmt::print("[{:>3}] ", index++);
+        for (auto it = item->begin(); it != item->end(); ++it)
+        {
+            fmt::print("{}: {} ", it.key(), it.value());
+        }
+
+        fmt::print("\n");
+    }
+
+    fmt::print("{0:=^{1}}\n", "", 150);
 }
 
 } // namespace okec

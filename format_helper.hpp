@@ -9,6 +9,7 @@
 #define FMT_HEADER_ONLY
 #include <fmt/core.h>
 #include <fmt/color.h>
+#include <fmt/ranges.h>
 
 
 // formatting Ipv4Address
