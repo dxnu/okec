@@ -22,8 +22,10 @@ class base_station;
 
 class client_device
 {
-    using response_t = response;
-    using done_callback_t = std::function<void(const response_t&)>;
+    using response_type   = response;
+    using done_callback_t = std::function<void(const response_type&)>;
+public:
+    using callback_type  = std::function<void(client_device*, Ptr<Packet>, const Address&)>;
 
 public:
     client_device();
@@ -51,6 +53,14 @@ public:
 
     auto set_decision_engine(std::shared_ptr<decision_engine> engine) -> void;
 
+    auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
+
+    auto response_cache() -> response_type&;
+
+    auto has_done_callback() -> bool;
+    auto done_callback(response_type res) -> void;
+
+
 private:
     // 处理请求回调
     auto handle_response(Ptr<Packet> packet, const Address& remote_address) -> void;
@@ -58,7 +68,7 @@ private:
 private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;
-    response_t m_response;
+    response_type m_response;
     done_callback_t m_done_fn;
     std::shared_ptr<decision_engine> m_decision_engine;
 };
@@ -67,8 +77,9 @@ private:
 
 class client_device_container
 {
-    using value_type   = client_device;
-    using pointer_type = std::shared_ptr<value_type>;
+    using value_type    = client_device;
+    using pointer_type  = std::shared_ptr<value_type>;
+    using callback_type = client_device::callback_type;
 
 public:
     // 创建含有n个ClientDevice的容器
@@ -191,6 +202,8 @@ public:
     auto install_resources(resource_container& res, int offset = 0) -> void;
 
     auto set_decision_engine(std::shared_ptr<decision_engine> engine) -> void;
+
+    auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
 
 private:
     std::vector<pointer_type> m_devices;

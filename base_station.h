@@ -56,16 +56,12 @@ public:
 
     auto task_sequence(const task_element& item) -> void;
     auto task_sequence(task_element&& item) -> void;
+    auto task_sequence() -> std::vector<task_element>&;
+    auto task_sequence_status() -> std::vector<bool>&;
 
     auto print_task_info() -> void;
 
     auto handle_next_task() -> void;
-
-private:
- 
-    // default version
-    auto on_response(Ptr<Packet>, const Address& remoteAddress) -> void;
-
 
 public:
     edge_device_container* m_edge_devices;

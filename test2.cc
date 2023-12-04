@@ -42,17 +42,22 @@ auto main(int argc, char **argv) -> int
     okec::resource_container client_rcontainer(client_devices.size());
     okec::resource_container edge1_rcontainer(edge_devices1.size());
     okec::resource_container edge2_rcontainer(edge_devices2.size());
-    client_rcontainer.random_initialization();
+
+    // 初始化用户设备资源
+    client_rcontainer.initialize([](auto res) {
+        res->attribute("cpu_cycle", "20");
+    });
     client_rcontainer.print("Client Device Resources:");
 
+
     // 加载数据集
-    auto chip = okec::read_chip_dataset("./datasets/chip_dataset.csv", "CPU");
+    auto chip = okec::read_csv("./datasets/chip_dataset.csv", "CPU");
     if (!chip) {
         fmt::print("failed to open dataset\n");
         return EXIT_FAILURE;
     }
 
-    // 以数据集初始化资源
+    // 以数据集初始化边缘设备资源
     const auto& cpus = chip.value();
     using rng = std::default_random_engine;
     static rng dre{ (rng::result_type)time(0) };
@@ -76,7 +81,7 @@ auto main(int argc, char **argv) -> int
     cloud_resource->attribute("memory", "50000");
     cs.install_resource(cloud_resource);
 
-    auto decision_engine = std::make_shared<okec::default_decision_engine>(&base_stations, &cs);
+    auto decision_engine = std::make_shared<okec::default_decision_engine>(&client_devices, &base_stations, &cs);
     base_stations.set_decision_engine(decision_engine);
     client_devices.set_decision_engine(decision_engine);
 
@@ -86,7 +91,7 @@ auto main(int argc, char **argv) -> int
     //     fmt::print("Failed to read task data\n");
     //     return EXIT_FAILURE;
     // }
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 200; ++i)
     {
         t3.emplace_back({
             { "task_id", okec::task::get_unique_id() },
@@ -113,7 +118,7 @@ auto main(int argc, char **argv) -> int
             fmt::print("[{:>3}] ", index++);
             fmt::print("id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {}s, send_time: {}s, finished: {}\n",
                 item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["send_time"], item["finished"]);
-            if (item["device_type"] == "es") {
+            if (item["device_type"] == "es" || item["device_type"] == "local") {
                 points.push_back(std::stod(item["time_consuming"].template get<std::string>()) + std::stod(item["send_time"].template get<std::string>()));
                 es_count++;
             }

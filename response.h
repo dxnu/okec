@@ -3,53 +3,33 @@
 
 
 #include "packet_helper.h"
+
+#include <functional>
 #include <string>
+
 
 namespace okec
 {
 
-
-
-
-// class response : public ns3::SimpleRefCount<response>
-// {
-// public:
-//     response();
-
-//     // 处理设备 [device_type, device_address]
-//     auto handling_device(const std::string &type, const std::string &address) -> void;
-//     auto handling_device() -> std::pair<const std::string, const std::string>;
-
-//     // 任务ID
-//     auto task_id() const -> std::string;
-//     auto task_id(std::string id) -> void;
-
-//     auto group() const -> std::string;
-//     auto group(std::string g) -> void;
-
-//     // 响应是否为空
-//     auto empty() -> bool;
-
-//     // 转换为Packet
-//     auto to_packet() const -> Ptr<Packet>;
-
-//     auto to_string() const -> std::string;
-
-//     // 响应大小
-//     auto size() -> std::size_t;
-
-// private:
-//     json m_response;
-// };
-
-// auto make_response() -> Ptr<response>;
-
 class response {
-    using attribute_t      = std::pair<std::string_view, std::string_view>;
-    using attributes_t     = std::initializer_list<attribute_t>;
+public:
+    using attribute_type   = std::pair<std::string_view, std::string_view>;
+    using attributes_type  = std::initializer_list<attribute_type>;
+    using value_type       = json;
+    using iterator         = json::iterator;
+    using unary_predicate_type   = std::function<bool(const value_type&)>;
+    using binary_predicate_type   = std::function<bool(const value_type&, const value_type&)>;
 
 public:
     // auto attribute(std::string_view key, std::string_view value) -> void;
+    response() = default;
+    response(const response& other) noexcept;
+    response& operator=(const response& other) noexcept;
+    response(response&& other) noexcept;
+    response& operator=(response&& other) noexcept;
+
+    auto begin() -> iterator;
+    auto end() -> iterator;
     
     auto dump() -> std::string;
 
@@ -57,12 +37,14 @@ public:
         return j_["response"]["items"];
     }
 
+    auto view() -> value_type&;
+
     auto size() const -> std::size_t;
 
-    auto emplace_back(attributes_t values) -> void;
-    // auto emplace_back(attribute_t value) -> void;
+    auto emplace_back(attributes_type values) -> void;
+    // auto emplace_back(attribute_type value) -> void;
 
-    auto set_if(attributes_t values, auto f) -> void
+    auto set_if(attributes_type values, auto f) -> void
     {
         for (auto& item : j_["response"]["items"])
         {
@@ -81,14 +63,16 @@ public:
         }
     }
 
-    auto find_if(attributes_t values) const -> bool;
-    auto find_if(attribute_t value) const -> bool;
+    auto find_if(attributes_type values) const -> bool;
+    auto find_if(attribute_type value) const -> bool;
 
-    auto count_if(attributes_t values) const -> int;
-    auto count_if(attribute_t value) const -> int;
+    auto find_if(unary_predicate_type pred) -> iterator;
 
-    auto dump_with(attributes_t values) -> response;
-    auto dump_with(attribute_t value) -> response;
+    auto count_if(attributes_type values) const -> int;
+    auto count_if(attribute_type value) const -> int;
+
+    auto dump_with(attributes_type values) -> response;
+    auto dump_with(attribute_type value) -> response;
 
 private:
     auto emplace_back(json item) -> void;

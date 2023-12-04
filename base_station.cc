@@ -24,10 +24,6 @@ base_station::base_station()
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);
-
-    m_udp_application->set_request_handler("response", [this](Ptr<Packet> packet, const Address& remote_address) {
-        this->on_response(packet, remote_address);
-    });
 }
 
 auto base_station::connect_device(edge_device_container& devices) -> void
@@ -116,6 +112,16 @@ auto base_station::task_sequence(task_element&& item) -> void
     m_task_sequence_status.push_back(false); // false means not dispatched.
 }
 
+auto base_station::task_sequence() -> std::vector<task_element>&
+{
+    return m_task_sequence;
+}
+
+auto base_station::task_sequence_status() -> std::vector<bool>&
+{
+    return m_task_sequence_status;
+}
+
 auto base_station::print_task_info() -> void
 {
     fmt::print("task sequence size: {}\n", m_task_sequence.size());
@@ -160,35 +166,6 @@ auto base_station::handle_next_task() -> void
 
             // 更改任务分发状态
             m_task_sequence_status[i] = true;
-            break;
-        }
-    }
-}
-
-auto base_station::on_response(Ptr<Packet> packet, const Address& remoteAddress) -> void
-{
-    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remoteAddress);
-    print_info(fmt::format("The base station([{:ip}]) received a response from {:ip}", this->get_address(), inetRemoteAddress.GetIpv4()));
-
-    message msg(packet);
-
-    for (std::size_t i = 0; i < m_task_sequence.size(); ++i)
-    {
-        // 将处理结果转发回客户端
-        if (m_task_sequence[i].get_header("task_id") == msg.get_value("task_id"))
-        {
-            msg.attribute("group", m_task_sequence[i].get_header("group"));
-            msg.attribute("send_time", m_task_sequence[i].get_header("send_time"));
-            auto from_ip = m_task_sequence[i].get_header("from_ip");
-            auto from_port = m_task_sequence[i].get_header("from_port");
-            m_udp_application->write(msg.to_packet(), ns3::Ipv4Address(from_ip.c_str()), std::stoi(from_port));
-
-            // 清除任务队列和分发状态
-            m_task_sequence.erase(std::next(m_task_sequence.begin(), i), std::next(m_task_sequence.begin(), i + 1));
-            m_task_sequence_status.erase(std::next(m_task_sequence_status.begin(), i), std::next(m_task_sequence_status.begin(), i + 1));
-            
-            // 继续处理下一个任务的分发
-            // this->handle_next_task(*this);
             break;
         }
     }

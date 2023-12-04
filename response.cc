@@ -68,9 +68,51 @@ namespace okec
 //     j_["response"]["items"][key] = value;
 // }
 
+response::response(const response& other) noexcept
+{
+    if (this != &other) {
+        this->j_ = other.j_;
+    }
+}
+
+response& response::operator=(const response& other) noexcept
+{
+    if (this != &other) {
+        this->j_ = other.j_;
+    }
+
+    return *this;
+}
+
+response::response(response&& other) noexcept
+    : j_{ std::exchange(other.j_, {}) }
+{
+}
+
+response& response::operator=(response&& other) noexcept
+{
+    j_ = std::exchange(other.j_, {});
+    return *this;
+}
+
+auto response::begin() -> iterator
+{
+    return this->view().begin();
+}
+
+auto response::end() -> iterator
+{
+    return this->view().end();
+}
+
 auto response::dump() -> std::string
 {
     return j_.dump();
+}
+
+auto response::view() -> value_type&
+{
+    return j_["response"]["items"];
 }
 
 auto response::size() const -> std::size_t
@@ -78,7 +120,7 @@ auto response::size() const -> std::size_t
     return data().size();
 }
 
-auto response::emplace_back(attributes_t values) -> void
+auto response::emplace_back(attributes_type values) -> void
 {
     json item;
     for (auto [key, value] : values) {
@@ -89,7 +131,7 @@ auto response::emplace_back(attributes_t values) -> void
     this->emplace_back(std::move(item));
 }
 
-// auto response::emplace_back(attribute_t value) -> void
+// auto response::emplace_back(attribute_type value) -> void
 // {
 //     json item;
 //     item[value.first] = value.second;
@@ -105,7 +147,7 @@ auto response::emplace_back(attributes_t values) -> void
 //     return result;
 // }
 
-auto response::find_if(attributes_t values) const -> bool
+auto response::find_if(attributes_type values) const -> bool
 {
     for (const auto& item : j_["response"]["items"])
     {
@@ -124,12 +166,18 @@ auto response::find_if(attributes_t values) const -> bool
     return false;
 }
 
-auto response::find_if(attribute_t value) const -> bool
+auto response::find_if(attribute_type value) const -> bool
 {
     return find_if({value});
 }
 
-auto response::count_if(attributes_t values) const -> int
+auto response::find_if(unary_predicate_type pred) -> iterator
+{
+    auto& items = this->view();
+    return std::find_if(items.begin(), items.end(), pred);
+}
+
+auto response::count_if(attributes_type values) const -> int
 {
     int count{};
     for (const auto& item : j_["response"]["items"])
@@ -149,12 +197,12 @@ auto response::count_if(attributes_t values) const -> int
     return count;
 }
 
-auto response::count_if(attribute_t value) const -> int
+auto response::count_if(attribute_type value) const -> int
 {
     return count_if({value});
 }
 
-auto response::dump_with(attributes_t values) -> response
+auto response::dump_with(attributes_type values) -> response
 {
     response res;
     auto& items = j_["response"]["items"];
@@ -187,7 +235,7 @@ auto response::dump_with(attributes_t values) -> response
     return res;
 }
 
-auto response::dump_with(attribute_t value) -> response
+auto response::dump_with(attribute_type value) -> response
 {
     return dump_with({value});
 }

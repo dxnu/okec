@@ -13,7 +13,7 @@
 namespace okec
 {
 
-default_decision_engine::default_decision_engine(
+default_decision_engine::default_decision_engine(client_device_container* client_devices, 
     base_station_container* bs_container, cloud_server* cs)
 {
     // 设置决策设备
@@ -23,12 +23,16 @@ default_decision_engine::default_decision_engine(
 
     // Capture decision message
     bs_container->set_request_handler(message_decision, std::bind_front(&this_type::on_bs_decision_message, this));
+    bs_container->set_request_handler(message_response, std::bind_front(&this_type::on_bs_response_message, this));
 
     // Capture cs handling message
     cs->set_request_handler(message_handling, std::bind_front(&this_type::on_cs_handling_message, this));
 
     // Capture es handling message
     bs_container->set_es_request_handler(message_handling, std::bind_front(&this_type::on_es_handling_message, this));
+
+    // Capture clients response message
+    client_devices->set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
 }
 
 
@@ -78,8 +82,20 @@ auto default_decision_engine::make_decision(const task_element& header) -> resul
 }
 
 auto default_decision_engine::local_test(const task_element& header,
-    const client_device* client) -> bool
+    client_device* client) -> bool
 {
+    big_float cpu_demand(header.get_header("cpu_cycle"));
+    big_float cpu_supply(client->get_resource()->get_value("cpu_cycle"));
+
+    if (cpu_supply < 1)
+        return false;
+
+    cpu_supply *= 1000000; // megahertz * 10^6 = cpu cycles
+    big_float processing_time = cpu_demand / cpu_supply; // calculate processing time of device
+    if (processing_time < big_float(header.get_header("deadline"))) {
+        return true;
+    }
+    
     return false;
 }
 
@@ -101,6 +117,39 @@ auto default_decision_engine::on_bs_decision_message(
 
     // bs->print_task_info();
     bs->handle_next_task();
+}
+
+auto default_decision_engine::on_bs_response_message(
+    base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
+{
+    InetSocketAddress inetRemoteAddress = InetSocketAddress::ConvertFrom(remote_address);
+    print_info(fmt::format("The base station([{:ip}]) received a response from {:ip}", bs->get_address(), inetRemoteAddress.GetIpv4()));
+
+    message msg(packet);
+
+    auto& task_sequence = bs->task_sequence();
+    auto& task_sequence_status = bs->task_sequence_status();
+
+    for (std::size_t i = 0; i < task_sequence.size(); ++i)
+    {
+        // 将处理结果转发回客户端
+        if (task_sequence[i].get_header("task_id") == msg.get_value("task_id"))
+        {
+            msg.attribute("group", task_sequence[i].get_header("group"));
+            msg.attribute("send_time", task_sequence[i].get_header("send_time"));
+            auto from_ip = task_sequence[i].get_header("from_ip");
+            auto from_port = task_sequence[i].get_header("from_port");
+            bs->write(msg.to_packet(), ns3::Ipv4Address(from_ip.c_str()), std::stoi(from_port));
+
+            // 清除任务队列和分发状态
+            task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
+            task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
+            
+            // 继续处理下一个任务的分发
+            // this->handle_next_task(*this);
+            break;
+        }
+    }
 }
 
 auto default_decision_engine::on_cs_handling_message(
@@ -203,6 +252,74 @@ auto default_decision_engine::on_es_handling_message(
         };
         es->write(response.to_packet(), desination, es->get_port());
     }, time, es, old_cpu_cycles, task_id, inetRemoteAddress.GetIpv4());
+}
+
+auto default_decision_engine::on_clients_reponse_message(
+    client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void
+{
+    fmt::print(fg(fmt::color::red), "At time {:.2f}s Client device[{:ip}] receives", Simulator::Now().GetSeconds(), client->get_address(), client->get_port());
+
+    message msg(packet);
+    auto task_id = msg.get_value("task_id");
+    auto device_type = msg.get_value("device_type");
+    auto device_address = msg.get_value("device_address");
+    auto group = msg.get_value("group");
+    auto time_consuming = msg.get_value("processing_time");
+    auto send_time = msg.get_value("send_time");
+
+    fmt::print(fg(fmt::color::red), " response: task_id={}, device_type={}, device_address={}, group={}, processing_time={}, send_time={}\n",
+        task_id, device_type, device_address, group, time_consuming, send_time);
+
+    // client->m_response.set_if({
+    //     { "group", group },
+    //     { "task_id", task_id }
+    // }, [&device_type, &device_address, &time_consuming, &send_time](auto& item) {
+    //     item["device_type"] = device_type;
+    //     item["device_address"] = device_address;
+    //     item["time_consuming"] = time_consuming;
+    //     item["send_time"] = send_time;
+    //     item["finished"] = "1";
+    // });
+
+    auto it = client->response_cache().find_if([&group, &task_id](const response::value_type& item) {
+        return item["group"] == group && item["task_id"] == task_id;
+    });
+    if (it != client->response_cache().end()) {
+        (*it)["device_type"] = device_type;
+        (*it)["device_address"] = device_address;
+        (*it)["time_consuming"] = time_consuming;
+        (*it)["send_time"] = send_time;
+        (*it)["finished"] = "1";
+    }
+
+
+    // 显示当前任务进度条
+    auto total = client->response_cache().count_if({ "group", group });
+    auto finished = client->response_cache().count_if({{ "group", group }, { "finished", "1" }});
+    fmt::print(fg(fmt::color::red), "Current task progress: {0:█^{1}}{0:▒^{2}} {3:.0f}%\n", "",
+        finished, total - finished, (double)finished / total * 100);
+
+    // 检查是否存在当前任务的信息
+    if (!client->response_cache().find_if({ "group", group })) {
+        fmt::print("未发现响应信息\n"); // 说明发过去的数据被修改，或是 m_response 被无意间删除了信息
+        return;
+    }
+
+
+    auto partially_finished = client->response_cache().find_if({
+        { "group", group },
+        { "finished", "0" }
+    });
+
+    if (partially_finished) {
+        // 部分完成
+        // fmt::print("部分完成\n");
+    } else {
+        // 全部完成
+        if (client->has_done_callback()) {
+            client->done_callback(client->response_cache().dump_with({ "group", group }));
+        }
+    }
 }
 
 } // namespace okec

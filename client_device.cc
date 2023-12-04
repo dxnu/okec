@@ -4,6 +4,9 @@
 #include "udp_application.h"
 #include "ns3/mobility-module.h"
 
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/multiprecision/number.hpp>
 
 namespace okec
 {
@@ -19,9 +22,9 @@ client_device::client_device()
     m_node->AddApplication(m_udp_application);
 
     // 设置响应回调函数
-    m_udp_application->set_request_handler(message_response, [this](ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) {
-        this->handle_response(packet, remote_address);
-    });
+    // m_udp_application->set_request_handler(message_response, [this](ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) {
+    //     this->handle_response(packet, remote_address);
+    // });
 }
 
 auto client_device::get_resource() -> Ptr<resource>
@@ -69,6 +72,42 @@ auto client_device::send_to(task& t) -> void
             { "send_time", "" }
         });
 
+        // 能够本地处理
+        if (m_decision_engine->local_test(item, this)) {
+            namespace mp = boost::multiprecision;
+            using big_float = mp::number<mp::cpp_dec_float<9>>;
+            big_float cpu_demand(item.get_header("cpu_cycle"));
+            big_float cpu_supply(this->get_resource()->get_value("cpu_cycle"));
+            cpu_supply *= 1000000; // megahertz * 10^6 = cpu cycles
+            big_float processing_time = cpu_demand / cpu_supply;
+
+            // 标记资源已用完
+            auto old_cpu_cycles = this->get_resource()->reset_value("cpu_cycle", "0");
+
+            double time = processing_time.convert_to<double>();
+
+            // 执行任务
+            Simulator::Schedule(ns3::Seconds(time), +[](const ns3::Time& time, double processing_time, 
+            client_device* self, const task_element& t, const std::string& old_cpu_cycles) {
+
+                // 恢复资源
+                self->get_resource()->reset_value("cpu_cycle", old_cpu_cycles);
+
+                // 返回消息
+                message response {
+                    { "msgtype", "response" },
+                    { "task_id", t.get_header("task_id") },
+                    { "device_type", "local" },
+                    { "device_address", fmt::format("{:ip}", self->get_address()) },
+                    { "processing_time", fmt::format("{:.{}f}", processing_time, 9) },
+                    { "send_time", "0" },
+                    { "group", t.get_header("group") }
+                };
+                fmt::print("response: {}\n", response.dump());
+                self->handle_response(response.to_packet(), self->get_address());
+            }, Simulator::Now(), time, this, item, old_cpu_cycles);
+        }
+
         // 追加任务发送地址信息
         item.set_header("from_ip", fmt::format("{:ip}", this->get_address()));
         item.set_header("from_port", std::to_string(this->get_port()));
@@ -100,6 +139,29 @@ auto client_device::set_position(double x, double y, double z) -> void
 auto client_device::set_decision_engine(std::shared_ptr<decision_engine> engine) -> void
 {
     m_decision_engine = engine;
+}
+
+auto client_device::set_request_handler(std::string_view msg_type, callback_type callback) -> void
+{
+    m_udp_application->set_request_handler(msg_type, 
+        [callback, this](Ptr<Packet> packet, const Address& remote_address) {
+            callback(this, packet, remote_address);
+        });
+}
+
+auto client_device::response_cache() -> response_type&
+{
+    return m_response;
+}
+
+auto client_device::has_done_callback() -> bool
+{
+    return m_done_fn ? true : false;
+}
+
+auto client_device::done_callback(response_type res) -> void
+{
+    std::invoke(m_done_fn, std::move(res));
 }
 
 auto client_device::handle_response(Ptr<Packet> packet, const Address& remote_address) -> void
@@ -175,6 +237,15 @@ auto client_device_container::set_decision_engine(std::shared_ptr<decision_engin
     for (pointer_type bs : m_devices) {
         bs->set_decision_engine(engine);
     }
+}
+
+auto client_device_container::set_request_handler(std::string_view msg_type, callback_type callback)
+    -> void
+{
+    std::ranges::for_each(m_devices,
+        [&msg_type, callback](pointer_type client) {
+        client->set_request_handler(msg_type, callback);
+    });
 }
 
 } // namespace okec

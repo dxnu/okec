@@ -9,6 +9,8 @@
 namespace okec
 {
 
+class client_device;
+class client_device_container;
 class edge_device;
 
 namespace mp = boost::multiprecision;
@@ -20,18 +22,23 @@ class default_decision_engine : public decision_engine
 
 public:
     default_decision_engine() = default;
-    default_decision_engine(base_station_container* bs_container, cloud_server* cs);
+    default_decision_engine(client_device_container* client_devices, base_station_container* bs_container, cloud_server* cs);
 
     auto make_decision(const task_element& header) -> result_t override;
 
-    auto local_test(const task_element& header, const client_device* client) -> bool override;
+    auto local_test(const task_element& header, client_device* client) -> bool override;
 
 private:
     auto on_bs_decision_message(base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void;
+
+    auto on_bs_response_message(base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void;
     
     auto on_cs_handling_message(cloud_server* cs, Ptr<Packet> packet, const Address& remote_address) -> void;
     
     auto on_es_handling_message(edge_device* es, Ptr<Packet> packet, const Address& remote_address) -> void;
+    
+    auto on_clients_reponse_message(client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void;
+
 };
 
 

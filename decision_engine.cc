@@ -230,8 +230,7 @@ auto decision_engine::get_decision_device() const -> std::shared_ptr<base_statio
     return m_decision_device;
 }
 
-auto
-decision_engine::cache() -> device_cache&
+auto decision_engine::cache() -> device_cache&
 {
     return m_device_cache;
 }

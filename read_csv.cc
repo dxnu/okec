@@ -3,7 +3,7 @@
 #include <ranges>
 
 
-auto okec::read_chip_dataset(std::string_view file, std::string_view type, std::string_view delimiter)
+auto okec::read_csv(std::string_view file, std::string_view type, std::string_view delimiter)
     -> std::optional<dataset_sequence_type>
 {
     std::ifstream data_file(file.data());

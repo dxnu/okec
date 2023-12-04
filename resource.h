@@ -67,8 +67,6 @@ public:
 
     auto get(std::size_t index) -> Ptr<resource>;
 
-    auto random_initialization() -> void;
-
     auto initialize(std::function<void(Ptr<resource>)> fn) -> void;
 
     auto size() const -> std::size_t;
