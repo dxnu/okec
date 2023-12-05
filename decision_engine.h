@@ -70,6 +70,8 @@ public:
     
     virtual auto local_test(const task_element& header, client_device* client) -> bool = 0;
 
+    virtual auto send(task_element& t) -> bool = 0;
+
     auto get_decision_device() const -> std::shared_ptr<base_station>;
 
     auto cache() -> device_cache&;

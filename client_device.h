@@ -55,15 +55,12 @@ public:
 
     auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
 
+    auto dispatch(std::string_view msg_type, Ptr<Packet> packet, const Address& address) -> void;
+
     auto response_cache() -> response_type&;
 
     auto has_done_callback() -> bool;
     auto done_callback(response_type res) -> void;
-
-
-private:
-    // 处理请求回调
-    auto handle_response(Ptr<Packet> packet, const Address& remote_address) -> void;
 
 private:
     Ptr<Node> m_node;

@@ -9,7 +9,7 @@ namespace okec
 
     template <typename T>
     void draw(const std::vector<T>& list) {
-        plt::bar(list);
+        plt::plot(list);
         plt::show();
     }
 }

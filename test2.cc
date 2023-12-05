@@ -45,7 +45,8 @@ auto main(int argc, char **argv) -> int
 
     // 初始化用户设备资源
     client_rcontainer.initialize([](auto res) {
-        res->attribute("cpu_cycle", "20");
+        res->attribute("cpu_cycle", "400");
+        res->attribute("TDP", "20");
     });
     client_rcontainer.print("Client Device Resources:");
 
@@ -63,10 +64,14 @@ auto main(int argc, char **argv) -> int
     static rng dre{ (rng::result_type)time(0) };
     std::uniform_int_distribution<int> uid(0, cpus.size());
     edge1_rcontainer.initialize([&cpus, &uid](auto res) {
-        res->attribute("cpu_cycle", cpus[uid(dre)][8]);
+        auto index = uid(dre);
+        res->attribute("cpu_cycle", cpus[index][8]);
+        res->attribute("TDP", cpus[index][5]);
     });
     edge2_rcontainer.initialize([&cpus, &uid](auto res) {
-        res->attribute("cpu_cycle", cpus[uid(dre)][8]);
+        auto index = uid(dre);
+        res->attribute("cpu_cycle", cpus[index][8]);
+        res->attribute("TDP", cpus[index][5]);
     });
     edge1_rcontainer.print("Edge Device 1 Resources");
     edge2_rcontainer.print("Edge Device 2 Resources");
@@ -79,6 +84,7 @@ auto main(int argc, char **argv) -> int
     auto cloud_resource = okec::make_resource();
     cloud_resource->attribute("cpu_cycle", "20000");
     cloud_resource->attribute("memory", "50000");
+    cloud_resource->attribute("TDP", "55.0");
     cs.install_resource(cloud_resource);
 
     auto decision_engine = std::make_shared<okec::default_decision_engine>(&client_devices, &base_stations, &cs);
@@ -91,7 +97,7 @@ auto main(int argc, char **argv) -> int
     //     fmt::print("Failed to read task data\n");
     //     return EXIT_FAILURE;
     // }
-    for (int i = 0; i < 200; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         t3.emplace_back({
             { "task_id", okec::task::get_unique_id() },
@@ -110,24 +116,33 @@ auto main(int argc, char **argv) -> int
     auto device_1 = client_devices.get_device(1);
     device_1->send_to(t3);
     device_1->when_done([](okec::response res) {
-        fmt::print("{0:=^{1}}\n", "Response Info", 165);
+        fmt::print("{0:=^{1}}\n", "Response Info", 180);
         double es_count{};
         int index{1};
         std::vector<double> points;
+        std::vector<double> power_consumption_points;
         for (const auto& item : res.data()) {
             fmt::print("[{:>3}] ", index++);
-            fmt::print("id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {}s, send_time: {}s, finished: {}\n",
-                item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["send_time"], item["finished"]);
+            fmt::print("id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {}s, send_time: {:>8}s, power_consumption: {:>8}Watts, finished: {}\n",
+                item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["send_time"], item["power_consumption"], item["finished"]);
             if (item["device_type"] == "es" || item["device_type"] == "local") {
                 points.push_back(std::stod(item["time_consuming"].template get<std::string>()) + std::stod(item["send_time"].template get<std::string>()));
+                power_consumption_points.push_back(std::stod(item["power_consumption"].template get<std::string>()));
                 es_count++;
             }
         }
         fmt::print("Task completion rate: {:2.0f}%\n", es_count / res.size() * 100);
-        fmt::print("Average processing time: {:.9f}s\n", std::accumulate(points.begin(), points.end(), .0) / points.size());
-        fmt::print("{0:=^{1}}\n", "", 165);
 
-        okec::draw(points);
+        auto total_time = std::accumulate(points.begin(), points.end(), .0);
+        auto total_power_consumption = std::accumulate(power_consumption_points.begin(), power_consumption_points.end(), .0);
+        fmt::print("Total processing time: {:.9f}s\n", total_time);
+        fmt::print("Average processing time: {:.9f}s\n", total_time / points.size());
+        fmt::print("Total power consumption: {:.3f}Watts\n", total_power_consumption);
+        fmt::print("Average power consumption: {:.3f}Watts\n", total_power_consumption / power_consumption_points.size());
+        fmt::print("{0:=^{1}}\n", "", 180);
+
+        // okec::draw(points);
+        okec::draw(power_consumption_points);
     });
 
 

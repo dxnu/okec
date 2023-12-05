@@ -84,6 +84,7 @@ auto default_decision_engine::make_decision(const task_element& header) -> resul
 auto default_decision_engine::local_test(const task_element& header,
     client_device* client) -> bool
 {
+    // fmt::print(fg(fmt::color::gold), "demand: {}, supply: {}, deadline: {}\n", header.get_header("cpu_cycle"), client->get_resource()->get_value("cpu_cycle"), header.get_header("deadline"));
     big_float cpu_demand(header.get_header("cpu_cycle"));
     big_float cpu_supply(client->get_resource()->get_value("cpu_cycle"));
 
@@ -190,7 +191,9 @@ auto default_decision_engine::on_cs_handling_message(
             { "task_id", task_id },
             { "device_type", "cs" },
             { "device_address", device_address },
-            { "processing_time", fmt::format("{:.{}f}", processing_time, 9) }
+            { "processing_time", fmt::format("{:.9f}", processing_time) },
+            { "power_consumption", fmt::format("{:.3f}", 
+                processing_time * std::stod(self->get_resource()->get_value("TDP"))) }
         };
         fmt::print("response: {}\n", response.dump());
         self->write(response.to_packet(), desination, self->get_port());
@@ -248,7 +251,9 @@ auto default_decision_engine::on_es_handling_message(
             { "task_id", task_id },
             { "device_type", "es" },
             { "device_address", device_address },
-            { "processing_time", fmt::format("{:.{}f}", processing_time, 9) }
+            { "processing_time", fmt::format("{:.9f}", processing_time) },
+            { "power_consumption", fmt::format("{:.3f}", 
+                processing_time * std::stod(device_resource->get_value("TDP"))) }
         };
         es->write(response.to_packet(), desination, es->get_port());
     }, time, es, old_cpu_cycles, task_id, inetRemoteAddress.GetIpv4());
@@ -265,21 +270,11 @@ auto default_decision_engine::on_clients_reponse_message(
     auto device_address = msg.get_value("device_address");
     auto group = msg.get_value("group");
     auto time_consuming = msg.get_value("processing_time");
+    auto power_consumption = msg.get_value("power_consumption");
     auto send_time = msg.get_value("send_time");
 
     fmt::print(fg(fmt::color::red), " response: task_id={}, device_type={}, device_address={}, group={}, processing_time={}, send_time={}\n",
         task_id, device_type, device_address, group, time_consuming, send_time);
-
-    // client->m_response.set_if({
-    //     { "group", group },
-    //     { "task_id", task_id }
-    // }, [&device_type, &device_address, &time_consuming, &send_time](auto& item) {
-    //     item["device_type"] = device_type;
-    //     item["device_address"] = device_address;
-    //     item["time_consuming"] = time_consuming;
-    //     item["send_time"] = send_time;
-    //     item["finished"] = "1";
-    // });
 
     auto it = client->response_cache().find_if([&group, &task_id](const response::value_type& item) {
         return item["group"] == group && item["task_id"] == task_id;
@@ -289,33 +284,34 @@ auto default_decision_engine::on_clients_reponse_message(
         (*it)["device_address"] = device_address;
         (*it)["time_consuming"] = time_consuming;
         (*it)["send_time"] = send_time;
+        (*it)["power_consumption"] = power_consumption;
         (*it)["finished"] = "1";
     }
 
-
     // 显示当前任务进度条
-    auto total = client->response_cache().count_if({ "group", group });
-    auto finished = client->response_cache().count_if({{ "group", group }, { "finished", "1" }});
+    auto total = client->response_cache().count_if([&group](const response::value_type& item) {
+        return item["group"] == group;
+    });
+    auto finished = client->response_cache().count_if([&group](const response::value_type& item) {
+        return item["group"] == group && item["finished"] == "1";
+    });
     fmt::print(fg(fmt::color::red), "Current task progress: {0:█^{1}}{0:▒^{2}} {3:.0f}%\n", "",
         finished, total - finished, (double)finished / total * 100);
 
     // 检查是否存在当前任务的信息
-    if (!client->response_cache().find_if({ "group", group })) {
+    auto exist = client->response_cache().find_if([&group](const auto& item) {
+        return item["group"] == group;
+    });
+    if (exist == client->response_cache().end()) {
         fmt::print("未发现响应信息\n"); // 说明发过去的数据被修改，或是 m_response 被无意间删除了信息
         return;
     }
 
-
-    auto partially_finished = client->response_cache().find_if({
-        { "group", group },
-        { "finished", "0" }
+    // 全部完成
+    auto unfinished = client->response_cache().find_if([&group](const auto& item) {
+        return item["group"] == group && item["finished"] == "0";
     });
-
-    if (partially_finished) {
-        // 部分完成
-        // fmt::print("部分完成\n");
-    } else {
-        // 全部完成
+    if (unfinished == client->response_cache().end()) {
         if (client->has_done_callback()) {
             client->done_callback(client->response_cache().dump_with({ "group", group }));
         }

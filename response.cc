@@ -131,75 +131,31 @@ auto response::emplace_back(attributes_type values) -> void
     this->emplace_back(std::move(item));
 }
 
-// auto response::emplace_back(attribute_type value) -> void
-// {
-//     json item;
-//     item[value.first] = value.second;
-    
-// }
-
-// auto response::get_value(std::string_view key) -> std::string
-// {
-//     std::string result{};
-//     if (j_.contains(key))
-//         result = j_[key].get<std::string>();
-    
-//     return result;
-// }
-
-auto response::find_if(attributes_type values) const -> bool
-{
-    for (const auto& item : j_["response"]["items"])
-    {
-        bool cond = true;
-        for (auto [key, value] : values)
-        {
-            if (item[key] != value) {
-                cond = false;
-                break;
-            }
-        }
-        if (cond)
-            return true;
-    }
-
-    return false;
-}
-
-auto response::find_if(attribute_type value) const -> bool
-{
-    return find_if({value});
-}
-
 auto response::find_if(unary_predicate_type pred) -> iterator
 {
     auto& items = this->view();
     return std::find_if(items.begin(), items.end(), pred);
 }
 
-auto response::count_if(attributes_type values) const -> int
+auto response::count_if(unary_predicate_type pred) const -> int
 {
-    int count{};
-    for (const auto& item : j_["response"]["items"])
-    {
-        bool cond = true;
-        for (auto [key, value] : values)
-        {
-            if (item[key] != value) {
-                cond = false;
-                break;
-            }
-        }
-        if (cond)
-            count++;
-    }
-
-    return count;
+    const auto& items = j_["response"]["items"];
+    return std::count_if(items.begin(), items.end(), pred);
 }
 
-auto response::count_if(attribute_type value) const -> int
+auto response::dump_with(unary_predicate_type pred) -> response
 {
-    return count_if({value});
+    response result;
+    auto& items = this->view();
+    for (auto it = items.begin(); it != items.end();) {
+        if (pred(*it)) {
+            result.emplace_back(std::move(*it));
+            it = items.erase(it);
+        } else {
+            it++;
+        }
+    }
+    return result;
 }
 
 auto response::dump_with(attributes_type values) -> response

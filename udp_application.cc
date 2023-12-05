@@ -120,6 +120,11 @@ auto udp_application::set_request_handler(std::string_view msg_type, callback_ty
     m_msg_handler.add_handler(msg_type, callback);
 }
 
+auto udp_application::dispatch(std::string_view msg_type, Ptr<Packet> packet, const Address& address) -> void
+{
+    m_msg_handler.dispatch(msg_type.data(), packet, address);
+}
+
 auto udp_application::StartApplication() -> void
 {
     TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");

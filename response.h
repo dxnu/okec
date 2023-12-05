@@ -44,32 +44,9 @@ public:
     auto emplace_back(attributes_type values) -> void;
     // auto emplace_back(attribute_type value) -> void;
 
-    auto set_if(attributes_type values, auto f) -> void
-    {
-        for (auto& item : j_["response"]["items"])
-        {
-            bool cond{true};
-            for (auto [key, value] : values)
-            {
-                if (item[key] != value)
-                    cond = false;
-            }
-
-            if (cond)
-            {
-                f(item);
-                break;
-            }
-        }
-    }
-
-    auto find_if(attributes_type values) const -> bool;
-    auto find_if(attribute_type value) const -> bool;
-
     auto find_if(unary_predicate_type pred) -> iterator;
-
-    auto count_if(attributes_type values) const -> int;
-    auto count_if(attribute_type value) const -> int;
+    auto count_if(unary_predicate_type pred) const -> int;
+    auto dump_with(unary_predicate_type pred) -> response;
 
     auto dump_with(attributes_type values) -> response;
     auto dump_with(attribute_type value) -> response;

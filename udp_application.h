@@ -39,6 +39,8 @@ public:
 
     auto set_request_handler(std::string_view msg_type, callback_type callback) -> void;
 
+    auto dispatch(std::string_view msg_type, Ptr<Packet> packet, const Address& address) -> void;
+
 private:
     auto StartApplication() -> void override;
     auto StopApplication() -> void override;
