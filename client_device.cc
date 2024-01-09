@@ -52,70 +52,10 @@ auto client_device::send_to(task& t) -> void
 {
     // 任务不能以 task 为单位发送，因为 task 可能会非常大，导致发送的数据断页，在目的端便无法恢复数据
     // 以 task_element 为单位发送则可以避免 task 大小可能会带来的问题
-    double launch_delay{ 1.0 };
-    message msg;
-    msg.type(message_decision);
+    // double launch_delay{ 1.0 };
     for (auto& item : t.elements())
     {
-        m_response.emplace_back({
-            { "task_id", item.get_header("task_id") },
-            { "group", item.get_header("group") },
-            { "finished", "0" }, // 1 indicates finished, while 0 signifies the opposite.
-            { "device_type", "" },
-            { "device_address", "" },
-            { "time_consuming", "" },
-            { "send_time", "" },
-            { "power_consumption", "" }
-        });
-
-        // 能够本地处理
-        if (m_decision_engine->local_test(item, this)) {
-            namespace mp = boost::multiprecision;
-            using big_float = mp::number<mp::cpp_dec_float<9>>;
-            big_float cpu_demand(item.get_header("cpu_cycle"));
-            big_float cpu_supply(this->get_resource()->get_value("cpu_cycle"));
-            cpu_supply *= 1000000; // megahertz * 10^6 = cpu cycles
-            big_float processing_time = cpu_demand / cpu_supply;
-
-            // 标记资源已用完
-            auto old_cpu_cycles = this->get_resource()->reset_value("cpu_cycle", "0");
-
-            double time = processing_time.convert_to<double>();
-
-            // 执行任务
-            Simulator::Schedule(ns3::Seconds(time), +[](const ns3::Time& time, double processing_time, 
-            client_device* self, const task_element& t, const std::string& old_cpu_cycles) {
-
-                // 恢复资源
-                // 分发太快了，还没等到恢复，任务已经被分发到别处了
-                self->get_resource()->reset_value("cpu_cycle", old_cpu_cycles);
-
-                // 返回消息
-                message response {
-                    { "msgtype", "response" },
-                    { "task_id", t.get_header("task_id") },
-                    { "device_type", "local" },
-                    { "device_address", fmt::format("{:ip}", self->get_address()) },
-                    { "processing_time", fmt::format("{:.9f}", processing_time) },
-                    { "power_consumption", fmt::format("{:.3f}", 
-                        processing_time * std::stod(self->get_resource()->get_value("TDP"))) },
-                    { "send_time", "0" },
-                    { "group", t.get_header("group") }
-                };
-                fmt::print("response: {}\n", response.dump());
-                // 自调用消息，通知
-                self->dispatch(message_response, response.to_packet(), self->get_address());
-            }, Simulator::Now(), time, this, item, old_cpu_cycles);
-        } else { // 发送到远端处理
-            // 追加任务发送地址信息
-            item.set_header("from_ip", fmt::format("{:ip}", this->get_address()));
-            item.set_header("from_port", std::to_string(this->get_port()));
-
-            msg.content(item);
-            const auto bs = m_decision_engine->get_decision_device();
-            ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &udp_application::write, m_udp_application, msg.to_packet(), bs->get_address(), bs->get_port());
-            launch_delay += 0.1;
-        }
+        m_decision_engine->send(item, this);
     }
 }
 
@@ -167,6 +107,11 @@ auto client_device::has_done_callback() -> bool
 auto client_device::done_callback(response_type res) -> void
 {
     std::invoke(m_done_fn, std::move(res));
+}
+
+auto client_device::write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) const -> void
+{
+    m_udp_application->write(packet, destination, port);
 }
 
 auto client_device_container::size() -> std::size_t

@@ -28,6 +28,8 @@ public:
 
     auto local_test(const task_element& header, client_device* client) -> bool override;
 
+    auto send(task_element& t, client_device* client) -> bool override;
+
 private:
     auto on_bs_decision_message(base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void;
 

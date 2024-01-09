@@ -62,6 +62,8 @@ public:
     auto has_done_callback() -> bool;
     auto done_callback(response_type res) -> void;
 
+    auto write(Ptr<Packet> packet, Ipv4Address destination, uint16_t port) const -> void;
+
 private:
     Ptr<Node> m_node;
     Ptr<udp_application> m_udp_application;

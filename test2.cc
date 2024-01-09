@@ -141,8 +141,8 @@ auto main(int argc, char **argv) -> int
         fmt::print("Average power consumption: {:.3f}Watts\n", total_power_consumption / power_consumption_points.size());
         fmt::print("{0:=^{1}}\n", "", 180);
 
-        // okec::draw(points);
-        okec::draw(power_consumption_points);
+        okec::draw(points, "Time Comsumption(Seconds)");
+        okec::draw(power_consumption_points, "Power Comsumption(Watts)");
     });
 
 

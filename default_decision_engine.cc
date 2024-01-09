@@ -100,6 +100,74 @@ auto default_decision_engine::local_test(const task_element& header,
     return false;
 }
 
+auto default_decision_engine::send(task_element& t, client_device* client) -> bool
+{
+    static double launch_delay = 1.0;
+
+    client->response_cache().emplace_back({
+        { "task_id", t.get_header("task_id") },
+        { "group", t.get_header("group") },
+        { "finished", "0" }, // 1 indicates finished, while 0 signifies the opposite.
+        { "device_type", "" },
+        { "device_address", "" },
+        { "time_consuming", "" },
+        { "send_time", "" },
+        { "power_consumption", "" }
+    });
+
+    // 能够本地处理
+    if (this->local_test(t, client)) {
+        namespace mp = boost::multiprecision;
+        using big_float = mp::number<mp::cpp_dec_float<9>>;
+        big_float cpu_demand(t.get_header("cpu_cycle"));
+        big_float cpu_supply(client->get_resource()->get_value("cpu_cycle"));
+        cpu_supply *= 1000000; // megahertz * 10^6 = cpu cycles
+        big_float processing_time = cpu_demand / cpu_supply;
+
+        // 标记资源已用完
+        auto old_cpu_cycles = client->get_resource()->reset_value("cpu_cycle", "0");
+
+        double time = processing_time.convert_to<double>();
+
+        // 执行任务
+        Simulator::Schedule(ns3::Seconds(time), +[](const ns3::Time& time, double processing_time, 
+        client_device* client, const task_element& t, const std::string& old_cpu_cycles) {
+
+            // 恢复资源
+            // 分发太快了，还没等到恢复，任务已经被分发到别处了
+            client->get_resource()->reset_value("cpu_cycle", old_cpu_cycles);
+
+            // 返回消息
+            message response {
+                { "msgtype", "response" },
+                { "task_id", t.get_header("task_id") },
+                { "device_type", "local" },
+                { "device_address", fmt::format("{:ip}", client->get_address()) },
+                { "processing_time", fmt::format("{:.9f}", processing_time) },
+                { "power_consumption", fmt::format("{:.3f}", 
+                    processing_time * std::stod(client->get_resource()->get_value("TDP"))) },
+                { "send_time", "0" },
+                { "group", t.get_header("group") }
+            };
+            fmt::print("response: {}\n", response.dump());
+            // 自调用消息，通知
+            client->dispatch(message_response, response.to_packet(), client->get_address());
+        }, Simulator::Now(), time, client, t, old_cpu_cycles);
+    } else { // 发送到远端处理
+        // 追加任务发送地址信息
+        t.set_header("from_ip", fmt::format("{:ip}", client->get_address()));
+        t.set_header("from_port", std::to_string(client->get_port()));
+        message msg;
+        msg.type(message_decision);
+        msg.content(t);
+        const auto bs = this->get_decision_device();
+        ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
+        launch_delay += 0.1;
+    }
+
+    return false;
+}
+
 auto default_decision_engine::on_bs_decision_message(
     base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
 {
