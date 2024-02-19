@@ -126,7 +126,7 @@ auto base_station::print_task_info() -> void
 {
     fmt::print("task sequence size: {}\n", m_task_sequence.size());
     for (const auto& item : m_task_sequence) {
-        fmt::print("item4: {}\n", item.dump());
+        fmt::print("item: {}\n", item.dump());
     }
 }
 

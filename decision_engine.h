@@ -22,8 +22,8 @@ public:
     using attributes_type  = std::initializer_list<attribute_type>;
     using value_type       = json;
     using iterator         = json::iterator;
-    using unary_predicate_type   = std::function<bool(const value_type&)>;
-    using binary_predicate_type   = std::function<bool(const value_type&, const value_type&)>;
+    using unary_predicate_type  = std::function<bool(const value_type&)>;
+    using binary_predicate_type = std::function<bool(const value_type&, const value_type&)>;
 
 public:
 
