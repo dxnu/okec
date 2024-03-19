@@ -165,7 +165,7 @@ auto default_decision_engine::send(task_element& t, client_device* client) -> bo
         launch_delay += 0.1;
     }
 
-    return false;
+    return true;
 }
 
 auto default_decision_engine::on_bs_decision_message(

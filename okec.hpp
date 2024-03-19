@@ -15,6 +15,118 @@
 namespace okec
 {
 
+class network_model {
+public:
+    static auto initialize_communication(client_device_container& ues, base_station_container& bss) {
+        // 基站
+        NodeContainer wifi_stations;
+        int bs_size = bss.size();
+        for (auto i : std::views::iota(0, bs_size)) {
+            wifi_stations.Add(bss[i]->get_node());
+        }
+
+        // 用户设备
+        NodeContainer wifi_devices;
+        ues.get_nodes(wifi_devices);
+
+        // 边缘服务器
+        NodeContainer p2p_nodes[bs_size];
+        for (auto i : std::views::iota(0, bs_size)) {
+            bss[i]->get_nodes(p2p_nodes[i]); // 第一个是基站，后面全是边缘服务器
+        }
+
+        // 第一步，WIFI连接用户设备与基站
+        ns3::WifiHelper wifi;
+        int mcs = 2;
+        int sgi = 1; // 0 1 2
+        auto nonHtRefRateMbps = ns3::HtPhy::GetNonHtReferenceRate(mcs) / 1e6;
+        wifi.SetStandard(WIFI_STANDARD_80211n);
+        wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", 
+                                     "DataMode",
+                                     StringValue("OfdmRate6Mbps"),
+                                     "ControlMode",
+                                     StringValue("HtMcs7"));
+        wifi.ConfigHtOptions("ShortGuardIntervalSupported", BooleanValue(sgi));
+
+        int channelWidth = 20;
+        auto ssid = ns3::Ssid("ns3-80211n");
+        auto channelValue = ns3::TupleValue<UintegerValue, UintegerValue, EnumValue, UintegerValue>{};
+        WifiPhyBand band = ns3::WIFI_PHY_BAND_5GHZ;
+        channelValue.Set(ns3::WifiPhy::ChannelTuple{0, channelWidth, band, 0});
+
+        // Create a channel helper and phy helper, and then create the channel
+        auto channel = ns3::YansWifiChannelHelper::Default();
+        auto phy = ns3::YansWifiPhyHelper();
+        WifiMacHelper mac;
+        phy.SetChannel(channel.Create());
+        phy.Set("ChannelSettings", channelValue);
+        mac.SetType("ns3::StaWifiMac", "Ssid", ns3::SsidValue(ssid));
+
+        // 为STA安装WIFI网络
+        NetDeviceContainer wifi_device_devices = wifi.Install(phy, mac, wifi_devices);
+
+        // 为AP安装WIFI网络
+        mac.SetType("ns3::ApWifiMac",
+                    "EnableBeaconJitter",
+                    ns3::BooleanValue(false),
+                    "Ssid",
+                    ns3::SsidValue(ssid));
+        NetDeviceContainer wifi_station_devices = wifi.Install(phy, mac, wifi_stations);
+
+        // 加入移动模型，让STA可以移动，AP固定
+        ns3::MobilityHelper mobility;
+        mobility.SetPositionAllocator("ns3::GridPositionAllocator", 
+            "MinX", DoubleValue(0.0), "MinY", DoubleValue(0.0),
+            "DeltaX", DoubleValue(5.0), "DeltaY", DoubleValue(10.0),
+            "GridWidth", UintegerValue(3), "LayoutType", StringValue("RowFirst"));
+        // 设置初始时节点的摆放位置
+        mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel", "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
+        mobility.Install(wifi_devices);  // STA 随机移动
+        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+        mobility.Install(wifi_stations); // AP 固定
+
+        // 第二步，P2P连接基站与边缘服务器
+        PointToPointHelper p2p;
+        p2p.SetDeviceAttribute("DataRate", StringValue("100Mbps")); // 设置带宽为100Mbps
+        p2p.SetChannelAttribute("Delay", TimeValue(MilliSeconds (2))); // 设置延迟为2ms
+
+        // 创建每个基站和边缘服务器的点对点链接
+        NetDeviceContainer p2p_devices[bs_size];
+        for (auto i : std::views::iota(0, bs_size)) {
+            for (uint32_t j = 0; j < p2p_nodes[i].GetN() - 1; ++j) {
+                p2p_devices[i].Add(p2p.Install(p2p_nodes[i].Get(0), p2p_nodes[i].Get(j + 1)));
+            }
+        }
+
+        // 第三步，安装网络协议栈
+        InternetStackHelper stack;
+        stack.Install(wifi_stations); // 为基站节点安装网络协议栈
+        stack.Install(wifi_devices);  // 为用户设备节点安装网络协议栈
+        for (auto i : std::views::iota(0, bs_size)) {
+            for (auto iter = p2p_nodes[i].Begin() + 1; iter != p2p_nodes[i].End (); ++iter) {
+                stack.Install(*iter);
+            }
+        }
+
+        // 第四步，分配地址
+        Ipv4AddressHelper wifi_address;
+        wifi_address.SetBase ("10.1.1.0", "255.255.255.0"); // 设置基站节点的IP地址
+        Ipv4InterfaceContainer wifi_station_interfaces = wifi_address.Assign(wifi_station_devices);
+
+        wifiAddress.SetBase ("10.1.2.0", "255.255.255.0"); // 设置用户设备节点的IP地址
+        Ipv4InterfaceContainer wifi_device_interfaces = wifiAddress.Assign(wifi_device_devices);
+
+        Ipv4AddressHelper p2pAddress;
+        Ipv4InterfaceContainer p2p_interfaces;
+        int base = 3;
+        for (auto i : std::views::iota(0, bs_size)) { // 设置用户设备节点的IP地址
+            p2pAddress.SetBase(fmt::format("10.1.{}.0", base++), "255.255.255.0");
+            p2p_interfaces.Add(p2pAddress.Assign(p2p_devices[i]));
+        }
+
+    }
+};
+
 
 void initialize_communication(base_station& bs, client_device_container& clientDevices)
 {

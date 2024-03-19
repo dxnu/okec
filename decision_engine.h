@@ -65,6 +65,7 @@ public:
     auto calculate_distance(const Vector& pos) -> double;
 
     auto initialize_device(base_station_container* bs_container, cloud_server* cs) -> void;
+    auto initialize_device(base_station_container* bs_container) -> void;
     
     virtual auto make_decision(const task_element& header) -> result_t = 0;
     
