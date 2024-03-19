@@ -7,6 +7,9 @@
 #include "ns3/internet-module.h"
 #include "ns3/csma-module.h"
 #include "ns3/point-to-point-module.h"
+#include "ns3/wifi-module.h"
+#include "ns3/mobility-helper.h"
+#include "ns3/rectangle.h"
 #include "base_station.h"
 #include "client_device.h"
 #include "resource.h"
@@ -43,9 +46,9 @@ public:
         wifi.SetStandard(WIFI_STANDARD_80211n);
         wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", 
                                      "DataMode",
-                                     StringValue("OfdmRate6Mbps"),
+                                     StringValue(fmt::format("HtMcs{}", mcs)),
                                      "ControlMode",
-                                     StringValue("HtMcs7"));
+                                     StringValue(fmt::format("OfdmRate{}Mbps", nonHtRefRateMbps)));
         wifi.ConfigHtOptions("ShortGuardIntervalSupported", BooleanValue(sgi));
 
         int channelWidth = 20;
@@ -113,14 +116,14 @@ public:
         wifi_address.SetBase ("10.1.1.0", "255.255.255.0"); // 设置基站节点的IP地址
         Ipv4InterfaceContainer wifi_station_interfaces = wifi_address.Assign(wifi_station_devices);
 
-        wifiAddress.SetBase ("10.1.2.0", "255.255.255.0"); // 设置用户设备节点的IP地址
-        Ipv4InterfaceContainer wifi_device_interfaces = wifiAddress.Assign(wifi_device_devices);
+        wifi_address.SetBase ("10.1.2.0", "255.255.255.0"); // 设置用户设备节点的IP地址
+        Ipv4InterfaceContainer wifi_device_interfaces = wifi_address.Assign(wifi_device_devices);
 
         Ipv4AddressHelper p2pAddress;
         Ipv4InterfaceContainer p2p_interfaces;
         int base = 3;
         for (auto i : std::views::iota(0, bs_size)) { // 设置用户设备节点的IP地址
-            p2pAddress.SetBase(fmt::format("10.1.{}.0", base++), "255.255.255.0");
+            p2pAddress.SetBase(fmt::format("10.1.{}.0", base++).c_str(), "255.255.255.0");
             p2p_interfaces.Add(p2pAddress.Assign(p2p_devices[i]));
         }
 

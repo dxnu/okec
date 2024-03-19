@@ -30,7 +30,7 @@ public:
     auto begin() -> iterator;
     auto end() -> iterator;
 
-    auto dump() -> std::string;
+    auto dump(int indent = -1) -> std::string;
 
     auto data() const -> value_type;
 
