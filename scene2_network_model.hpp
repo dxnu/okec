@@ -7,151 +7,213 @@ namespace okec
 {
 
 struct scene2_network_model {
-    auto network_initializer(client_device_container& ues, base_station_container& bss) -> void {
-        // 第一步，获取用户设备、基站
+    auto network_initializer(std::vector<client_device_container>& clients, base_station_container& base_stations) -> void {
+        int APs = base_stations.size();
+        assert(APs == clients.size());
 
-        fmt::print("1\n");
-
-        int bs_size = bss.size();
-        NodeContainer edgeServers[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) {
-            bss[i]->get_edge_nodes(edgeServers[i]);
+        // Create multiple AP nodes 
+        NodeContainer wifiApNodes;
+        for (auto i : std::views::iota(0, APs)) {
+            wifiApNodes.Add(base_stations[i]->get_node());
         }
 
-        NodeContainer p2pNodes[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) {
-            p2pNodes[i].Add(bss[i]->get_node()); // 基站
-            p2pNodes[i].Add(edgeServers[i].Get(0)); // 第一个边缘服务器
+        // Create multiple STA
+        NodeContainer wifiStaNodes[APs];
+        for (auto i : std::views::iota(0, APs)) {
+            clients[i].get_nodes(wifiStaNodes[i]);
         }
 
-        fmt::print("9\n");
+        // Configure propagation model
+        WifiMacHelper wifiMac;
+        WifiHelper wifiHelper;
+        YansWifiPhyHelper wifiPhy;
+        wifiHelper.SetStandard(WIFI_STANDARD_80211ac);
+        wifiHelper.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("VhtMcs0"), "ControlMode", StringValue("VhtMcs0"), "MaxSlrc", UintegerValue(10));
+        int channelWidth = 80;
 
-        PointToPointHelper p2p;
-        p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
-        p2p.SetChannelAttribute("Delay", StringValue("2ms"));
-        
-        NetDeviceContainer p2pDevices[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) {
-            p2pDevices[i] = p2p.Install(p2pNodes[i]);
+        YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
+        wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
+        wifiPhy.SetChannel(wifiChannel.Create());
+        wifiPhy.Set("TxPowerStart", DoubleValue(20.0));
+        wifiPhy.Set("TxPowerEnd", DoubleValue(20.0));
+        wifiPhy.Set("TxPowerLevels", UintegerValue(1));
+        wifiPhy.Set("TxGain", DoubleValue(0));
+        wifiPhy.Set("RxGain", DoubleValue(0));
+        wifiPhy.Set("RxNoiseFigure", DoubleValue(7));
+        wifiPhy.SetErrorRateModel("ns3::YansErrorRateModel");
+
+
+        // Assign SSID for each AP
+        NetDeviceContainer apDevices;
+        Ssid ssid;
+        for (auto i : std::views::iota(0, APs)) {
+            ssid = Ssid("scene2-network-" + std::to_string(i));
+            wifiMac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
+            NetDeviceContainer apDevice = wifiHelper.Install(wifiPhy, wifiMac, wifiApNodes.Get(i));
+            apDevices.Add(apDevice);
         }
 
-
-        CsmaHelper csma;
-        csma.SetChannelAttribute("DataRate", StringValue("100Mbps"));
-        csma.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560)));
-        NetDeviceContainer csmaDevices[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) {
-            csmaDevices[i] = csma.Install(edgeServers[i]);
+        // Assign STA to connect to specific SSID
+        NetDeviceContainer staDevices[APs];
+        for (auto i : std::views::iota(0, APs)) {
+            ssid = Ssid("scene2-network-" + std::to_string(i));
+            wifiMac.SetType ("ns3::StaWifiMac",	"Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
+            NetDeviceContainer staDevice = wifiHelper.Install(wifiPhy, wifiMac, wifiStaNodes[i]);
+            staDevices[i].Add(staDevice);
         }
 
-        fmt::print("10\n");
-
-        // 用户设备
-        NodeContainer wifiStaNodes;
-        ues.get_nodes(wifiStaNodes);
-        NodeContainer wifiApNodes[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) {
-            // wifiApNodes[i].Add(p2pNodes[i].Get(0));
-            wifiApNodes[i].Add(bss[i]->get_node());
-        }
-
-        YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
-        YansWifiPhyHelper phy;
-        phy.SetChannel(channel.Create());
-
-        WifiMacHelper mac;
-        Ssid ssid = Ssid("ns-3-ssid");
-
-        WifiHelper wifi;
-
-        NetDeviceContainer staDevices;
-        mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
-        staDevices = wifi.Install(phy, mac, wifiStaNodes);
-
-        fmt::print("11\n");
-
-        NetDeviceContainer apDevices[bs_size];
-        mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
-        for (auto i : std::views::iota(0, bs_size)) { // 也许有问题
-            apDevices[bs_size] = wifi.Install(phy, mac, wifiApNodes[i]);
-        }
-
-        fmt::print("12\n");
-
-        MobilityHelper mobility;
-        mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                  "MinX",
-                                  DoubleValue(0.0),
-                                  "MinY",
-                                  DoubleValue(0.0),
-                                  "DeltaX",
-                                  DoubleValue(5.0),
-                                  "DeltaY",
-                                  DoubleValue(10.0),
-                                  "GridWidth",
-                                  UintegerValue(3),
-                                  "LayoutType",
-                                  StringValue("RowFirst"));
-
-        mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                                "Bounds",
-                                RectangleValue(Rectangle(-50, 50, -50, 50)));
-        mobility.Install(wifiStaNodes);
-
-        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-        for (auto i : std::views::iota(0, bs_size)) { // 也许有问题
-            mobility.Install(wifiApNodes[i]);
-        }
-
-        fmt::print("2--wifiApNodes size: {}\n", wifiApNodes[0].GetN());
-        fmt::print("2--wifiApNodes size: {}\n", wifiApNodes[1].GetN());
-
-
+        // Install network stack
         InternetStackHelper stack;
-        stack.Install(wifiStaNodes);
-        for (auto i : std::views::iota(0, bs_size)) { // 也许有问题
-            fmt::print("6\n");
-            stack.Install(edgeServers[i]);
-            fmt::print("7--wifiApNodes size: {}\n", wifiApNodes[0].GetN());
-            fmt::print("7--wifiApNodes size: {}\n", wifiApNodes[1].GetN());
-            // for (NodeContainer::Iterator iter = wifiApNodes[i].Begin(); iter != wifiApNodes[i].End(); ++iter)
-            // {
-            //     Ptr<Node> node = *iter;
-
-            // }
-            fmt::print("8\n");
-            stack.Install(wifiApNodes[i]);
+        stack.Install(wifiApNodes);
+        for (auto i : std::views::iota(0, APs)) {
+            stack.Install(wifiStaNodes[i]);
         }
-
-        fmt::print("5\n");
-
 
         Ipv4AddressHelper address;
-
-        address.SetBase("10.1.1.0", "255.255.255.0");
-        Ipv4InterfaceContainer p2pInterfaces[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) { // 也许有问题
-            p2pInterfaces[i] = address.Assign(p2pDevices[i]);
+        for (auto i : std::views::iota(0, APs)) {
+            address.SetBase(fmt::format("10.1.{}.0", i).c_str(), "255.255.255.0");
+            address.Assign(apDevices.Get(i));
+            address.Assign(staDevices[i]);
         }
-
-        fmt::print("4\n");
-
-        address.SetBase("10.1.2.0", "255.255.255.0");
-        Ipv4InterfaceContainer csmaInterfaces[bs_size];
-        for (auto i : std::views::iota(0, bs_size)) { // 也许有问题
-            csmaInterfaces[bs_size] = address.Assign(csmaDevices[i]);
-        }
-
-        address.SetBase("10.1.3.0", "255.255.255.0");
-        address.Assign(staDevices);
-        for (auto i : std::views::iota(0, bs_size)) { // 也许有问题
-            address.Assign(apDevices[i]);
-        }
-
-        fmt::print("3\n");
-
-
     }
+
+auto network_initializer2(std::vector<client_device_container>& clients, base_station_container& base_stations) -> void {
+    int APs = base_stations.size();
+    assert(APs == clients.size());
+
+
+
+    // CSMA
+    NodeContainer p2pNodes[APs];
+    NodeContainer edgeNodes[APs];
+    for (auto i : std::views::iota(0, APs)) {
+        base_stations[i]->get_edge_nodes(edgeNodes[i]);
+        p2pNodes[i].Add(base_stations[i]->get_node());
+        p2pNodes[i].Add(edgeNodes[i].Get(0));
+    }
+
+    PointToPointHelper p2pHelper;
+    p2pHelper.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
+    p2pHelper.SetChannelAttribute("Delay", StringValue("2ms"));
+    CsmaHelper csmaHelper;
+    csmaHelper.SetChannelAttribute("DataRate", StringValue("100Mbps"));
+    csmaHelper.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560)));
+
+    NetDeviceContainer p2pDevices;
+    NetDeviceContainer csmaDevices;
+    for (auto i : std::views::iota(0, APs)) {
+        p2pDevices.Add(p2pHelper.Install(p2pNodes[i]));
+        csmaDevices.Add(csmaHelper.Install(edgeNodes[i]));
+    }
+
+
+
+
+    // Create multiple AP nodes 
+    NodeContainer wifiApNodes;
+    for (auto i : std::views::iota(0, APs)) {
+        wifiApNodes.Add(base_stations[i]->get_node());
+    }
+
+    // Create multiple STA
+    NodeContainer wifiStaNodes[APs];
+    for (auto i : std::views::iota(0, APs)) {
+        clients[i].get_nodes(wifiStaNodes[i]);
+    }
+
+    YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
+    YansWifiPhyHelper wifiPhy;
+    WifiMacHelper wifiMac;
+    WifiHelper wifiHelper;
+    Ssid ssid;
+
+    NetDeviceContainer apDevices;
+    NetDeviceContainer staDevices[APs];
+    for (auto i : std::views::iota(0, APs)) {
+        ssid = Ssid("scene2-network-" + std::to_string(i));
+        wifiPhy.SetChannel(wifiChannel.Create());
+        
+        // Assign SSID for each AP
+        wifiMac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
+        NetDeviceContainer apDevice = wifiHelper.Install(wifiPhy, wifiMac, wifiApNodes.Get(i));
+        apDevices.Add(apDevice);
+
+        // Assign STA to connect to specific SSID
+        wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
+        NetDeviceContainer staDevice = wifiHelper.Install(wifiPhy, wifiMac, wifiStaNodes[i]);
+        staDevices[i].Add(staDevice);
+    }
+
+    MobilityHelper mobility;
+
+    mobility.SetPositionAllocator("ns3::GridPositionAllocator",
+                                "MinX",
+                                DoubleValue(0.0),
+                                "MinY",
+                                DoubleValue(0.0),
+                                "DeltaX",
+                                DoubleValue(5.0),
+                                "DeltaY",
+                                DoubleValue(10.0),
+                                "GridWidth",
+                                UintegerValue(3),
+                                "LayoutType",
+                                StringValue("RowFirst"));
+
+    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+                            "Bounds",
+                            RectangleValue(Rectangle(-50, 50, -50, 50)));
+
+    for (auto i : std::views::iota(0, APs)) {
+        mobility.Install(wifiStaNodes[i]);
+    }
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    mobility.Install(wifiApNodes);
+
+
+
+
+
+
+
+    //////////////
+
+    InternetStackHelper stack;
+    stack.Install(wifiApNodes);
+    for (auto i : std::views::iota(0, APs)) {
+        stack.Install(wifiStaNodes[i]);
+        stack.Install(edgeNodes[i]); // new
+    }
+
+    Ipv4AddressHelper address;
+    int base = 1;
+    for (auto i : std::views::iota(0, APs)) {
+        address.SetBase(fmt::format("10.1.{}.0", base++).c_str(), "255.255.255.0");
+        address.Assign(p2pDevices.Get(i));
+    }
+
+    Ipv4InterfaceContainer csmaInterfaces;
+    for (auto i : std::views::iota(0, APs)) {
+        fmt::print("base: {}\n", base);
+        address.SetBase(fmt::format("10.1.{}.0", base++).c_str(), "255.255.255.0");
+        csmaInterfaces.Add(address.Assign(csmaDevices.Get(i)));
+    }
+
+    for (auto i : std::views::iota(0, APs)) {
+        address.SetBase(fmt::format("10.1.{}.0", base++).c_str(), "255.255.255.0");
+        address.Assign(apDevices.Get(i));
+        address.Assign(staDevices[i]);
+    }
+
+    // Ipv4AddressHelper address;
+    // for (auto i : std::views::iota(0, APs)) {
+    //     address.SetBase(fmt::format("10.1.{}.0", i).c_str(), "255.255.255.0");
+    //     address.Assign(apDevices.Get(i));
+    //     address.Assign(staDevices[i]);
+    // }
+
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+}
 };
 
 template<> inline constexpr bool enable_network_model<scene2_network_model> = true;

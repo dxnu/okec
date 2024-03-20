@@ -18,6 +18,7 @@ class scene1_decision_engine : public decision_engine
 public:
     scene1_decision_engine() = default;
     scene1_decision_engine(client_device_container* client_devices, base_station_container* bs_container);
+    scene1_decision_engine(std::vector<client_device_container>& client_devices, base_station_container* bs_container);
 
     auto make_decision(const task_element& header) -> result_t override;
 
