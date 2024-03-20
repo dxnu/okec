@@ -53,6 +53,7 @@ auto scene1_decision_engine::send(task_element& t, client_device* client) -> boo
     msg.type(message_decision);
     msg.content(t);
     const auto bs = this->get_decision_device();
+    fmt::print("bs: {:ip}, client: {:ip}\n", bs->get_address(), client->get_address());
     ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
     launch_delay += 0.1;
 

@@ -48,6 +48,11 @@ auto base_station::get_nodes(ns3::NodeContainer &nodes) -> void
     m_edge_devices->get_nodes(nodes); // EdgeDevice
 }
 
+auto base_station::get_edge_nodes(NodeContainer& nodes) -> void
+{
+    m_edge_devices->get_nodes(nodes); // EdgeDevice
+}
+
 auto base_station::get_node() -> Ptr<Node>
 {
     return m_node;

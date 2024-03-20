@@ -18,9 +18,23 @@
 namespace okec
 {
 
-class network_model {
-public:
-    static auto initialize_communication(client_device_container& ues, base_station_container& bss) {
+template <class T>
+inline constexpr bool enable_network_model = false;
+
+template <class T, class... Args>
+concept network_model = enable_network_model<T>
+                        && requires (T t, Args... args) { t.network_initializer(args...); };
+
+template <class Model, class... Args>
+    requires network_model<Model, Args...>
+auto network_initializer(Model& model, Args&&... args) {
+    model.network_initializer(std::forward<decltype(args)>(args)...);
+}
+
+
+
+struct default_network_model {
+    auto initialize_communication(client_device_container& ues, base_station_container& bss) -> void {
         // 基站
         NodeContainer wifi_stations;
         int bs_size = bss.size();
@@ -31,6 +45,8 @@ public:
         // 用户设备
         NodeContainer wifi_devices;
         ues.get_nodes(wifi_devices);
+
+        fmt::print("wifi_stations:{}, wifi_devices:{}\n", wifi_stations.GetN(), wifi_devices.GetN());
 
         // 边缘服务器
         NodeContainer p2p_nodes[bs_size];
@@ -115,18 +131,21 @@ public:
         Ipv4AddressHelper wifi_address;
         wifi_address.SetBase ("10.1.1.0", "255.255.255.0"); // 设置基站节点的IP地址
         Ipv4InterfaceContainer wifi_station_interfaces = wifi_address.Assign(wifi_station_devices);
+        
 
         wifi_address.SetBase ("10.1.2.0", "255.255.255.0"); // 设置用户设备节点的IP地址
         Ipv4InterfaceContainer wifi_device_interfaces = wifi_address.Assign(wifi_device_devices);
 
-        Ipv4AddressHelper p2pAddress;
-        Ipv4InterfaceContainer p2p_interfaces;
-        int base = 3;
-        for (auto i : std::views::iota(0, bs_size)) { // 设置用户设备节点的IP地址
-            p2pAddress.SetBase(fmt::format("10.1.{}.0", base++).c_str(), "255.255.255.0");
-            p2p_interfaces.Add(p2pAddress.Assign(p2p_devices[i]));
-        }
+        // Ipv4AddressHelper p2p_address;
+        // Ipv4InterfaceContainer p2p_interfaces;
+        // int base = 3;
+        // for (auto i : std::views::iota(0, bs_size)) { // 设置用户设备节点的IP地址
+        //     p2p_address.SetBase(fmt::format("10.1.{}.0", base++).c_str(), "255.255.255.0");
+        //     p2p_interfaces.Add(p2p_address.Assign(p2p_devices[i]));
+        // }
 
+        // For routers to be able to forward packets, they need to have routing rules.
+        Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }
 };
 
@@ -188,7 +207,7 @@ void initialize_communication(base_station& bs, client_device_container& clientD
     routerInterfaces = address.Assign(routerDevices);
 
     // For routers to be able to forward packets, they need to have routing rules.
-    Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 }
 
 void initialize_communication(client_device_container& client, 

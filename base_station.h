@@ -35,6 +35,8 @@ public:
     
     // 获取包含EdgeDevice在内的所有Nodes
     auto get_nodes(ns3::NodeContainer& nodes) -> void;
+
+    auto get_edge_nodes(NodeContainer& nodes) -> void;
     
     auto get_node() -> Ptr<Node>;
 
