@@ -1,22 +1,15 @@
-#include "scene1_decision_engine.h"
-#include "qlearning_decision_engine.h"
-#include "scene1_network_model.hpp"
-#include "read_csv.h"
-#include "response_visulizer.hpp"
-#include <random>
+#include "okec.hpp"
 
 
 using namespace ns3;
 
 int main(int argc, char **argv)
 {
-    CommandLine cmd;
-    cmd.Parse(argc, argv);
+    // fmt::print("C++ version: {}\n", __cplusplus);
 
-    fmt::print("C++ version: {}\n", __cplusplus);
-
-    Time::SetResolution(Time::NS);
-    LogComponentEnable("udp_application", LOG_LEVEL_INFO);
+    // Time::SetResolution(Time::NS);
+    // LogComponentEnable("udp_application", LOG_LEVEL_INFO);
+    okec::simulator simulator;
 
     okec::base_station_container base_stations(2);
     okec::edge_device_container edge_devices1(3);
@@ -29,9 +22,8 @@ int main(int argc, char **argv)
     client_devices.push_back(std::move(client_devices1));
     client_devices.push_back(std::move(client_devices2));
 
-    okec::scene1_network_model net_model;
-    // okec::network_initializer(net_model, client_devices, base_stations);
-    net_model.network_initializer2(client_devices, base_stations);
+    okec::multiple_and_single_LAN_WLAN_network_model net_model;
+    okec::network_initializer(net_model, client_devices, base_stations);
 
     okec::resource_container client_rcontainer(client_devices.size());
     okec::resource_container edge1_rcontainer(edge_devices1.size());
@@ -65,7 +57,7 @@ int main(int argc, char **argv)
             { "cpu_cycle", fmt::format("{:.2f}", torch::rand({1}).uniform_(0, 0.5).item<double>()) }
         });
 
-    auto device_1 = client_devices[0].get_device(1);
+    auto device_1 = client_devices[0].get_device(0);
     device_1->send_to(t);
     // device_1->when_done([](okec::response res) {
     
