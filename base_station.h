@@ -59,18 +59,18 @@ public:
     auto task_sequence(const task_element& item) -> void;
     auto task_sequence(task_element&& item) -> void;
     auto task_sequence() -> std::vector<task_element>&;
-    auto task_sequence_status() -> std::vector<bool>&;
+    auto task_sequence_status() -> std::vector<char>&;
 
     auto print_task_info() -> void;
 
-    auto handle_next_task() -> void;
+    auto handle_next() -> void;
 
 public:
     edge_device_container* m_edge_devices;
     Ptr<udp_application> m_udp_application;
     Ptr<Node> m_node;
     std::vector<task_element> m_task_sequence;
-    std::vector<bool> m_task_sequence_status; // false: 未分发；true：已分发
+    std::vector<char> m_task_sequence_status; // 0: 未分发；1：已分发
     std::shared_ptr<decision_engine> m_decision_engine;
 };
 

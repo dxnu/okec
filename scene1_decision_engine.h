@@ -28,6 +28,8 @@ public:
 
     auto initialize() -> void override;
 
+    auto handle_next() -> void override;
+
 private:
     auto on_bs_decision_message(base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void;
 

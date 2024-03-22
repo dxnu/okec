@@ -185,7 +185,7 @@ auto default_decision_engine::on_bs_decision_message(
     bs->task_sequence(std::move(item));
 
     // bs->print_task_info();
-    bs->handle_next_task();
+    bs->handle_next(); // 开始处理
 }
 
 auto default_decision_engine::on_bs_response_message(

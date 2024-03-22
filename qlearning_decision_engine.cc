@@ -38,7 +38,7 @@ qlearning_decision_engine::qlearning_decision_engine(
 
 auto qlearning_decision_engine::make_decision(const task_element& header) -> result_t
 {
-    return result_t("", 0, 0);
+    return result_t();
 }
 
 auto qlearning_decision_engine::local_test(const task_element& header, client_device* client) -> bool

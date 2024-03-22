@@ -24,8 +24,11 @@ struct simulator {
     auto run() -> void {
         Simulator::Stop(delay);
         Simulator::Run();
-        Simulator::Destroy();
     };
+
+    ~simulator() {
+        Simulator::Destroy();
+    }
 
     Time delay;
 };

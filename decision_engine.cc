@@ -1,6 +1,7 @@
 #include "decision_engine.h"
 #include "base_station.h"
 #include "cloud_server.h"
+#include "edge_device.h"
 #include "format_helper.hpp"
 #include <algorithm>
 #include <charconv>
@@ -72,7 +73,19 @@ auto device_cache::emplace_back(value_type item) -> void
     this->cache["device_cache"]["items"].emplace_back(std::move(item));
 }
 
-auto decision_engine::calculate_distance(const Vector& pos) -> double
+auto decision_engine::resource_changed(edge_device* es,
+    Ipv4Address remote_ip, uint16_t remote_port) -> void
+{
+    message notify_msg;
+    notify_msg.type(message_resource_changed);
+    notify_msg.attribute("ip", fmt::format("{:ip}", es->get_address()));
+    notify_msg.attribute("port", std::to_string(es->get_port()));
+    notify_msg.content(*es->get_resource());
+    es->write(notify_msg.to_packet(), remote_ip, remote_port);
+}
+
+auto
+decision_engine::calculate_distance(const Vector& pos) -> double
 {
     Vector this_pos = m_decision_device->get_position();
     double delta_x = this_pos.x - pos.x;
@@ -221,7 +234,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
             }
 
             // 继续处理下一个任务的分发
-            bs->handle_next_task();
+            bs->handle_next();
         });
 }
 
@@ -330,7 +343,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
             }
 
             // 继续处理下一个任务的分发
-            bs->handle_next_task();
+            bs->handle_next();
         });
 }
 

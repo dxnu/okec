@@ -34,16 +34,33 @@ int main(int argc, char **argv)
 
     // Initialize a task
     okec::task t;
-    t.emplace_back({
-        { "task_id", okec::task::get_unique_id() },
-        { "group", "one" },
-        { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0, 0.5).item<double>()) }
-    });
+    for (auto _ : std::views::iota(0, 50)) {
+        t.emplace_back({
+            { "task_id", okec::task::get_unique_id() },
+            { "group", "one" },
+            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0, 0.5).item<double>()) },
+            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(1.0, 5.0).item<double>()) },
+        });
+    }
 
     // Client request someone to handle the task.
     auto user = user_devices.get_device(0);
     user->send(t);
-
+    user->when_done([](okec::response response) {
+        fmt::print("{0:=^{1}}\n", "Response Info", 180);
+        double finished = 0;
+        int index = 1;
+        for (const auto& item : response.data()) {
+            fmt::print("[{:>3}] ", index++);
+            fmt::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
+                item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["finished"]);
+            if (item["finished"] == "Y") {
+                finished++;
+            }
+        }
+        fmt::print("Task completion rate: {:2.0f}%\n", finished / response.size() * 100);
+        fmt::print("{0:=^{1}}\n", "", 180);
+    });
 
     simulator.run();
 }

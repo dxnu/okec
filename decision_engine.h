@@ -12,6 +12,7 @@ namespace okec
 class base_station;
 class base_station_container;
 class client_device;
+class edge_device;
 class cloud_server;
 
 
@@ -60,12 +61,14 @@ class decision_engine
 protected:
     std::shared_ptr<base_station> m_decision_device;
 
-    using result_t = std::tuple<std::string, uint16_t, double>;
+    using result_t = json;
 
     template <class Derived>
     auto shared_from_base() -> std::shared_ptr<Derived> {
         return std::static_pointer_cast<Derived>(this->shared_from_this());
     }
+
+    auto resource_changed(edge_device* es, Ipv4Address remote_ip, uint16_t remote_port) -> void;
 
 public:
     virtual ~decision_engine() {}
@@ -83,6 +86,8 @@ public:
 
     virtual auto initialize() -> void = 0;
 
+    virtual auto handle_next() -> void = 0;
+
     auto get_decision_device() const -> std::shared_ptr<base_station>;
 
     auto cache() -> device_cache&;
@@ -95,8 +100,9 @@ private:
 
 
 
-#define TO_INT(e) std::stoi(e.template get<std::string>())
-#define TO_DOUBLE(e) std::stod(e.template get<std::string>())
+#define TO_STR(e) e.template get<std::string>()
+#define TO_INT(e) std::stoi(TO_STR(e))
+#define TO_DOUBLE(e) std::stod(TO_STR(e))
 
 
 } // namespace okec
