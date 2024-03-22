@@ -55,9 +55,17 @@ private:
 
 
 class decision_engine
+    : public std::enable_shared_from_this<decision_engine>
 {
 protected:
+    std::shared_ptr<base_station> m_decision_device;
+
     using result_t = std::tuple<std::string, uint16_t, double>;
+
+    template <class Derived>
+    auto shared_from_base() -> std::shared_ptr<Derived> {
+        return std::static_pointer_cast<Derived>(this->shared_from_this());
+    }
 
 public:
     virtual ~decision_engine() {}
@@ -73,6 +81,8 @@ public:
 
     virtual auto send(task_element& t, client_device* client) -> bool = 0;
 
+    virtual auto initialize() -> void = 0;
+
     auto get_decision_device() const -> std::shared_ptr<base_station>;
 
     auto cache() -> device_cache&;
@@ -81,9 +91,6 @@ private:
     device_cache m_device_cache;
     std::pair<ns3::Ipv4Address, uint16_t> m_cs_address;
     std::tuple<ns3::Ipv4Address, uint16_t, Vector> m_cs_info;
-
-protected:
-    std::shared_ptr<base_station> m_decision_device;
 };
 
 

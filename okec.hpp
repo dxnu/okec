@@ -8,6 +8,7 @@
 #include "read_csv.h"
 #include "response_visulizer.hpp"
 
+using namespace ns3;
 
 namespace okec {
 
@@ -20,11 +21,11 @@ struct simulator {
         LogComponentEnable("udp_application", LOG_LEVEL_INFO);
     }
 
-    ~simulator() {
-        // Simulator::Stop(delay);
-        // Simulator::Run();
-        // Simulator::Destroy();
-    }
+    auto run() -> void {
+        Simulator::Stop(delay);
+        Simulator::Run();
+        Simulator::Destroy();
+    };
 
     Time delay;
 };

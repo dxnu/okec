@@ -48,13 +48,12 @@ auto client_device::install_resource(Ptr<resource> res) -> void
     res->install(m_node);
 }
 
-auto client_device::send_to(task& t) -> void
+auto client_device::send(task& t) -> void
 {
     // 任务不能以 task 为单位发送，因为 task 可能会非常大，导致发送的数据断页，在目的端便无法恢复数据
     // 以 task_element 为单位发送则可以避免 task 大小可能会带来的问题
     // double launch_delay{ 1.0 };
-    for (auto& item : t.elements())
-    {
+    for (auto& item : t.elements()) {
         m_decision_engine->send(item, this);
     }
 }

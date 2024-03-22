@@ -8,10 +8,12 @@ namespace okec
 {
 
 struct multiple_and_single_LAN_WLAN_network_model {
+
     auto network_initializer(
         client_device_container& clients,
         base_station_container::pointer_t base_station,
-        Ipv4AddressHelper& address) -> void {
+        Ipv4AddressHelper& address,
+        bool routing = true) -> void {
         
         NodeContainer p2pNodes;
         NodeContainer edgeNodes;
@@ -94,6 +96,18 @@ struct multiple_and_single_LAN_WLAN_network_model {
         address.Assign(staDevices);
         address.Assign(apDevices);
         address.NewNetwork();
+
+        if (routing)
+            Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    }
+
+    auto network_initializer(
+        client_device_container& clients,
+        base_station_container::pointer_t base_station) -> void {
+
+        Ipv4AddressHelper address;
+        address.SetBase("10.1.1.0", "255.255.255.0");
+        network_initializer(clients, base_station, address);
     }
 
     auto network_initializer(
@@ -111,7 +125,7 @@ struct multiple_and_single_LAN_WLAN_network_model {
         address.SetBase("10.1.1.0", "255.255.255.0");
 
         for (auto i : std::views::iota(0, APs)) {
-            network_initializer(clients[i], base_stations[i], address);
+            network_initializer(clients[i], base_stations[i], address, false);
         }
 
         NodeContainer p2pAPNodes[APs-1];

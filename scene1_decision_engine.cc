@@ -8,47 +8,51 @@
 namespace okec {
 
 scene1_decision_engine::scene1_decision_engine(
-    client_device_container* client_devices,
-    base_station_container* bs_container)
+    client_device_container* clients,
+    base_station_container* base_stations)
+    : clients_{clients}
+    , base_stations_{base_stations}
 {
     // 设置决策设备
-    m_decision_device = bs_container->get(0);
+    m_decision_device = base_stations->get(0);
 
     // 初始化资源缓存信息
-    this->initialize_device(bs_container);
+    this->initialize_device(base_stations);
 
     // Capture decision message
-    bs_container->set_request_handler(message_decision, std::bind_front(&this_type::on_bs_decision_message, this));
-    bs_container->set_request_handler(message_response, std::bind_front(&this_type::on_bs_response_message, this));
+    base_stations->set_request_handler(message_decision, std::bind_front(&this_type::on_bs_decision_message, this));
+    base_stations->set_request_handler(message_response, std::bind_front(&this_type::on_bs_response_message, this));
 
     // Capture es handling message
-    bs_container->set_es_request_handler(message_handling, std::bind_front(&this_type::on_es_handling_message, this));
+    base_stations->set_es_request_handler(message_handling, std::bind_front(&this_type::on_es_handling_message, this));
 
     // Capture clients response message
-    client_devices->set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
+    clients->set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
 
     fmt::print("{}\n", this->cache().dump(4));
 }
 
 scene1_decision_engine::scene1_decision_engine(
-    std::vector<client_device_container>& client_devices,
-    base_station_container* bs_container)
+    std::vector<client_device_container>* clients_container,
+    base_station_container* base_stations)
+    : clients_container_{clients_container}
+    , base_stations_{base_stations}
 {
         // 设置决策设备
-    m_decision_device = bs_container->get(1);
+    m_decision_device = base_stations->get(1);
 
     // 初始化资源缓存信息
-    this->initialize_device(bs_container);
+    this->initialize_device(base_stations);
 
     // Capture decision message
-    bs_container->set_request_handler(message_decision, std::bind_front(&this_type::on_bs_decision_message, this));
-    bs_container->set_request_handler(message_response, std::bind_front(&this_type::on_bs_response_message, this));
+    base_stations->set_request_handler(message_decision, std::bind_front(&this_type::on_bs_decision_message, this));
+    base_stations->set_request_handler(message_response, std::bind_front(&this_type::on_bs_response_message, this));
 
     // Capture es handling message
-    bs_container->set_es_request_handler(message_handling, std::bind_front(&this_type::on_es_handling_message, this));
+    base_stations->set_es_request_handler(message_handling, std::bind_front(&this_type::on_es_handling_message, this));
 
     // Capture clients response message
-    for (auto& clients : client_devices) {
+    for (auto& clients : *clients_container) {
         clients.set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
     }
 
@@ -83,6 +87,23 @@ auto scene1_decision_engine::send(task_element& t, client_device* client) -> boo
     launch_delay += 0.1;
 
     return true;
+}
+
+auto scene1_decision_engine::initialize() -> void
+{
+    if (clients_) {
+        clients_->set_decision_engine(shared_from_base<this_type>());
+    }
+
+    if (clients_container_) {
+        for (auto& clients : *clients_container_) {
+            clients.set_decision_engine(shared_from_base<this_type>());
+        }
+    }
+
+    if (base_stations_) {
+        base_stations_->set_decision_engine(shared_from_base<this_type>());
+    }
 }
 
 auto scene1_decision_engine::on_bs_decision_message(
