@@ -84,8 +84,15 @@ auto decision_engine::resource_changed(edge_device* es,
     es->write(notify_msg.to_packet(), remote_ip, remote_port);
 }
 
-auto
-decision_engine::calculate_distance(const Vector& pos) -> double
+auto decision_engine::conflict(edge_device* es, const task_element& item, Ipv4Address remote_ip, uint16_t remote_port) -> void
+{
+    message conflict_msg;
+    conflict_msg.type(message_conflict);
+    conflict_msg.content(item);
+    es->write(conflict_msg.to_packet(), remote_ip, remote_port);
+}
+
+auto decision_engine::calculate_distance(const Vector& pos) -> double
 {
     Vector this_pos = m_decision_device->get_position();
     double delta_x = this_pos.x - pos.x;
@@ -168,7 +175,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
                     }
                 }
 
-                print_info(fmt::format("The decision engine got the resource information of edge device({}).", (*item)["ip"]));
+                // print_info(fmt::format("The decision engine got the resource information of edge device({}).", (*item)["ip"]));
             } else {
                 // 说明设备此时还未绑定资源，通过网络询问一下
                 Simulator::Schedule(Seconds(delay), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {
@@ -216,7 +223,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
     // 资源更新(外部所指定的BS不一定是第0个，所以要为所有BS设置消息以确保捕获)
     bs_container->set_request_handler(message_resource_changed, 
         [this](okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) {
-            fmt::print(fg(fmt::color::white), "At time {:.2f}s The decision engine got notified about device resource changes: {}\n", Simulator::Now().GetSeconds() , okec::packet_helper::to_string(packet));
+            // fmt::print(fg(fmt::color::white), "At time {:.2f}s The decision engine got notified about device resource changes: {}\n", Simulator::Now().GetSeconds() , okec::packet_helper::to_string(packet));
             auto msg = message::from_packet(packet);
             auto es_resource = resource::from_msg_packet(packet);
             auto ip = msg.get_value("ip");
@@ -325,7 +332,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
     // 资源更新(外部所指定的BS不一定是第0个，所以要为所有BS设置消息以确保捕获)
     bs_container->set_request_handler(message_resource_changed, 
         [this](okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) {
-            fmt::print(fg(fmt::color::white), "At time {:.2f}s The decision engine got notified about device resource changes: {}\n", Simulator::Now().GetSeconds() , okec::packet_helper::to_string(packet));
+            // fmt::print(fg(fmt::color::white), "At time {:.2f}s The decision engine got notified about device resource changes: {}\n", Simulator::Now().GetSeconds() , okec::packet_helper::to_string(packet));
             auto msg = message::from_packet(packet);
             auto es_resource = resource::from_msg_packet(packet);
             auto ip = msg.get_value("ip");
@@ -344,6 +351,14 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
 
             // 继续处理下一个任务的分发
             bs->handle_next();
+        });
+
+    // 捕获资源冲突问题
+    bs_container->set_request_handler(message_conflict,
+        [this](okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) {
+            auto task_item = task_element::from_msg_packet(packet);
+
+            fmt::print("资源冲突\n{}\n", task_item.dump());
         });
 }
 

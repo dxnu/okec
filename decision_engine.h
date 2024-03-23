@@ -69,6 +69,7 @@ protected:
     }
 
     auto resource_changed(edge_device* es, Ipv4Address remote_ip, uint16_t remote_port) -> void;
+    auto conflict(edge_device* es, const task_element& item, Ipv4Address remote_ip, uint16_t remote_port) -> void;
 
 public:
     virtual ~decision_engine() {}

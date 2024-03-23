@@ -42,6 +42,8 @@ public:
 
     auto content(const resource& r) -> void;
 
+    auto get_task_element() -> task_element;
+
     template <typename Type>
     auto content() -> Type {
         Type result{};
@@ -67,6 +69,7 @@ inline constexpr std::string_view message_dispatching { "dispatching" };
 inline constexpr std::string_view message_get_resource_information { "get_resource_information" };
 inline constexpr std::string_view message_resource_information { "resource_information" };
 inline constexpr std::string_view message_decision { "decision" };
+inline constexpr std::string_view message_conflict { "conflict" };
 // inline constexpr std::string_view 
 
 } // namespace okec

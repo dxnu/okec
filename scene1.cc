@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     // Initialize the resources for each edge server.
     okec::resource_container edge_resources(edge_servers.size());
     edge_resources.initialize([](auto res) {
-        res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.1, 0.5).item<double>()));
+        res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.4, 2.5).item<double>()));
     });
     edge_resources.print();
 
@@ -38,10 +38,11 @@ int main(int argc, char **argv)
         t.emplace_back({
             { "task_id", okec::task::get_unique_id() },
             { "group", "one" },
-            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0, 0.5).item<double>()) },
-            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(1.0, 5.0).item<double>()) },
+            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(1.1, 1.2).item<double>()) },
+            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
         });
     }
+    t.print();
 
     // Client request someone to handle the task.
     auto user = user_devices.get_device(0);
@@ -50,16 +51,25 @@ int main(int argc, char **argv)
         fmt::print("{0:=^{1}}\n", "Response Info", 180);
         double finished = 0;
         int index = 1;
+        std::vector<double> time_points;
         for (const auto& item : response.data()) {
             fmt::print("[{:>3}] ", index++);
             fmt::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
                 item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["finished"]);
             if (item["finished"] == "Y") {
                 finished++;
+                time_points.push_back(TO_DOUBLE(item["time_consuming"]));
             }
         }
+        
+        auto total_time = std::accumulate(time_points.begin(), time_points.end(), .0);
         fmt::print("Task completion rate: {:2.0f}%\n", finished / response.size() * 100);
+        fmt::print("Total processing time: {:.9f}s\n", total_time);
+        fmt::print("Average processing time: {:.9f}s\n", total_time / time_points.size());
+
         fmt::print("{0:=^{1}}\n", "", 180);
+
+        okec::draw(time_points, "Time Comsumption(Seconds)");
     });
 
     simulator.run();

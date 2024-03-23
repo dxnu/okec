@@ -65,7 +65,7 @@ auto scene1_decision_engine::make_decision(const task_element& header) -> result
             return TO_DOUBLE(lhs["cpu"]) < TO_DOUBLE(rhs["cpu"]);
         });
 
-    fmt::print("edge max: {}\n", TO_STR(edge_max["ip"]));
+    // fmt::print("edge max: {}\n", TO_STR(edge_max["ip"]));
     
     double cpu_demand = std::stod(header.get_header("cpu"));
     double cpu_supply = TO_DOUBLE(edge_max["cpu"]);
@@ -76,7 +76,8 @@ auto scene1_decision_engine::make_decision(const task_element& header) -> result
         if (processing_time < tolorable_time) {
             return {
                 { "ip", edge_max["ip"] },
-                { "port", edge_max["port"] }
+                { "port", edge_max["port"] },
+                { "cpu_supply", std::to_string(cpu_supply) }
             };
         }
     }
@@ -102,7 +103,7 @@ auto scene1_decision_engine::send(task_element& t, client_device* client) -> boo
         { "time_consuming", "" }
     });
 
-    fmt::print("Received tasks:\n{}\n", t.j_data().dump(4));
+    // fmt::print("Received tasks:\n{}\n", t.j_data().dump(4));
 
     // 不管本地，全部往边缘服务器卸载
     t.set_header("from_ip", fmt::format("{:ip}", client->get_address()));
@@ -111,7 +112,7 @@ auto scene1_decision_engine::send(task_element& t, client_device* client) -> boo
     msg.type(message_decision);
     msg.content(t);
     const auto bs = this->get_decision_device();
-    fmt::print("bs: {:ip}, client: {:ip}\n", bs->get_address(), client->get_address());
+    // fmt::print("bs: {:ip}, client: {:ip}\n", bs->get_address(), client->get_address());
     ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
     launch_delay += 0.1;
 
@@ -166,8 +167,8 @@ auto scene1_decision_engine::handle_next() -> void
                 continue; // 继续尝试处理下一个
             }
 
-            print_info(fmt::format("Decision(task id:{}) is done. (target ip: {}, target port: {}.)", 
-                task_sequence[i].get_header("task_id"), TO_STR(target["ip"]), TO_INT(target["port"])));
+            // print_info(fmt::format("Decision(task id:{}) is done. (target ip: {}, target port: {}.)", 
+            //     task_sequence[i].get_header("task_id"), TO_STR(target["ip"]), TO_INT(target["port"])));
             // 计算并记录传输时间
             Ptr<NetDevice> device = m_decision_device->get_node()->GetDevice(0);
             Ptr<Channel> channel = device->GetChannel();
@@ -179,14 +180,15 @@ auto scene1_decision_engine::handle_next() -> void
                 device->GetAttribute("DataRate", dataRateValue);
                 DataRate dataRate = dataRateValue.Get();
 
-                fmt::print("DataRate: {}Mbps, delay: {}ms\n", dataRate.GetBitRate() / 1000000, Time(band_width.Get()).GetMilliSeconds());
+                // fmt::print("DataRate: {}Mbps, delay: {}ms\n", dataRate.GetBitRate() / 1000000, Time(band_width.Get()).GetMilliSeconds());
             }
 
             message msg;
             msg.type(message_handling);
             msg.content(task_sequence[i]);
-            print_info(fmt::format("bs({:ip}) dispatchs the task(task_id = {}) to {}",
-                m_decision_device->get_address(), task_sequence[i].get_header("task_id"), TO_STR(target["ip"])));
+            msg.attribute("cpu_supply", TO_STR(target["cpu_supply"]));
+            // print_info(fmt::format("bs({:ip}) dispatchs the task(task_id = {}) to {}",
+            //     m_decision_device->get_address(), task_sequence[i].get_header("task_id"), TO_STR(target["ip"])));
             m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
             
             task_sequence_status[i] = 1; // // 更改任务分发状态
@@ -198,27 +200,30 @@ auto scene1_decision_engine::handle_next() -> void
 auto scene1_decision_engine::on_bs_decision_message(
     base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    print_info(fmt::format("The base station[{:ip}] has received the decision request from {:ip}\n", bs->get_address(), inetRemoteAddress.GetIpv4()));
+    static bool first_time = true;
+    // auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
+    // print_info(fmt::format("The base station[{:ip}] has received the decision request from {:ip}", bs->get_address(), ipv4_remote));
 
-    fmt::print("Resource cache:\n{}\n", this->cache().dump(4));
+    // fmt::print("Resource cache:\n{}\n", this->cache().dump(4));
 
     // task_element 为单位
     auto item = okec::task_element::from_msg_packet(packet);
     bs->task_sequence(std::move(item));
-    bs->print_task_info();
     
-    this->handle_next();
+    if (first_time) {
+        this->handle_next();
+        first_time = false;
+    }
 }
 
 auto scene1_decision_engine::on_bs_response_message(
     base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
-    print_info(fmt::format("bs({:ip}) has received a response from {:ip}", bs->get_address(), ipv4_remote));
+    // auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
+    // print_info(fmt::format("bs({:ip}) has received a response from {:ip}", bs->get_address(), ipv4_remote));
 
     message msg(packet);
-    fmt::print("{}\n", msg.dump());
+    // fmt::print("{}\n", msg.dump());
     auto& task_sequence = bs->task_sequence();
     auto& task_sequence_status = bs->task_sequence_status();
     for (std::size_t i = 0; i < task_sequence.size(); ++i)
@@ -232,10 +237,8 @@ auto scene1_decision_engine::on_bs_response_message(
             bs->write(msg.to_packet(), ns3::Ipv4Address(from_ip.c_str()), std::stoi(from_port));
 
             // 清除任务队列和分发状态
-            fmt::print("task_sequence size: {}, task_sequence_status size: {}\n", task_sequence.size(), task_sequence_status.size());
             task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
             task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
-            fmt::print("task_sequence size: {}, task_sequence_status size: {}\n", task_sequence.size(), task_sequence_status.size());
             break;
         }
     }
@@ -245,25 +248,36 @@ auto scene1_decision_engine::on_es_handling_message(
     edge_device* es, Ptr<Packet> packet, const Address& remote_address) -> void
 {
     auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
-    auto task_item = task_element::from_msg_packet(packet);
+    message msg(packet);
+    auto task_item = msg.get_task_element(); // task_element::from_msg_packet(packet);
     auto task_id = task_item.get_header("task_id");
 
-    print_info(fmt::format("es({:ip}) has received a task({}).\n", es->get_address(), task_id));
+    // print_info(fmt::format("es({:ip}) has received a task({}).", es->get_address(), task_id));
+    fmt::print(fg(fmt::color::red), "es({:ip}) has received a task({}).\n", es->get_address(), task_id);
 
     auto es_resource = es->get_resource();
-    auto new_cpu = std::stod(es_resource->get_value("cpu")) - std::stod(task_item.get_header("cpu"));
-    auto old_cpu = es_resource->reset_value("cpu", fmt::format("{:.2f}", new_cpu));
-    fmt::print("old_cpu: {}, new_cpu: {}\n", old_cpu, es_resource->get_value("cpu"));
+    auto cpu_supply = std::stod(es_resource->get_value("cpu"));
+    auto cpu_demand = std::stod(task_item.get_header("cpu"));
+    auto uncertain_cpu_supply = std::stod(msg.get_value("cpu_supply"));
+
+    // 存在冲突，需要重新决策
+    if (uncertain_cpu_supply != cpu_supply) {
+        // 需要重新分配
+        fmt::print(fg(fmt::color::red), "Conflict! cpu_demand: {}, cpu_supply: {}, real_supply: {}.\n", cpu_demand, uncertain_cpu_supply, cpu_supply);
+        this->conflict(es, task_item, ipv4_remote, es->get_port());
+        return;
+    }
+
+    // 更改CPU资源
+    es_resource->reset_value("cpu", std::to_string(cpu_supply - cpu_demand));
     this->resource_changed(es, ipv4_remote, es->get_port());
 
     // 处理任务
-    double cpu_demand = std::stod(task_item.get_header("cpu"));
-    double cpu_supply = std::stod(old_cpu);
     double processing_time = cpu_demand / cpu_supply; // 任务能分发过来，cpu_supply 就不可能为0
-    Simulator::Schedule(ns3::Seconds(processing_time), +[](edge_device* es, const std::string& old_cpu, const Ipv4Address& desination, const std::string& task_id, double processing_time, std::shared_ptr<this_type> self) {
+    Simulator::Schedule(ns3::Seconds(processing_time), +[](edge_device* es, double old_cpu, const Ipv4Address& desination, const std::string& task_id, double processing_time, std::shared_ptr<this_type> self) {
         // 处理完成，释放内存
         auto device_resource = es->get_resource();
-        device_resource->reset_value("cpu", old_cpu);
+        device_resource->reset_value("cpu", std::to_string(old_cpu));
         auto device_address = fmt::format("{:ip}", es->get_address());
 
         // 通知资源变化
@@ -279,15 +293,15 @@ auto scene1_decision_engine::on_es_handling_message(
             { "processing_time", fmt::format("{:.9f}", processing_time) }
         };
         es->write(response.to_packet(), desination, es->get_port());
-    }, es, old_cpu, ipv4_remote, task_id, processing_time, shared_from_base<this_type>());
+    }, es, cpu_supply, ipv4_remote, task_id, processing_time, shared_from_base<this_type>());
 }
 
 auto scene1_decision_engine::on_clients_reponse_message(
     client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void
 {
     message msg(packet);
-    fmt::print(fg(fmt::color::red), "At time {:.2f}s client({:ip}) has received a packet: {}\n", 
-        Simulator::Now().GetSeconds(), client->get_address(), msg.dump());
+    // fmt::print(fg(fmt::color::red), "At time {:.2f}s client({:ip}) has received a packet: {}\n", 
+    //     Simulator::Now().GetSeconds(), client->get_address(), msg.dump());
 
     auto it = client->response_cache().find_if([&msg](const response::value_type& item) {
         return item["group"] == msg.get_value("group") && item["task_id"] == msg.get_value("task_id");
@@ -304,7 +318,7 @@ auto scene1_decision_engine::on_clients_reponse_message(
         return item["group"] == msg.get_value("group");
     });
     if (exist == client->response_cache().end()) {
-        fmt::print(fg(fmt::color::red), "Fatal error! Invalid response.\n"); // 说明发过去的数据被修改，或是 m_response 被无意间删除了信息
+        fmt::print(fg(fmt::color::red), "Fatal error! Invalid response.\n"); // 说明发出去的数据被修改，或是 m_response 被无意间删除了信息
         return;
     }
 

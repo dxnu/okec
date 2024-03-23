@@ -94,6 +94,14 @@ auto message::content(const resource& r) -> void
     j_["content"] = r.j_data();
 }
 
+auto message::get_task_element() -> task_element
+{
+    if (!j_.is_null() && j_.contains("/content/header"_json_pointer))
+        return task_element(j_["content"]);
+    
+    return task_element{nullptr};
+}
+
 auto message::valid() -> bool
 {
     if (j_.contains("msgtype") && j_.contains("content"))
