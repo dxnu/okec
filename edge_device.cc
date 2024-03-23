@@ -18,7 +18,7 @@ edge_device::edge_device()
       m_udp_application{ CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(300));
+    m_udp_application->SetStopTime(Seconds(10000));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);

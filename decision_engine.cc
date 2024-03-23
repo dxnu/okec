@@ -357,8 +357,16 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
     bs_container->set_request_handler(message_conflict,
         [this](okec::base_station* bs, Ptr<Packet> packet, const Address& remote_address) {
             auto task_item = task_element::from_msg_packet(packet);
-
-            fmt::print("资源冲突\n{}\n", task_item.dump());
+            // fmt::print("资源冲突\n{}\n", task_item.dump());
+            auto& task_sequence = bs->task_sequence();
+            auto& task_sequence_status = bs->task_sequence_status();
+            if (auto it = std::ranges::find_if(task_sequence, [&task_item](auto const& item) {
+                return item.get_header("task_id") == task_item.get_header("task_id");
+            }); it != std::end(task_sequence)) {
+                // fmt::print("找到了 {} status: {}\n", (*it).get_header("task_id"), (*it).get_header("status"));
+                (*it).set_header("status", "0");
+                bs->handle_next(); // 重新处理
+            }
         });
 }
 

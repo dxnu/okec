@@ -13,7 +13,7 @@ cloud_server::cloud_server()
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(300));
+    m_udp_application->SetStopTime(Seconds(10000));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);

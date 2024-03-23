@@ -13,7 +13,7 @@ using namespace ns3;
 namespace okec {
 
 struct simulator {
-    simulator(Time delay = Seconds(300))
+    simulator(Time delay = Seconds(500))
         : delay(static_cast<Time&&>(delay)) {
         fmt::print("C++ version: {}\n", __cplusplus);
 
@@ -32,6 +32,8 @@ struct simulator {
 
     Time delay;
 };
+
+
 
 } // namespace okec
 

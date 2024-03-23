@@ -71,15 +71,22 @@ auto scene1_decision_engine::make_decision(const task_element& header) -> result
     double cpu_supply = TO_DOUBLE(edge_max["cpu"]);
     double tolorable_time = std::stod(header.get_header("deadline"));
     // If found a avaliable edge server
-    if (cpu_supply > .0) {
+    if (cpu_supply >= cpu_demand) {
         double processing_time = cpu_demand / cpu_supply;
-        if (processing_time < tolorable_time) {
-            return {
-                { "ip", edge_max["ip"] },
-                { "port", edge_max["port"] },
-                { "cpu_supply", std::to_string(cpu_supply) }
-            };
-        }
+
+        // 暂时不考虑 tolerable time
+        // if (processing_time < tolorable_time) {
+        //     return {
+        //         { "ip", edge_max["ip"] },
+        //         { "port", edge_max["port"] },
+        //         { "cpu_supply", std::to_string(cpu_supply) }
+        //     };
+        // }
+        return {
+            { "ip", edge_max["ip"] },
+            { "port", edge_max["port"] },
+            { "cpu_supply", std::to_string(cpu_supply) }
+        };
     }
 
     return result_t();
@@ -139,62 +146,101 @@ auto scene1_decision_engine::initialize() -> void
 auto scene1_decision_engine::handle_next() -> void
 {
     auto& task_sequence = m_decision_device->task_sequence();
-    auto& task_sequence_status = m_decision_device->task_sequence_status();
+    // auto& task_sequence_status = m_decision_device->task_sequence_status();
+
+    if (auto it = std::ranges::find_if(task_sequence, [](auto const& item) {
+        return item.get_header("status") == "0";
+    }); it != std::end(task_sequence)) {
+        auto target = make_decision(*it);
+        // 决策失败，无法处理任务
+        if (target.is_null()) {
+            print_info(fmt::format("No device can handle the task({})!", (*it).get_header("task_id")));
+            // message response {
+            //     { "msgtype", "response" },
+            //     { "task_id", (*it).get_header("task_id") },
+            //     { "group", (*it).get_header("group") },
+            //     { "device_type", "null" },
+            //     { "device_address", "null" },
+            //     { "processing_time", "null" }
+            // };
+            // auto from_ip = (*it).get_header("from_ip");
+            // auto from_port = (*it).get_header("from_port");
+            // m_decision_device->write(response.to_packet(), Ipv4Address(from_ip.c_str()), std::stoi(from_port));
+            // task_sequence.erase(it); // 处理过的任务从队列中删除，分发失败也是处理过的，只是当前没有设备能够处理该任务
+            // this->handle_next(); // 继续尝试处理下一个
+            
+            // 等个两秒再尝试
+            // Simulator::Schedule(ns3::Seconds(2), +[](this_type* self) {
+            //     self->handle_next();
+            // }, this);
+            // 等待资源释放后自动重新尝试
+            return;
+        }
+
+        // 决策成功，可以处理任务
+        message msg;
+        msg.type(message_handling);
+        msg.content(*it);
+        msg.attribute("cpu_supply", TO_STR(target["cpu_supply"]));
+        m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
+        (*it).set_header("status", "1"); // 更改任务分发状态
+    }
     
     // 分发任务列表，每次拿出第一个未分发的任务
-    for (std::size_t i = 0; i < task_sequence.size(); ++i)
-    {
-        // 任务尚未分发
-        if (!static_cast<int>(task_sequence_status[i]))
-        {
-            auto target = make_decision(task_sequence[i]);
-            if (target.is_null()) {
-                print_info(fmt::format("No device can handle the task({})!", task_sequence[i].get_header("task_id")));
-                message response {
-                    { "msgtype", "response" },
-                    { "task_id", task_sequence[i].get_header("task_id") },
-                    { "group", task_sequence[i].get_header("group") },
-                    { "device_type", "null" },
-                    { "device_address", "null" },
-                    { "processing_time", "null" }
-                };
-                auto from_ip = task_sequence[i].get_header("from_ip");
-                auto from_port = task_sequence[i].get_header("from_port");
-                m_decision_device->write(response.to_packet(), Ipv4Address(from_ip.c_str()), std::stoi(from_port));
-                // 分发失败也要进行清除操作
-                task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
-                task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
-                continue; // 继续尝试处理下一个
-            }
+    // for (std::size_t i = 0; i < task_sequence.size(); ++i)
+    // {
+    //     // 任务尚未分发
+    //     if (!static_cast<int>(task_sequence_status[i]))
+    //     {
+    //         auto target = make_decision(task_sequence[i]);
+    //         if (target.is_null()) {
+    //             print_info(fmt::format("No device can handle the task({})!", task_sequence[i].get_header("task_id")));
+    //             message response {
+    //                 { "msgtype", "response" },
+    //                 { "task_id", task_sequence[i].get_header("task_id") },
+    //                 { "group", task_sequence[i].get_header("group") },
+    //                 { "device_type", "null" },
+    //                 { "device_address", "null" },
+    //                 { "processing_time", "null" }
+    //             };
+    //             auto from_ip = task_sequence[i].get_header("from_ip");
+    //             auto from_port = task_sequence[i].get_header("from_port");
+    //             m_decision_device->write(response.to_packet(), Ipv4Address(from_ip.c_str()), std::stoi(from_port));
+    //             // 分发失败也要进行清除操作
+    //             task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
+    //             task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
+    //             continue; // 继续尝试处理下一个
+    //         }
 
-            // print_info(fmt::format("Decision(task id:{}) is done. (target ip: {}, target port: {}.)", 
-            //     task_sequence[i].get_header("task_id"), TO_STR(target["ip"]), TO_INT(target["port"])));
-            // 计算并记录传输时间
-            Ptr<NetDevice> device = m_decision_device->get_node()->GetDevice(0);
-            Ptr<Channel> channel = device->GetChannel();
-            if (channel) {
-                StringValue band_width;
-                channel->GetAttribute("Delay", band_width);
+    //         // print_info(fmt::format("Decision(task id:{}) is done. (target ip: {}, target port: {}.)", 
+    //         //     task_sequence[i].get_header("task_id"), TO_STR(target["ip"]), TO_INT(target["port"])));
+    //         // 计算并记录传输时间
+    //         Ptr<NetDevice> device = m_decision_device->get_node()->GetDevice(0);
+    //         Ptr<Channel> channel = device->GetChannel();
+    //         if (channel) {
+    //             StringValue band_width;
+    //             channel->GetAttribute("Delay", band_width);
 
-                DataRateValue dataRateValue;
-                device->GetAttribute("DataRate", dataRateValue);
-                DataRate dataRate = dataRateValue.Get();
+    //             DataRateValue dataRateValue;
+    //             device->GetAttribute("DataRate", dataRateValue);
+    //             DataRate dataRate = dataRateValue.Get();
 
-                // fmt::print("DataRate: {}Mbps, delay: {}ms\n", dataRate.GetBitRate() / 1000000, Time(band_width.Get()).GetMilliSeconds());
-            }
+    //             // fmt::print("DataRate: {}Mbps, delay: {}ms\n", dataRate.GetBitRate() / 1000000, Time(band_width.Get()).GetMilliSeconds());
+    //         }
 
-            message msg;
-            msg.type(message_handling);
-            msg.content(task_sequence[i]);
-            msg.attribute("cpu_supply", TO_STR(target["cpu_supply"]));
-            // print_info(fmt::format("bs({:ip}) dispatchs the task(task_id = {}) to {}",
-            //     m_decision_device->get_address(), task_sequence[i].get_header("task_id"), TO_STR(target["ip"])));
-            m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
+    //         message msg;
+    //         msg.type(message_handling);
+    //         msg.content(task_sequence[i]);
+    //         msg.attribute("cpu_supply", TO_STR(target["cpu_supply"]));
+    //         // print_info(fmt::format("bs({:ip}) dispatchs the task(task_id = {}) to {}",
+    //         //     m_decision_device->get_address(), task_sequence[i].get_header("task_id"), TO_STR(target["ip"])));
+    //         m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
             
-            task_sequence_status[i] = 1; // // 更改任务分发状态
-            break; // 若是继续处理下一个，处理任务的边缘设备资源变化信息可能还未收到，也许会导致错误决策
-        }
-    }
+    //         task_sequence_status[i] = 1; // // 更改任务分发状态
+    //         task_sequence[i].set_header("status", "1");
+    //         break; // 若是继续处理下一个，处理任务的边缘设备资源变化信息可能还未收到，也许会导致错误决策
+    //     }
+    // }
 }
 
 auto scene1_decision_engine::on_bs_decision_message(
@@ -208,6 +254,7 @@ auto scene1_decision_engine::on_bs_decision_message(
 
     // task_element 为单位
     auto item = okec::task_element::from_msg_packet(packet);
+    item.set_header("status", "0"); // 增加处理状态信息 0: 未处理 1: 已处理
     bs->task_sequence(std::move(item));
     
     if (first_time) {
@@ -225,23 +272,36 @@ auto scene1_decision_engine::on_bs_response_message(
     message msg(packet);
     // fmt::print("{}\n", msg.dump());
     auto& task_sequence = bs->task_sequence();
-    auto& task_sequence_status = bs->task_sequence_status();
-    for (std::size_t i = 0; i < task_sequence.size(); ++i)
-    {
-        // 将处理结果转发回客户端
-        if (task_sequence[i].get_header("task_id") == msg.get_value("task_id"))
-        {
-            msg.attribute("group", task_sequence[i].get_header("group"));
-            auto from_ip = task_sequence[i].get_header("from_ip");
-            auto from_port = task_sequence[i].get_header("from_port");
-            bs->write(msg.to_packet(), ns3::Ipv4Address(from_ip.c_str()), std::stoi(from_port));
+    // auto& task_sequence_status = bs->task_sequence_status();
 
-            // 清除任务队列和分发状态
-            task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
-            task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
-            break;
-        }
+    if (auto it = std::ranges::find_if(task_sequence, [&msg](auto const& item) {
+        return item.get_header("task_id") == msg.get_value("task_id");
+    }); it != std::end(task_sequence)) {
+        msg.attribute("group", (*it).get_header("group"));
+        auto from_ip = (*it).get_header("from_ip");
+        auto from_port = (*it).get_header("from_port");
+        bs->write(msg.to_packet(), ns3::Ipv4Address(from_ip.c_str()), std::stoi(from_port));
+
+        // 处理过的任务从队列中清除
+        task_sequence.erase(it);
     }
+
+    // for (std::size_t i = 0; i < task_sequence.size(); ++i)
+    // {
+    //     // 将处理结果转发回客户端
+    //     if (task_sequence[i].get_header("task_id") == msg.get_value("task_id"))
+    //     {
+    //         msg.attribute("group", task_sequence[i].get_header("group"));
+    //         auto from_ip = task_sequence[i].get_header("from_ip");
+    //         auto from_port = task_sequence[i].get_header("from_port");
+    //         bs->write(msg.to_packet(), ns3::Ipv4Address(from_ip.c_str()), std::stoi(from_port));
+
+    //         // 清除任务队列和分发状态
+    //         task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
+    //         task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
+    //         break;
+    //     }
+    // }
 }
 
 auto scene1_decision_engine::on_es_handling_message(
@@ -261,7 +321,7 @@ auto scene1_decision_engine::on_es_handling_message(
     auto uncertain_cpu_supply = std::stod(msg.get_value("cpu_supply"));
 
     // 存在冲突，需要重新决策
-    if (uncertain_cpu_supply != cpu_supply) {
+    if (uncertain_cpu_supply != cpu_supply || cpu_supply < cpu_demand) {
         // 需要重新分配
         fmt::print(fg(fmt::color::red), "Conflict! cpu_demand: {}, cpu_supply: {}, real_supply: {}.\n", cpu_demand, uncertain_cpu_supply, cpu_supply);
         this->conflict(es, task_item, ipv4_remote, es->get_port());
