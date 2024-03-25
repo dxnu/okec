@@ -90,8 +90,8 @@ public:
 
     auto print() -> void;
 
-    auto save_to_file(const char* file_name) -> void;
-    auto read_from_file(const char* file_name) -> bool;
+    auto save_to_file(const std::string& file_name) -> void;
+    auto load_from_file(const std::string& file_name) -> bool;
 
 private:
     auto push_back(const json& sub) -> void;

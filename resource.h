@@ -32,7 +32,7 @@ public:
 
     auto get_value(std::string_view key) const -> std::string;
     
-    auto dump() -> std::string;
+    auto dump(const int indent = -1) -> std::string;
 
     auto begin() const {
         return this->empty() ? json::const_iterator() : j_["resource"].begin();
@@ -45,6 +45,8 @@ public:
     auto empty() const -> bool;
 
     auto j_data() const -> json;
+
+    auto set_data(json item) -> bool;
 
     static auto from_msg_packet(Ptr<Packet> packet) -> resource;
 
@@ -80,6 +82,9 @@ public:
     }
 
     auto print(std::string title = "Resource Info" ) -> void;
+
+    auto save_to_file(const std::string& file) -> void;
+    auto load_from_file(const std::string& file) -> bool;
 
 private:
     std::vector<Ptr<resource>> m_resources;

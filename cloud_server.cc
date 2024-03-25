@@ -1,6 +1,7 @@
 #include "cloud_server.h"
 #include "base_station.h"
 #include "message.h"
+#include "config.h"
 #include "format_helper.hpp"
 #include "ns3/mobility-module.h"
 
@@ -13,7 +14,7 @@ cloud_server::cloud_server()
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(10000));
+    m_udp_application->SetStopTime(Seconds(simulator_stop_time));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);

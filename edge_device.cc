@@ -2,6 +2,7 @@
 #include "format_helper.hpp"
 #include "message.h"
 #include "task.h"
+#include "config.h"
 #include "resource.h"
 #include "ns3/ipv4.h"
 #include "ns3/mobility-module.h"
@@ -18,7 +19,7 @@ edge_device::edge_device()
       m_udp_application{ CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(10000));
+    m_udp_application->SetStopTime(Seconds(simulator_stop_time));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);

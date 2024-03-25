@@ -348,14 +348,13 @@ auto task::print() -> void
     fmt::print("{0:=^{1}}\n", "", 150);
 }
 
-auto task::save_to_file(const char* file_name) -> void
+auto task::save_to_file(const std::string& file_name) -> void
 {
     std::ofstream fout(file_name);
     fout << std::setw(4) << m_task << std::endl;
-    fout.close();
 }
 
-auto task::read_from_file(const char* file_name) -> bool
+auto task::load_from_file(const std::string& file_name) -> bool
 {
     std::ifstream fin(file_name);
     if (!fin.is_open())
@@ -363,7 +362,6 @@ auto task::read_from_file(const char* file_name) -> bool
 
     json data;
     fin >> data;
-    fin.close();
 
     if (!data.contains("/task/items"_json_pointer))
         return false;

@@ -7,30 +7,29 @@
 #include "qlearning_decision_engine.h"
 #include "read_csv.h"
 #include "response_visulizer.hpp"
+#include "config.h"
+
 
 using namespace ns3;
+
 
 namespace okec {
 
 struct simulator {
-    simulator(Time delay = Seconds(500))
-        : delay(static_cast<Time&&>(delay)) {
+    simulator() {
         fmt::print("C++ version: {}\n", __cplusplus);
-
         Time::SetResolution(Time::NS);
         LogComponentEnable("udp_application", LOG_LEVEL_INFO);
     }
 
     auto run() -> void {
-        Simulator::Stop(delay);
+        Simulator::Stop(Seconds(simulator_stop_time));
         Simulator::Run();
     };
 
     ~simulator() {
         Simulator::Destroy();
     }
-
-    Time delay;
 };
 
 

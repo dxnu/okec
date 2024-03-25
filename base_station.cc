@@ -1,5 +1,6 @@
 #include "base_station.h"
 #include "cloud_server.h"
+#include "config.h"
 #include "ns3/ipv4.h"
 #include "ns3/csma-module.h"
 #include "ns3/mobility-module.h"
@@ -20,7 +21,7 @@ base_station::base_station()
       m_node{ ns3::CreateObject<Node>() }
 {
     m_udp_application->SetStartTime(Seconds(0));
-    m_udp_application->SetStopTime(Seconds(10000));
+    m_udp_application->SetStopTime(Seconds(simulator_stop_time));
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);

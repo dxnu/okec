@@ -1,19 +1,22 @@
 #include "okec.hpp"
 
 void generate_task(okec::task &t, int number, const std::string& group) {
-    for (auto _ : std::views::iota(0, number)) {
-        t.emplace_back({
-            { "task_id", okec::task::get_unique_id() },
-            { "group", group },
-            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(1.1, 1.2).item<double>()) },
-            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
-        });
-    }
+    // for ([[maybe_unused]] auto _ : std::views::iota(0, number)) {
+    //     t.emplace_back({
+    //         { "task_id", okec::task::get_unique_id() },
+    //         { "group", group },
+    //         { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
+    //         { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
+    //     });
+    // }
+
+    // t.save_to_file("task-" + std::to_string(number) + ".json");
+    t.load_from_file("task-" + std::to_string(number) + ".json");
 }
 
 int main(int argc, char **argv)
 {
-    okec::simulator simulator(Seconds(10000));
+    okec::simulator simulator;
 
     // Create 1 base station
     okec::base_station_container bs(1);
@@ -31,10 +34,12 @@ int main(int argc, char **argv)
 
     // Initialize the resources for each edge server.
     okec::resource_container edge_resources(edge_servers.size());
-    edge_resources.initialize([](auto res) {
-        res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.4, 2.5).item<double>()));
-    });
-    edge_resources.print();
+    // edge_resources.initialize([](auto res) {
+    //     res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
+    // });
+    // edge_resources.save_to_file("resource-" + std::to_string(edge_resources.size()) + ".json");
+    edge_resources.load_from_file("resource-" + std::to_string(edge_resources.size()) + ".json");
+    // edge_resources.print();
 
     // Install each resource on each edge server.
     edge_servers.install_resources(edge_resources);
@@ -48,7 +53,7 @@ int main(int argc, char **argv)
           "twenty-one", "twenty-two", "twenty-three", "twenty-four", "twenty-five", "twenty-six", "twenty-seven", "twenty-eight", "twenty-nine", "thirty" };
 
     // Initialize a task
-    std::vector<okec::task> tasks(10);
+    std::vector<okec::task> tasks(10); // 10 batch of tasks
     std::vector<double> time_total_points;
     std::vector<double> time_average_points;
     std::vector<int> x_points;
@@ -92,9 +97,9 @@ int main(int argc, char **argv)
     });
 
 
-    int base = 50;
-    for (auto i = 0uz; i < tasks.size(); ++i, base += 50) {
-        generate_task(tasks[i], base, groups[i]);
+    int step = 50;
+    for (auto i = 0uz; i < tasks.size(); ++i, step += 50) {
+        generate_task(tasks[i], step, groups[i]);
         x_points.push_back(tasks[i].size());
         user->send(tasks[i]);
     }

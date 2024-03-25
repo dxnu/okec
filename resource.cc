@@ -53,9 +53,9 @@ auto resource::get_value(std::string_view key) const -> std::string
     return result;
 }
 
-auto resource::dump() -> std::string
+auto resource::dump(const int indent) -> std::string
 {
-    return j_.dump();
+    return j_.dump(indent);
 }
 
 auto resource::empty() const -> bool
@@ -66,6 +66,16 @@ auto resource::empty() const -> bool
 auto resource::j_data() const -> json
 {
     return j_;
+}
+
+auto resource::set_data(json item) -> bool
+{
+    if (item.contains("/resource"_json_pointer)) {
+        j_ = std::move(item);
+        return true;
+    }
+
+    return false;
 }
 
 auto resource::from_msg_packet(Ptr<Packet> packet) -> resource
@@ -121,7 +131,7 @@ auto resource_container::print(std::string title) -> void
 {
     fmt::print("{0:=^{1}}\n", title, 150);
 
-    int index{1};
+    int index = 1;
     for (const auto& item : m_resources)
     {
         fmt::print("[{:>3}] ", index++);
@@ -134,6 +144,41 @@ auto resource_container::print(std::string title) -> void
     }
 
     fmt::print("{0:=^{1}}\n", "", 150);
+}
+
+auto resource_container::save_to_file(const std::string& file) -> void
+{
+    json data;
+    for (const auto& item : m_resources) {
+        data["resource"]["items"].emplace_back(item->j_data());
+    }
+
+    std::ofstream fout(file);
+    fout << std::setw(4) << data << std::endl;
+}
+
+auto resource_container::load_from_file(const std::string& file) -> bool
+{
+    std::ifstream fin(file);
+    if (!fin.is_open())
+        return false;
+
+    json data;
+    fin >> data;
+
+
+    if (!data.contains("/resource/items"_json_pointer) || data["resource"]["items"].size() != this->size())
+        return false;
+    
+    
+    fmt::print("Items: \n");
+    auto&& items = data["resource"]["items"];
+    for (auto i = 0uz; i < size(); ++i) {
+        fmt::print("{}\n", items[i].dump(4));
+        m_resources[i]->set_data(std::move(items[i]));
+    }
+
+    return true;
 }
 
 } // namespace okec

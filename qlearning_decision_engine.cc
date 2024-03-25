@@ -95,7 +95,7 @@ auto qlearning_decision_engine::train(
     // run edge
     int step = 0;
 
-    for (auto episode : std::views::iota(0, 20)) {
+    for ([[maybe_unused]] auto episode : std::views::iota(0, 20)) {
         // observation
         auto observation = env.reset();
         // std::cout << observation << std::endl;
