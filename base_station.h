@@ -28,6 +28,7 @@ public:
 
 public:
     base_station();
+    ~base_station();
     auto connect_device(edge_device_container& devices) -> void;
     
     auto get_address() const ->  ns3::Ipv4Address;

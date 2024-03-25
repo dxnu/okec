@@ -170,7 +170,7 @@ auto scene1_decision_engine::handle_next() -> void
             // this->handle_next(); // 继续尝试处理下一个
             
             // 等个两秒再尝试
-            // Simulator::Schedule(ns3::Seconds(2), +[](this_type* self) {
+            // Simulator::Schedule(Seconds(2), +[](this_type* self) {
             //     self->handle_next();
             // }, this);
             // 等待资源释放后自动重新尝试
@@ -285,6 +285,8 @@ auto scene1_decision_engine::on_bs_response_message(
         // 处理过的任务从队列中清除
         task_sequence.erase(it);
     }
+
+    this->handle_next();
 
     // for (std::size_t i = 0; i < task_sequence.size(); ++i)
     // {

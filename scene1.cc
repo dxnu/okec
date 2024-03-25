@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     // Create 1 base station
     okec::base_station_container bs(1);
     // Create 5 edge servers
-    okec::edge_device_container edge_servers(8);
+    okec::edge_device_container edge_servers(5);
     // Create 2 user devices
     okec::client_device_container user_devices(2);
 
@@ -96,13 +96,13 @@ int main(int argc, char **argv)
         }
     });
 
-
     int step = 50;
     for (auto i = 0uz; i < tasks.size(); ++i, step += 50) {
         generate_task(tasks[i], step, groups[i]);
         x_points.push_back(tasks[i].size());
         user->send(tasks[i]);
     }
+
 
     simulator.run();
 }

@@ -359,7 +359,6 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
             auto task_item = task_element::from_msg_packet(packet);
             // fmt::print("资源冲突\n{}\n", task_item.dump());
             auto& task_sequence = bs->task_sequence();
-            auto& task_sequence_status = bs->task_sequence_status();
             if (auto it = std::ranges::find_if(task_sequence, [&task_item](auto const& item) {
                 return item.get_header("task_id") == task_item.get_header("task_id");
             }); it != std::end(task_sequence)) {

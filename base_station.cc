@@ -27,6 +27,16 @@ base_station::base_station()
     m_node->AddApplication(m_udp_application);
 }
 
+base_station::~base_station()
+{
+    // auto& task_sequence = this->task_sequence();
+    // if (!task_sequence.empty()) {
+    //     fmt::print("任务列表还余{}任务未处理\n", task_sequence.size());
+    // } else {
+    //     fmt::print("任务已全部完成\n");
+    // }
+}
+
 auto base_station::connect_device(edge_device_container& devices) -> void
 {
     m_edge_devices = &devices;
