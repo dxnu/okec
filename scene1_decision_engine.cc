@@ -309,6 +309,8 @@ auto scene1_decision_engine::on_bs_response_message(
 auto scene1_decision_engine::on_es_handling_message(
     edge_device* es, Ptr<Packet> packet, const Address& remote_address) -> void
 {
+    this->handle_next();
+
     auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
     message msg(packet);
     auto task_item = msg.get_task_element(); // task_element::from_msg_packet(packet);
@@ -361,6 +363,8 @@ auto scene1_decision_engine::on_es_handling_message(
 auto scene1_decision_engine::on_clients_reponse_message(
     client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void
 {
+    this->handle_next();
+
     message msg(packet);
     // fmt::print(fg(fmt::color::red), "At time {:.2f}s client({:ip}) has received a packet: {}\n", 
     //     Simulator::Now().GetSeconds(), client->get_address(), msg.dump());

@@ -24,7 +24,7 @@ struct simulator {
 
     auto run() -> void {
         Simulator::Stop(Seconds(simulator_stop_time));
-        // Simulator::Schedule(Seconds(simulator_stop_time), [] { fmt::print("仿真结束\n"); });
+        // Simulator::Schedule(Seconds(simulator_stop_time), +[] { fmt::print("仿真结束\n"); });
         Simulator::Run();
     };
 

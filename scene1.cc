@@ -21,7 +21,7 @@ int main(int argc, char **argv)
     // Create 1 base station
     okec::base_station_container bs(1);
     // Create 5 edge servers
-    okec::edge_device_container edge_servers(5);
+    okec::edge_device_container edge_servers(15);
     // Create 2 user devices
     okec::client_device_container user_devices(2);
 
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
           "twenty-one", "twenty-two", "twenty-three", "twenty-four", "twenty-five", "twenty-six", "twenty-seven", "twenty-eight", "twenty-nine", "thirty" };
 
     // Initialize a task
-    std::vector<okec::task> tasks(10); // 10 batch of tasks
+    std::vector<okec::task> tasks(1); // 10 batch of tasks
     std::vector<double> time_total_points;
     std::vector<double> time_average_points;
     std::vector<int> x_points;
@@ -96,12 +96,17 @@ int main(int argc, char **argv)
         }
     });
 
-    int step = 50;
-    for (auto i = 0uz; i < tasks.size(); ++i, step += 50) {
-        generate_task(tasks[i], step, groups[i]);
-        x_points.push_back(tasks[i].size());
-        user->send(tasks[i]);
-    }
+    // int step = 50;
+    // for (auto i = 0uz; i < tasks.size(); ++i, step += 50) {
+    //     generate_task(tasks[i], step, groups[i]);
+    //     x_points.push_back(tasks[i].size());
+    //     user->send(tasks[i]);
+    // }
+    int step = 1500;
+    int index = step / 50 - 1;
+    generate_task(tasks[0], step, groups[index]);
+    x_points.push_back(tasks[0].size());
+    user->send(tasks[0]);
 
 
     simulator.run();
