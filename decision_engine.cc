@@ -21,6 +21,16 @@ auto device_cache::end() -> iterator
     return this->view().end();
 }
 
+auto device_cache::cbegin() const -> json::const_iterator
+{
+    return this->cache["device_cache"]["items"].cbegin();
+}
+
+auto device_cache::cend() const -> json::const_iterator
+{
+    return this->cache["device_cache"]["items"].cend();
+}
+
 auto device_cache::dump(int indent) -> std::string
 {
     return this->cache.dump(indent);
@@ -284,7 +294,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
                     }
                 }
 
-                print_info(fmt::format("The decision engine got the resource information of edge device({}).", (*item)["ip"]));
+                print_info(fmt::format("The decision engine received resource information from edge server({}).", (*item)["ip"]));
             } else {
                 // 说明设备此时还未绑定资源，通过网络询问一下
                 Simulator::Schedule(Seconds(delay), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {

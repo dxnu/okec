@@ -23,6 +23,7 @@ public:
     using attributes_type  = std::initializer_list<attribute_type>;
     using value_type       = json;
     using iterator         = json::iterator;
+    using const_iterator   = json::const_iterator;
     using unary_predicate_type  = std::function<bool(const value_type&)>;
     using binary_predicate_type = std::function<bool(const value_type&, const value_type&)>;
 
@@ -30,6 +31,9 @@ public:
 
     auto begin() -> iterator;
     auto end() -> iterator;
+
+    auto cbegin() const -> json::const_iterator;
+    auto cend() const -> json::const_iterator;
 
     auto dump(int indent = -1) -> std::string;
 

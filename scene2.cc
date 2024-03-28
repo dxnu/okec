@@ -1,66 +1,70 @@
-// #include "okec.hpp"
+#include "okec.hpp"
 
 
+void generate_task(okec::task &t, int number, const std::string& group) {
+    // for ([[maybe_unused]] auto _ : std::views::iota(0, number)) {
+    //     t.emplace_back({
+    //         { "task_id", okec::task::get_unique_id() },
+    //         { "group", group },
+    //         { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
+    //         { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
+    //     });
+    // }
 
-// int main(int argc, char **argv)
-// {
-//     okec::simulator simulator;
+    // t.save_to_file("task-" + std::to_string(number) + ".json");
+    t.load_from_file("task-" + std::to_string(number) + ".json");
+}
 
-//     okec::base_station_container base_stations(2);
-//     okec::edge_device_container edge_devices1(3);
-//     okec::edge_device_container edge_devices2(5);
-//     base_stations.connect_device(edge_devices1, edge_devices2);
+int main(int argc, char **argv)
+{
+    okec::simulator simulator;
 
-//     okec::client_device_container client_devices1(2);
-//     okec::client_device_container client_devices2(2);
-//     std::vector<okec::client_device_container> client_devices;
-//     client_devices.push_back(std::move(client_devices1));
-//     client_devices.push_back(std::move(client_devices2));
+    // Create 2 base stations and connect them with some edge serves.
+    okec::base_station_container base_stations(2);
+    okec::edge_device_container edge_devices1(5);
+    okec::edge_device_container edge_devices2(8);
+    base_stations.connect_device(edge_devices1, edge_devices2);
 
-//     okec::multiple_and_single_LAN_WLAN_network_model net_model;
-//     okec::network_initializer(net_model, client_devices, base_stations);
+    // Create 2 user groups
+    okec::client_device_container client_devices1(2);
+    okec::client_device_container client_devices2(2);
+    std::vector<okec::client_device_container> client_devices;
+    client_devices.push_back(std::move(client_devices1));
+    client_devices.push_back(std::move(client_devices2));
 
-//     okec::resource_container client_rcontainer(client_devices.size());
-//     okec::resource_container edge1_rcontainer(edge_devices1.size());
-//     okec::resource_container edge2_rcontainer(edge_devices2.size());
-//     client_rcontainer.initialize([](auto res) {
-//         res->attribute("cpu", "0.1");
-//     });
-//     edge1_rcontainer.initialize([](auto res) {
-//         res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.1, 0.5).item<double>()));
-//     });
-//     edge2_rcontainer.initialize([](auto res) {
-//         res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.1, 0.5).item<double>()));
-//     });
+    // Initialize the network
+    okec::multiple_LAN_WLAN_network_model net_model;
+    okec::network_initializer(net_model, client_devices, base_stations);
 
-//     client_rcontainer.print();
-//     edge1_rcontainer.print();
-//     edge2_rcontainer.print();
+    // Create resources.
+    okec::resource_container edge_resources1(edge_devices1.size());
+    okec::resource_container edge_resources2(edge_devices2.size());
+    edge_resources1.load_from_file("resource-" + std::to_string(edge_resources1.size()) + ".json");
+    edge_resources2.load_from_file("resource-" + std::to_string(edge_resources2.size()) + ".json");
+    edge_resources1.print();
+    edge_resources2.print();
 
-//     // client_devices.install_resources(client_rcontainer); // 一键为所有用户设备配置资源
-//     edge_devices1.install_resources(edge1_rcontainer);   // 一键为所有边缘设备安装资源
-//     edge_devices2.install_resources(edge2_rcontainer);   // 一键为所有边缘设备安装资源
+    // Install resources on edge servers.
+    edge_devices1.install_resources(edge_resources1);   // 一键为所有边缘设备安装资源
+    edge_devices2.install_resources(edge_resources2);   // 一键为所有边缘设备安装资源
 
-//     auto decision_engine = std::make_shared<okec::scene1_decision_engine>(&client_devices, &base_stations);
-//     // base_stations.set_decision_engine(decision_engine);
-//     // client_devices[0].set_decision_engine(decision_engine);
-//     decision_engine->initialize();
+    auto decision_engine = std::make_shared<okec::DQN_decision_engine>(&client_devices, &base_stations);
+    decision_engine->initialize();
 
-//     okec::task t;
-//     t.emplace_back({
-//         { "task_id", okec::task::get_unique_id() },
-//         { "group", "one" },
-//         { "cpu_cycle", fmt::format("{:.2f}", torch::rand({1}).uniform_(0, 0.5).item<double>()) }
-//     });
+    okec::task t;
+    generate_task(t, 50, "dummy");
 
-//     auto device_1 = client_devices[0].get_device(0);
-//     device_1->send(t);
-//     // device_1->when_done([](okec::response res) {
+    auto device_1 = client_devices[0].get_device(0);
+    // device_1->send(t);
+    decision_engine->train(t);
+    // decision_engine->train(t, device_1, base_stations);
+    // device_1->send(t);
+    // device_1->when_done([](okec::response res) {
     
-//     //     fmt::print("task is done!\n");
-//     // });
+    //     fmt::print("task is done!\n");
+    // });
 
 
 
-//     simulator.run();
-// }
+    simulator.run();
+}

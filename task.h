@@ -64,7 +64,11 @@ public:
     auto dump() const -> std::string;
 
     auto elements() -> std::vector<task_element>;
+    auto elements() const -> std::vector<task_element>;
 
+    auto at(std::size_t index) -> task_element;
+    auto at(std::size_t index) const -> task_element;
+    
     auto data() -> json;
 
     auto j_data() const -> json;

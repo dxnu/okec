@@ -133,7 +133,7 @@ struct fmt::formatter<okec::resource_container> {
 
 inline static void print_info(std::string_view info)
 {
-    fmt::print("At time {:.2f}s {}\n", Simulator::Now().GetSeconds(), info);
+    fmt::print("At time {:.2f} seconds {}\n", Simulator::Now().GetSeconds(), info);
 }
 
 #endif // NS3_FORMATTING_OUTPUT_H_

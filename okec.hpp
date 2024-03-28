@@ -3,8 +3,8 @@
 
 #include "multiple_and_single_LAN_WLAN_network_model.hpp"
 #include "multiple_LAN_WLAN_network_model.hpp"
-#include "scene1_decision_engine.h"
-#include "qlearning_decision_engine.h"
+#include "worse_fit_decision_engine.h"
+#include "DQN_decision_engine.h"
 #include "read_csv.h"
 #include "response_visulizer.hpp"
 #include "config.h"

@@ -71,12 +71,12 @@ auto udp_application::read_handler(Ptr<Socket> socket) -> void
 
         // 处理消息
         auto content = packet_helper::to_string(packet);
-        NS_LOG_INFO(PURPLE_CODE << "At time " << fmt::format("{:.2f}", Simulator::Now().GetSeconds()) << "s "
+        NS_LOG_INFO(PURPLE_CODE << "At time " << fmt::format("{:.2f}", Simulator::Now().GetSeconds()) << " seconds "
             << fmt::format("{:ip}", this->get_address()) << " has received a packet: \"" << content << "\" size: " << content.size() << END_CODE);
         // fmt::print("handling message. begin-----------------------\n");
         if (packet) {
             auto msg_type = get_message_type(packet);
-            NS_LOG_INFO(CYAN_CODE << "At time " << fmt::format("{:.2f}", Simulator::Now().GetSeconds()) << "s "
+            NS_LOG_INFO(CYAN_CODE << "At time " << fmt::format("{:.2f}", Simulator::Now().GetSeconds()) << " seconds "
                 << fmt::format("{:ip}", this->get_address()) <<  " is processing " << msg_type << " message......" << END_CODE);
             m_msg_handler.dispatch(msg_type, packet, remote_address);
             // if (m_msg_handler.dispatch(msg_type, packet, remote_address)) {

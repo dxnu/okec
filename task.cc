@@ -181,6 +181,27 @@ auto task::elements() -> std::vector<task_element>
     return items;
 }
 
+auto task::elements() const -> std::vector<task_element>
+{
+    std::vector<task_element> items;
+    items.reserve(this->size());
+
+    for (const json& item : m_task["task"]["items"])
+        items.emplace_back(task_element(item));
+
+    return items;
+}
+
+auto task::at(std::size_t index) -> task_element
+{
+    return elements()[index];
+}
+
+auto task::at(std::size_t index) const -> task_element
+{
+    return elements()[index];
+}
+
 auto task::data() -> json
 {
     return m_task["task"]["items"];

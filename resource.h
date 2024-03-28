@@ -14,7 +14,9 @@ namespace okec
 
 class resource : public ns3::Object
 {
-    using price_type = int;
+public:
+    // [address, key, old_value, new_value]
+    using monitor_type = std::function<void(std::string_view, std::string_view, std::string_view, std::string_view)>;
 
 public:
 
@@ -30,7 +32,11 @@ public:
 
     auto reset_value(std::string_view key, std::string_view value) -> std::string;
 
+    auto set_monitor(monitor_type monitor) -> void;
+
     auto get_value(std::string_view key) const -> std::string;
+
+    auto get_address() -> Ipv4Address;
     
     auto dump(const int indent = -1) -> std::string;
 
@@ -52,6 +58,8 @@ public:
 
 private:
     json j_;
+    monitor_type monitor_;
+    Ptr<Node> node_;
 };
 
 
@@ -83,8 +91,12 @@ public:
 
     auto print(std::string title = "Resource Info" ) -> void;
 
+    auto trace_resource() -> void;
+
     auto save_to_file(const std::string& file) -> void;
     auto load_from_file(const std::string& file) -> bool;
+
+    auto set_monitor(resource::monitor_type monitor) -> void;
 
 private:
     std::vector<Ptr<resource>> m_resources;

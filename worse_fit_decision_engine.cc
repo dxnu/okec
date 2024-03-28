@@ -1,4 +1,4 @@
-#include "scene1_decision_engine.h"
+#include "worse_fit_decision_engine.h"
 #include "message.h"
 #include "base_station.h"
 #include "client_device.h"
@@ -7,7 +7,7 @@
 
 namespace okec {
 
-scene1_decision_engine::scene1_decision_engine(
+worse_fit_decision_engine::worse_fit_decision_engine(
     client_device_container* clients,
     base_station_container* base_stations)
     : clients_{clients}
@@ -30,14 +30,14 @@ scene1_decision_engine::scene1_decision_engine(
     clients->set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
 }
 
-scene1_decision_engine::scene1_decision_engine(
+worse_fit_decision_engine::worse_fit_decision_engine(
     std::vector<client_device_container>* clients_container,
     base_station_container* base_stations)
     : clients_container_{clients_container}
     , base_stations_{base_stations}
 {
-        // 设置决策设备
-    m_decision_device = base_stations->get(1);
+    // 设置决策设备
+    m_decision_device = base_stations->get(0);
 
     // 初始化资源缓存信息
     this->initialize_device(base_stations);
@@ -57,7 +57,7 @@ scene1_decision_engine::scene1_decision_engine(
     fmt::print("{}\n", this->cache().dump(4));
 }
 
-auto scene1_decision_engine::make_decision(const task_element& header) -> result_t
+auto worse_fit_decision_engine::make_decision(const task_element& header) -> result_t
 {
     auto edge_cache = this->cache().data();
     auto edge_max = *std::max_element(edge_cache.begin(), edge_cache.end(), 
@@ -92,12 +92,12 @@ auto scene1_decision_engine::make_decision(const task_element& header) -> result
     return result_t();
 }
 
-auto scene1_decision_engine::local_test(const task_element& header, client_device* client) -> bool
+auto worse_fit_decision_engine::local_test(const task_element& header, client_device* client) -> bool
 {
     return false;
 }
 
-auto scene1_decision_engine::send(task_element& t, client_device* client) -> bool
+auto worse_fit_decision_engine::send(task_element& t, client_device* client) -> bool
 {
     static double launch_delay = 1.0;
 
@@ -126,7 +126,7 @@ auto scene1_decision_engine::send(task_element& t, client_device* client) -> boo
     return true;
 }
 
-auto scene1_decision_engine::initialize() -> void
+auto worse_fit_decision_engine::initialize() -> void
 {
     if (clients_) {
         clients_->set_decision_engine(shared_from_base<this_type>());
@@ -143,7 +143,7 @@ auto scene1_decision_engine::initialize() -> void
     }
 }
 
-auto scene1_decision_engine::handle_next() -> void
+auto worse_fit_decision_engine::handle_next() -> void
 {
     auto& task_sequence = m_decision_device->task_sequence();
     // auto& task_sequence_status = m_decision_device->task_sequence_status();
@@ -243,7 +243,7 @@ auto scene1_decision_engine::handle_next() -> void
     // }
 }
 
-auto scene1_decision_engine::on_bs_decision_message(
+auto worse_fit_decision_engine::on_bs_decision_message(
     base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
 {
     static bool first_time = true;
@@ -263,7 +263,7 @@ auto scene1_decision_engine::on_bs_decision_message(
     }
 }
 
-auto scene1_decision_engine::on_bs_response_message(
+auto worse_fit_decision_engine::on_bs_response_message(
     base_station* bs, Ptr<Packet> packet, const Address& remote_address) -> void
 {
     // auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
@@ -306,7 +306,7 @@ auto scene1_decision_engine::on_bs_response_message(
     // }
 }
 
-auto scene1_decision_engine::on_es_handling_message(
+auto worse_fit_decision_engine::on_es_handling_message(
     edge_device* es, Ptr<Packet> packet, const Address& remote_address) -> void
 {
     this->handle_next();
@@ -360,7 +360,7 @@ auto scene1_decision_engine::on_es_handling_message(
     }, es, cpu_supply, ipv4_remote, task_id, processing_time, shared_from_base<this_type>());
 }
 
-auto scene1_decision_engine::on_clients_reponse_message(
+auto worse_fit_decision_engine::on_clients_reponse_message(
     client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void
 {
     this->handle_next();

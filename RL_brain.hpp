@@ -1,5 +1,5 @@
-#ifndef OKEC_RL_BRAIN_HPP_
-#define OKEC_RL_BRAIN_HPP_
+#ifndef RL_BRAIN_HPP_
+#define RL_BRAIN_HPP_
 
 #include <torch/torch.h>
 
@@ -184,4 +184,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_RL_BRAIN_HPP_
+#endif // RL_BRAIN_HPP_

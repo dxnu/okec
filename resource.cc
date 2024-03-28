@@ -24,6 +24,7 @@ auto resource::GetTypeId() -> TypeId
 auto resource::install(Ptr<Node> node) -> void
 {
     node->AggregateObject(this);
+    node_ = node;
 }
 
 resource::resource(json item) noexcept
@@ -40,7 +41,17 @@ auto resource::attribute(std::string_view key, std::string_view value) -> void
 
 auto resource::reset_value(std::string_view key, std::string_view value) -> std::string
 {
-    return std::exchange(j_["resource"][key], value);
+    auto old_value = std::exchange(j_["resource"][key], value);
+    if (monitor_) {
+        monitor_(fmt::format("{:ip}", get_address()), key, old_value.get<std::string>(), value);
+    }
+    
+    return old_value;
+}
+
+auto resource::set_monitor(monitor_type monitor) -> void
+{
+    monitor_ = monitor;
 }
 
 auto resource::get_value(std::string_view key) const -> std::string
@@ -51,6 +62,12 @@ auto resource::get_value(std::string_view key) const -> std::string
         j_.at(j_key).get_to(result);
     
     return result;
+}
+
+auto resource::get_address() -> Ipv4Address
+{
+    auto ipv4 = node_->GetObject<Ipv4>();
+    return ipv4->GetAddress(1, 0).GetLocal();
 }
 
 auto resource::dump(const int indent) -> std::string
@@ -146,6 +163,33 @@ auto resource_container::print(std::string title) -> void
     fmt::print("{0:=^{1}}\n", "", 150);
 }
 
+auto resource_container::trace_resource() -> void
+{
+    static std::ofstream file;
+    if (!file.is_open()) {
+        file.open("resource_tracer.csv", std::ios::out/* | std::ios::app*/);
+        if (!file.is_open()) {
+            return;
+        }
+    }
+
+    // for (const auto& item : m_resources) {
+    //     file << fmt::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
+    //     for (auto it = item->begin(); it != item->end(); ++it) {
+    //         file << fmt::format(",{}: {}", it.key(), it.value());
+    //     }
+    //     file << "\n";
+    // }
+    // file << "\n";
+    file << fmt::format("{:.2f}", Simulator::Now().GetSeconds());
+    for (const auto& item : m_resources) {
+        for (auto it = item->begin(); it != item->end(); ++it) {
+            file << fmt::format(",{}", it.value());
+        }
+    }
+    file << "\n";
+}
+
 auto resource_container::save_to_file(const std::string& file) -> void
 {
     json data;
@@ -179,6 +223,13 @@ auto resource_container::load_from_file(const std::string& file) -> bool
     }
 
     return true;
+}
+
+auto resource_container::set_monitor(resource::monitor_type monitor) -> void
+{
+    for (const auto& item : m_resources) {
+        item->set_monitor(monitor);
+    }
 }
 
 } // namespace okec

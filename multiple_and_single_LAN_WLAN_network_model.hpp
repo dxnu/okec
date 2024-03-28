@@ -18,8 +18,8 @@ struct multiple_and_single_LAN_WLAN_network_model {
         NodeContainer p2pNodes;
         NodeContainer edgeNodes;
         base_station->get_edge_nodes(edgeNodes);
-        p2pNodes.Add(base_station->get_node()); // 基站
-        p2pNodes.Add(edgeNodes.Get(0)); // 边缘节点
+        p2pNodes.Add(base_station->get_node());
+        p2pNodes.Add(edgeNodes.Get(0));
 
         PointToPointHelper pointToPoint;
         pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));

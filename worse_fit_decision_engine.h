@@ -1,5 +1,5 @@
-#ifndef OKEC_SCENE1_DECISION_ENGINE
-#define OKEC_SCENE1_DECISION_ENGINE
+#ifndef WORSE_FIT_DECISION_ENGINE_H_
+#define WORSE_FIT_DECISION_ENGINE_H_
 
 #include "decision_engine.h"
 
@@ -11,14 +11,14 @@ class client_device_container;
 class edge_device;
 
 
-class scene1_decision_engine : public decision_engine
+class worse_fit_decision_engine : public decision_engine
 {
-    using this_type = scene1_decision_engine;
+    using this_type = worse_fit_decision_engine;
 
 public:
-    scene1_decision_engine() = default;
-    scene1_decision_engine(client_device_container* clients, base_station_container* base_stations);
-    scene1_decision_engine(std::vector<client_device_container>* clients_container, base_station_container* base_stations);
+    worse_fit_decision_engine() = default;
+    worse_fit_decision_engine(client_device_container* clients, base_station_container* base_stations);
+    worse_fit_decision_engine(std::vector<client_device_container>* clients_container, base_station_container* base_stations);
 
     auto make_decision(const task_element& header) -> result_t override;
 
@@ -48,4 +48,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_SCENE1_DECISION_ENGINE
+#endif // WORSE_FIT_DECISION_ENGINE_H_
