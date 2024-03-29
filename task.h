@@ -61,7 +61,7 @@ public:
 
     auto emplace_back(task_header_t, task_body_t = {}) -> void;
     
-    auto dump() const -> std::string;
+    auto dump(int indent = -1) const -> std::string;
 
     auto elements() -> std::vector<task_element>;
     auto elements() const -> std::vector<task_element>;

@@ -45,6 +45,47 @@ public:
         return observation.unsqueeze(0);
     }
 
+    auto step2(int action) {
+        static std::size_t task_index = 0;
+
+        auto& edge_cache = cache_.view();
+        auto& server = edge_cache.at(action);
+        auto t = t_.at(task_index);
+        auto cpu_supply = TO_DOUBLE(server["cpu"]);
+        auto cpu_demand = std::stod(t.get_header("cpu"));
+
+        fmt::print("server: {}\n", edge_cache[action].dump());
+        fmt::print("task: {}\n", t.dump());
+        fmt::print("cpu_supply: {}, cpu_demand: {}\n", cpu_supply, cpu_demand);
+
+        float reward;
+        if (cpu_supply < cpu_demand) {
+            t.set_header("status", "N");
+            reward = -1.0f;
+        } else {
+            t.set_header("status", "Y");
+            reward = 1.0f;
+            server["cpu"] = std::to_string(cpu_supply - cpu_demand);
+            fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
+        }
+
+        bool done;
+        if (task_index++ == t_.size() - 1) {
+            done = true;
+        } else {
+            done = false;
+        }
+
+        std::vector<double> flattened_state;
+        for (const auto& edge : edge_cache) {
+            flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
+        }
+
+        auto new_state = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
+
+        return std::make_tuple(new_state, reward, done);
+    }
+
     auto step(int action) {
         static std::size_t task_index = 0;
 
@@ -109,10 +150,11 @@ public:
 
     auto print_cache() -> void {
         fmt::print("print_cache:\n{}\n", cache_.dump(4));
+        fmt::print("tasks:\n{}\n", t_.dump(4));
     }
 
 private:
-    const task& t_;
+    task t_;
     device_cache cache_;
     std::vector<double> state_; // initialization state
     int n_ = 42;

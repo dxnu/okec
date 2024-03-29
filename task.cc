@@ -166,9 +166,9 @@ auto task::emplace_back(task_header_t header_attrs, task_body_t body_attrs) -> v
     m_task["task"]["items"].emplace_back(std::move(item));
 }
 
-auto task::dump() const -> std::string
+auto task::dump(int indent) const -> std::string
 {
-    return m_task.dump();
+    return m_task.dump(indent);
 }
 
 auto task::elements() -> std::vector<task_element>
@@ -194,12 +194,12 @@ auto task::elements() const -> std::vector<task_element>
 
 auto task::at(std::size_t index) -> task_element
 {
-    return elements()[index];
+    return task_element(&m_task["task"]["items"].at(index));
 }
 
 auto task::at(std::size_t index) const -> task_element
 {
-    return elements()[index];
+    return task_element(m_task["task"]["items"].at(index));
 }
 
 auto task::data() -> json
@@ -241,8 +241,7 @@ auto task::set_if(attributes_t values, auto f) -> void
     }
 }
 
-auto
-task::find_if(attributes_t values) -> task
+auto task::find_if(attributes_t values) -> task
 {
     task result{};
     for (const auto& item : m_task["task"]["items"]) {

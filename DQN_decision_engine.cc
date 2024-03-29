@@ -121,13 +121,11 @@ auto DQN_decision_engine::train(const task& t) -> void
 
             fmt::print("choose action: {}\n", action);
 
-            auto [observation_, reward, done] = env->step(action);
+            auto [observation_, reward, done] = env->step2(action);
             
             // std::cout << "\n";
             // std::cout << observation_ << "\n";
             // std::cout << "reward: " << reward << " done: " << done << "\n";
-
-            exit(1);
 
             RL.store_transition(observation, action, reward, observation_);
 
@@ -147,6 +145,8 @@ auto DQN_decision_engine::train(const task& t) -> void
 
     fmt::print("end of train\n");
     // RL.print_memory();
+
+    env->print_cache();
     
     // Simulator::Schedule(Seconds(1), [env]() {
     //     env->print_cache();
