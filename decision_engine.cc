@@ -31,7 +31,7 @@ auto device_cache::cend() const -> json::const_iterator
     return this->cache["device_cache"]["items"].cend();
 }
 
-auto device_cache::dump(int indent) -> std::string
+auto device_cache::dump(int indent) const -> std::string
 {
     return this->cache.dump(indent);
 }

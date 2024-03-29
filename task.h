@@ -93,7 +93,7 @@ public:
     static auto get_unique_id() -> std::string;
     static auto get_random_number(long min, long max) -> std::string;
 
-    auto print() -> void;
+    auto print() const -> void;
 
     auto save_to_file(const std::string& file_name) -> void;
     auto load_from_file(const std::string& file_name) -> bool;

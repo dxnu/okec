@@ -35,7 +35,7 @@ public:
     auto cbegin() const -> json::const_iterator;
     auto cend() const -> json::const_iterator;
 
-    auto dump(int indent = -1) -> std::string;
+    auto dump(int indent = -1) const -> std::string;
 
     auto data() const -> value_type;
 

@@ -341,7 +341,7 @@ auto task::get_random_number(long min, long max) -> std::string
     return std::to_string(uid(dre));
 }
 
-auto task::print() -> void
+auto task::print() const -> void
 {
     fmt::print("{0:=^{1}}\n", "Task Info", 150);
     int index{1};

@@ -15,149 +15,27 @@ class edge_device;
 
 
 class Env : public std::enable_shared_from_this<Env> {
-    using this_type = Env;
+    using this_type       = Env;
+    using done_callback_t = std::function<void(const task&, const device_cache&)>;
 
 public:
-    Env(const device_cache& cache, const task& t)
-        : cache_(cache)
-        , t_(t)
-    {
-        // Save the initialization state.
-        state_.reserve(cache.size());
-        for (auto it = cache.cbegin(); it != cache.cend(); ++it)
-            state_.push_back(TO_DOUBLE((*it)["cpu"])); // edge resources
-        
-        // for (const auto& item : t.elements())
-        //     state_.push_back(std::stod(item.get_header("cpu"))); // tasks   
-    }
+    Env(const device_cache& cache, const task& t, std::shared_ptr<DeepQNetwork> RL);
 
-    auto n_actions() const -> std::size_t {
-        return cache_.size();
-    }
+    auto reset() -> torch::Tensor;
 
-    auto n_features() const -> std::size_t {
-        return cache_.size(); // + t_.size();
-    }
+    auto train() -> void;
+    auto train_next(torch::Tensor observation) -> void;
 
-    auto reset() -> torch::Tensor {
-        // torch::tensor makes a copy, from_blob does not (but torch::from_blob(vector).clone() does)
-        auto observation = torch::from_blob(state_.data(), {static_cast<long>(state_.size())}, torch::kFloat64);
-        return observation.unsqueeze(0);
-    }
+    auto when_done(done_callback_t callback) -> void;
 
-    auto step2(int action) {
-        static std::size_t task_index = 0;
-
-        auto& edge_cache = cache_.view();
-        auto& server = edge_cache.at(action);
-        auto t = t_.at(task_index);
-        auto cpu_supply = TO_DOUBLE(server["cpu"]);
-        auto cpu_demand = std::stod(t.get_header("cpu"));
-
-        fmt::print("server: {}\n", edge_cache[action].dump());
-        fmt::print("task: {}\n", t.dump());
-        fmt::print("cpu_supply: {}, cpu_demand: {}\n", cpu_supply, cpu_demand);
-
-        float reward;
-        if (cpu_supply < cpu_demand) {
-            t.set_header("status", "N");
-            reward = -1.0f;
-        } else {
-            t.set_header("status", "Y");
-            reward = 1.0f;
-            server["cpu"] = std::to_string(cpu_supply - cpu_demand);
-            fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
-        }
-
-        bool done;
-        if (task_index++ == t_.size() - 1) {
-            done = true;
-        } else {
-            done = false;
-        }
-
-        std::vector<double> flattened_state;
-        for (const auto& edge : edge_cache) {
-            flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
-        }
-
-        auto new_state = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
-
-        return std::make_tuple(new_state, reward, done);
-    }
-
-    auto step(int action) {
-        static std::size_t task_index = 0;
-
-        auto& edge_cache = cache_.view();
-        auto& server = edge_cache.at(action);
-        auto t = t_.at(task_index);
-        auto cpu_supply = TO_DOUBLE(server["cpu"]);
-        auto cpu_demand = std::stod(t.get_header("cpu"));
-
-        fmt::print("server: {}\n", edge_cache[action].dump());
-        double available_cpu = TO_DOUBLE(server["cpu"]);
-        fmt::print("available_cpu: {}\n", available_cpu);
-        fmt::print("task: {}\n", t.dump());
-        fmt::print("cpu_supply: {}, cpu_demand: {}\n", cpu_supply, cpu_demand);
-
-        float reward;
-        bool handled = false;
-        if (cpu_supply < cpu_demand) {
-            reward = -1.0f;
-        } else {
-            reward = 1.0f;
-            handled = true;
-            server["cpu"] = std::to_string(cpu_supply - cpu_demand);
-            fmt::print("new cpu: {}\n", TO_DOUBLE(edge_cache.at(action)["cpu"]));
-            fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
-            
-            double processing_time = cpu_demand / cpu_supply;
-            // auto self = shared_from_this();
-            // Simulator::Schedule(Seconds(processing_time), [self, action, cpu_demand]() {
-            //     auto& edge_cache = self->cache_.view();
-            //     auto& server = edge_cache.at(action);
-            //     double cur_cpu = TO_DOUBLE(server["cpu"]);
-            //     double new_cpu = cur_cpu + cpu_demand;
-            //     print_info(fmt::format("[{}] 恢复资源：{} --> {:.2f}(demand: {})\n", TO_STR(server["ip"]), cur_cpu, new_cpu, cpu_demand));
-            //     server["cpu"] = std::to_string(cur_cpu + cpu_demand);
-            // });
-        }
-
-        bool done;
-        if (handled) { // 处理成功
-            if (task_index == t_.size() - 1) {
-                task_index = 0;
-                done = true;
-            } else {
-                task_index++;
-                done = false;
-            }
-        } else { // 处理失败
-            done = false;
-        }
-
-        std::vector<double> flattened_state;
-        for (const auto& edge : edge_cache) {
-            flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
-        }
-
-        auto new_state = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
-        // std::cout << new_state << std::endl;
-
-        return std::make_tuple(new_state, reward, done);
-    }
-
-    auto print_cache() -> void {
-        fmt::print("print_cache:\n{}\n", cache_.dump(4));
-        fmt::print("tasks:\n{}\n", t_.dump(4));
-    }
+    auto print_cache() -> void;
 
 private:
     task t_;
     device_cache cache_;
-    std::vector<double> state_; // initialization state
-    int n_ = 42;
+    std::shared_ptr<DeepQNetwork> RL_;
+    std::vector<double> state_; // 初始状态
+    done_callback_t done_fn_;
 };
 
 
@@ -176,7 +54,7 @@ public:
 
     auto send(task_element& t, client_device* client) -> bool override;
 
-    auto train(const task& t) -> void;
+    auto train(const task& train_task, int episode = 1) -> void;
 
     auto initialize() -> void override;
 
@@ -193,7 +71,8 @@ private:
     
     auto on_clients_reponse_message(client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void;
 
-    auto train_next(torch::Tensor observation) -> void;
+    // episode: current episode_all: total episode
+    auto train_start(const task& train_task, int episode, int episode_all) -> void;
 
 private:
     client_device_container* clients_{};
@@ -201,7 +80,6 @@ private:
     base_station_container* base_stations_{};
 
     std::shared_ptr<DeepQNetwork> RL;
-    task train_task;
 };
 
 
