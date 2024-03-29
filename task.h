@@ -32,7 +32,7 @@ public:
 
     static auto from_msg_packet(Ptr<Packet> packet) -> task_element;
 
-    auto dump() const -> std::string;
+    auto dump(int indent = -1) const -> std::string;
 
 private:
     json* elem_;
@@ -85,6 +85,7 @@ public:
     auto find_if(attribute_t value) -> task;
 
     auto contains(attributes_t values) -> bool;
+    auto contains(attribute_t value) -> bool;
 
     static auto get_header(const json& element, const std::string& key) -> std::string;
     static auto get_body(const json& element, const std::string& key) -> std::string;

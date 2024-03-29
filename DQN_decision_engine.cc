@@ -101,56 +101,74 @@ auto DQN_decision_engine::send(task_element& t, client_device* client) -> bool
 
 auto DQN_decision_engine::train(const task& t) -> void
 {
-    auto env = std::make_shared<Env>(this->cache(), t);
+    train_task = t;
+    auto n_actions = this->cache().size();
+    auto n_features = this->cache().size();
+    RL = std::make_shared<DeepQNetwork>(n_actions, n_features, 0.01, 0.9, 0.9, 200, 2000);
 
-    fmt::print(fg(fmt::color::yellow), "actions: {}, features: {}\n", env->n_actions(), env->n_features());
+    // get observation
+    std::vector<double> state;
+    state.reserve(this->cache().size());
+    for (auto it = this->cache().cbegin(); it != this->cache().cend(); ++it)
+        state.push_back(TO_DOUBLE((*it)["cpu"])); // edge resources
 
-    auto RL = DeepQNetwork(env->n_actions(), env->n_features(), 0.01, 0.9, 0.9, 200, 2000);
-    
-    // run edge
-    int step = 0;
+    auto observation = torch::tensor(state, torch::dtype(torch::kFloat64)).unsqueeze(0);
 
-    for ([[maybe_unused]] auto episode : std::views::iota(0, 1)) {
-        // observation
-        auto observation = env->reset();
-        std::cout << observation << std::endl;
-
-        for (;;) {
-            // RL choose action based on observation
-            auto action = RL.choose_action(observation);
-
-            fmt::print("choose action: {}\n", action);
-
-            auto [observation_, reward, done] = env->step2(action);
-            
-            // std::cout << "\n";
-            // std::cout << observation_ << "\n";
-            // std::cout << "reward: " << reward << " done: " << done << "\n";
-
-            RL.store_transition(observation, action, reward, observation_);
-
-            // 超过200条transition之后每隔5步学习一次
-            if (step > 200 and step % 5 == 0) {
-                RL.learn();
-            }
-
-            observation = observation_;
-
-            if (done)
-                break;
-
-            step += 1;
-        }
+    for (auto& t : train_task.elements()) {
+        t.set_header("status", "0"); // 0: 未处理 1: 已处理
     }
 
-    fmt::print("end of train\n");
-    // RL.print_memory();
+    train_next(std::move(observation));
+    // auto env = std::make_shared<Env>(this->cache(), t);
 
-    env->print_cache();
+    // fmt::print(fg(fmt::color::yellow), "actions: {}, features: {}\n", env->n_actions(), env->n_features());
+
+    // auto RL = DeepQNetwork(env->n_actions(), env->n_features(), 0.01, 0.9, 0.9, 200, 2000);
     
-    // Simulator::Schedule(Seconds(1), [env]() {
-    //     env->print_cache();
-    // });
+    // // run edge
+    // int step = 0;
+
+    // for ([[maybe_unused]] auto episode : std::views::iota(0, 1)) {
+    //     // observation
+    //     auto observation = env->reset();
+    //     std::cout << observation << std::endl;
+
+    //     for (;;) {
+    //         // RL choose action based on observation
+    //         auto action = RL.choose_action(observation);
+
+    //         fmt::print("choose action: {}\n", action);
+
+    //         auto [observation_, reward, done] = env->step2(action);
+            
+    //         // std::cout << "\n";
+    //         // std::cout << observation_ << "\n";
+    //         // std::cout << "reward: " << reward << " done: " << done << "\n";
+
+    //         RL.store_transition(observation, action, reward, observation_);
+
+    //         // 超过200条transition之后每隔5步学习一次
+    //         if (step > 200 and step % 5 == 0) {
+    //             RL.learn();
+    //         }
+
+    //         observation = observation_;
+
+    //         if (done)
+    //             break;
+
+    //         step += 1;
+    //     }
+    // }
+
+    // fmt::print("end of train\n");
+    // // RL.print_memory();
+
+    // env->print_cache();
+    
+    // // Simulator::Schedule(Seconds(1), [env]() {
+    // //     env->print_cache();
+    // // });
 }
 
 auto DQN_decision_engine::initialize() -> void
@@ -206,6 +224,83 @@ auto DQN_decision_engine::on_es_handling_message(
 auto DQN_decision_engine::on_clients_reponse_message(
     client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void
 {
+}
+
+auto DQN_decision_engine::train_next(torch::Tensor observation) -> void
+{
+    // std::cout << "observation:\n" << observation << "\n";
+    // fmt::print("train task:\n {}\n", train_task.dump(4));
+
+    float reward;
+    auto task_elements = train_task.elements();
+    if (auto it = std::ranges::find_if(task_elements, [](auto const& item) {
+        return item.get_header("status") == "0";
+    }); it != std::end(task_elements)) {
+        auto action = RL->choose_action(observation);
+        fmt::print("choose action: {}\n", action);
+
+        auto& edge_cache = this->cache().view();
+        auto& server = edge_cache.at(action);
+        // fmt::print("server:\n{}\n", server.dump(4));
+
+        auto cpu_supply = TO_DOUBLE(server["cpu"]);
+        auto cpu_demand = std::stod(it->get_header("cpu"));
+        if (cpu_supply < cpu_demand) { // 无法处理
+            reward = -1;
+            RL->store_transition(observation, action, reward, observation); // 状态不曾改变
+            fmt::print("reward: {}, done: {}\n", reward, false);
+        } else { // 可以处理
+            reward = 1;
+            it->set_header("status", "1");
+
+            // 消耗资源
+            server["cpu"] = std::to_string(cpu_supply - cpu_demand);
+            fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
+
+            // 处理时间
+            double processing_time = cpu_demand / cpu_supply;
+            it->set_header("processing_time", std::to_string(processing_time));
+
+            // 资源恢复
+            auto self = shared_from_base<this_type>();
+            Simulator::Schedule(Seconds(processing_time), [self, action, cpu_demand]() {
+                auto& edge_cache = self->cache().view();
+                auto& server = edge_cache.at(action);
+                double cur_cpu = TO_DOUBLE(server["cpu"]);
+                double new_cpu = cur_cpu + cpu_demand;
+                print_info(fmt::format("[{}] 恢复资源：{} --> {:.2f}(demand: {})", TO_STR(server["ip"]), cur_cpu, new_cpu, cpu_demand));
+                
+                // 恢复资源
+                server["cpu"] = std::to_string(cur_cpu + cpu_demand);
+
+                std::vector<double> flattened_state;
+                for (const auto& edge : edge_cache) {
+                    flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
+                }
+                auto observation_new = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
+                self->train_next(observation_new); // 继续训练下一个
+            });
+
+            // 更新状态
+            std::vector<double> flattened_state;
+            for (const auto& edge : edge_cache) {
+                flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
+            }
+            auto observation_new = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
+            RL->store_transition(observation, action, reward, observation_new);
+            // std::cout << "new state\n" << observation_new << "\n";
+
+            // 结束或继续处理
+            if (!train_task.contains({"status", "0"})) {
+                fmt::print("reward: {}, done: {}\n", reward, true);
+                fmt::print("end of train\n"); // done
+                train_task.print();
+            } else {
+                fmt::print("reward: {}, done: {}\n", reward, false);
+                this->train_next(observation_new); // 继续训练下一个
+            }
+        }
+    }
 }
 
 } // namespace okec

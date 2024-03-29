@@ -121,11 +121,11 @@ auto task_element::from_msg_packet(Ptr<Packet> packet) -> task_element
     return task_element{nullptr};
 }
 
-auto task_element::dump() const -> std::string
+auto task_element::dump(int indent) const -> std::string
 {
     std::string result{};
     if (!elem_->is_null())
-        result = elem_->dump();
+        result = elem_->dump(indent);
     return result;
 }
 
@@ -262,21 +262,22 @@ auto task::find_if(attribute_t value) -> task
 {
     return find_if({value});
 }
-
+// status 0
 auto task::contains(attributes_t values) -> bool
 {
     for (auto& item : m_task["task"]["items"]) {
-        bool cond = true;
         for (auto [key, value] : values) {
-            if (item[key] != value)
-                cond = false;
+            if (item["header"][key] == value)
+                return true;
         }
-
-        if (cond)
-            return true;
     }
 
     return false;
+}
+
+auto task::contains(attribute_t value) -> bool
+{
+    return contains({value});
 }
 
 auto task::get_header(const json& element, const std::string& key) -> std::string

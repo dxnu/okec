@@ -193,10 +193,15 @@ private:
     
     auto on_clients_reponse_message(client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void;
 
+    auto train_next(torch::Tensor observation) -> void;
+
 private:
     client_device_container* clients_{};
     std::vector<client_device_container>* clients_container_{};
     base_station_container* base_stations_{};
+
+    std::shared_ptr<DeepQNetwork> RL;
+    task train_task;
 };
 
 

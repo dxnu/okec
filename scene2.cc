@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     decision_engine->initialize();
 
     okec::task t;
-    generate_task(t, 10, "dummy");
+    generate_task(t, 50, "dummy");
 
     auto device_1 = client_devices[0].get_device(0);
     // device_1->send(t);
