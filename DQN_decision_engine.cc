@@ -26,6 +26,9 @@ auto Env::reset() -> torch::Tensor
         t.set_header("status", "0"); // 0: 未处理 1: 已处理
     }
 
+    // 任务属性也作为状态
+    state_.push_back(std::stod(t_.at(0).get_header("cpu")));
+
     // torch::tensor makes a copy, from_blob does not (but torch::from_blob(vector).clone() does)
     auto observation = torch::from_blob(state_.data(), {static_cast<long>(state_.size())}, torch::kFloat64);
     return observation.unsqueeze(0);
@@ -33,6 +36,9 @@ auto Env::reset() -> torch::Tensor
 
 auto Env::train() -> void
 {
+    if (t_.size() < 1)
+        return;
+
     train_next(this->reset());
 }
 
@@ -55,10 +61,33 @@ auto Env::train_next(torch::Tensor observation) -> void
         auto& server = edge_cache.at(action);
         // fmt::print("server:\n{}\n", server.dump(4));
 
+        // 先获取当前最小的处理时间
+        std::vector<double> time;
+        for (auto& elem : task_elements) {
+            auto pt = elem.get_header("processing_time");
+            if (!pt.empty())
+                time.push_back(std::stod(pt));
+        }
+        double min_time = 0;
+        if (!time.empty())
+            min_time = *std::ranges::min_element(time);
+
+        // 获取每个边缘服务器处理该任务的时间
+        std::vector<double> e_time;
+        for (const auto& edge : edge_cache) {
+            e_time.push_back(std::stod(it->get_header("cpu")) / TO_DOUBLE(edge["cpu"]));
+        }
+        // fmt::print("e time: {}\n", e_time);
+
+        double e_average_time = std::accumulate(e_time.begin(), e_time.end(), .0) / edge_cache.size();
+
+
+        //////////////////////////////////////////////////////////
+
         auto cpu_supply = TO_DOUBLE(server["cpu"]);
         auto cpu_demand = std::stod(it->get_header("cpu"));
         if (cpu_supply < cpu_demand) { // 无法处理
-            reward = -1;
+            reward = -e_average_time;
             RL_->store_transition(observation, action, reward, observation); // 状态不曾改变
             // fmt::print("reward: {}, done: {}\n", reward, false);
 
@@ -69,15 +98,30 @@ auto Env::train_next(torch::Tensor observation) -> void
 
             step++;
         } else { // 可以处理
-            reward = 1;
+            double new_cpu = cpu_supply - cpu_demand;
+            // if (new_cpu > 2.0)
+            //     reward = 1;
+            // else if (new_cpu > 1.5)
+            //     reward = 0.8;
+            // else if (new_cpu > 1)
+            //     reward = 0.5;
+            // else if (new_cpu > 0.5)
+            //     reward = 0.3;
+            // else
+            //     reward = 0.1;
+            
             it->set_header("status", "1");
 
             // 消耗资源
-            server["cpu"] = std::to_string(cpu_supply - cpu_demand);
+            server["cpu"] = std::to_string(new_cpu);
             // fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
 
             // 处理时间
             double processing_time = cpu_demand / cpu_supply;
+            
+            // reward = min_time > 0 ? min_time - processing_time : 0;
+            reward = e_average_time - processing_time;
+
             it->set_header("processing_time", std::to_string(processing_time));
 
             // 资源恢复
@@ -90,41 +134,75 @@ auto Env::train_next(torch::Tensor observation) -> void
                 // print_info(fmt::format("[{}] 恢复资源：{} --> {:.2f}(demand: {})", TO_STR(server["ip"]), cur_cpu, new_cpu, cpu_demand));
                 
                 // 恢复资源
-                server["cpu"] = std::to_string(cur_cpu + cpu_demand);
+                server["cpu"] = std::to_string(new_cpu);
+
+                // 任务也作为状态
+                auto task_elements = self->t_.elements();
+                if (auto it = std::ranges::find_if(task_elements, [](auto const& item) {
+                    return item.get_header("status") == "0";
+                }); it != std::end(task_elements)) {
+                    std::vector<double> flattened_state;
+                    for (const auto& edge : edge_cache) {
+                        flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
+                    }
+                    flattened_state.push_back(std::stod(it->get_header("cpu")));
+                    auto observation_new = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
+                    self->train_next(observation_new); // 继续训练下一个
+                }
+            });
+
+
+            // 结束或继续处理
+            if (!t_.contains({"status", "0"})) {
+                // fmt::print("reward: {}, done: {}\n", reward, true);
+
+
+                // 胜利和失败奖励
+                double total_time = .0f;
+                for (auto& elem : t_.elements()) {
+                    total_time += std::stod(elem.get_header("processing_time"));
+                }
+                if (total_time > 28) reward = -300;
+                else if (total_time > 26) reward = -200;
+                else if (total_time > 25) reward = 50;
+                else if (total_time > 24) reward = 100;
+                else if (total_time > 23) reward = 150;
+                else reward = 200;
 
                 std::vector<double> flattened_state;
                 for (const auto& edge : edge_cache) {
                     flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
                 }
+                flattened_state.push_back(std::stod(it->get_header("cpu")));
                 auto observation_new = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
-                self->train_next(observation_new); // 继续训练下一个
-            });
+                RL_->store_transition(observation, action, reward, observation_new);
 
-            // 更新状态
-            std::vector<double> flattened_state;
-            for (const auto& edge : edge_cache) {
-                flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
-            }
-            auto observation_new = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
-            RL_->store_transition(observation, action, reward, observation_new);
-            // std::cout << "new state\n" << observation_new << "\n";
-
-            // 超过200条transition之后每隔5步学习一次
-            if (step > 200 and step % 5 == 0) {
-                RL_->learn();
-            }
-
-            step++;
-
-            // 结束或继续处理
-            if (!t_.contains({"status", "0"})) {
-                // fmt::print("reward: {}, done: {}\n", reward, true);
 
                 if (done_fn_) {
                     done_fn_(t_, cache_);
                 }
             } else {
                 // fmt::print("reward: {}, done: {}\n", reward, false);
+                // 更新状态
+                std::vector<double> flattened_state;
+                for (const auto& edge : edge_cache) {
+                    flattened_state.push_back(TO_DOUBLE(edge["cpu"]));
+                }
+                // 任务也作为状态
+                flattened_state.push_back(std::stod((++it)->get_header("cpu")));
+                auto observation_new = torch::tensor(flattened_state, torch::dtype(torch::kFloat64)).unsqueeze(0);
+                RL_->store_transition(observation, action, reward, observation_new);
+                // std::cout << "new state\n" << observation_new << "\n";
+                
+                // exit(1);
+
+                // 超过200条transition之后每隔5步学习一次
+                if (step > 200 and step % 5 == 0) {
+                    RL_->learn();
+                }
+
+                step++;
+
                 this->train_next(observation_new); // 继续训练下一个
             }
         }
@@ -236,8 +314,8 @@ auto DQN_decision_engine::send(task_element& t, client_device* client) -> bool
 auto DQN_decision_engine::train(const task& train_task, int episode) -> void
 {
     auto n_actions = this->cache().size();
-    auto n_features = this->cache().size();
-    RL = std::make_shared<DeepQNetwork>(n_actions, n_features, 0.01, 0.9, 0.9, 200, 2000);
+    auto n_features = this->cache().size() + 1; // +1 是 task cpu demand
+    RL = std::make_shared<DeepQNetwork>(n_actions, n_features, 0.01, 0.9, 0.9, 300, 3000);
 
     train_start(train_task, episode, episode);
 
@@ -374,14 +452,12 @@ auto DQN_decision_engine::on_clients_reponse_message(
 auto DQN_decision_engine::train_start(const task& train_task, int episode, int episode_all) -> void
 {
     if (episode <= 0) {
-        RL->print_memory();
+        // RL->print_memory();
         return;
     }
 
-
     fmt::print(fg(fmt::color::blue), "At time {} seconds 正在训练第 {} 轮......\n", 
         Simulator::Now().GetSeconds(), episode_all - episode + 1);
-
 
 
     // 离散训练，必须每轮都创建一份对象，以隔离状态

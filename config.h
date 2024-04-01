@@ -4,7 +4,7 @@
 namespace okec
 {
 
-inline constexpr uint64_t simulator_stop_time = 1000; // in seconds
+inline constexpr uint64_t simulator_stop_time = 3000; // in seconds
 
 } // namespace okec
 

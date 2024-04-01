@@ -112,7 +112,7 @@ public:
 
         if (this->learn_step_counter % this->replace_target_iter == 0) {
             this->replace_target_params();
-            std::cout << "\ntarget params replaced\n";
+            std::cout << "target params replaced\n";
         }
 
         // sample batch memory from all memory
