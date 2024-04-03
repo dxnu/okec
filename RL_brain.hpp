@@ -159,6 +159,10 @@ public:
 
     void print_memory() {
         std::cout << "memory:\n" << this->memory;
+
+        // auto q_table = eval_net.parameters();
+        // std::cout << "Q Table:" << std::endl;
+        // std::cout << q_table << std::endl;
     }
     
 private:

@@ -99,7 +99,7 @@ auto worse_fit_decision_engine::local_test(const task_element& header, client_de
 
 auto worse_fit_decision_engine::send(task_element& t, client_device* client) -> bool
 {
-    static double launch_delay = 1.0;
+    static double launch_delay = 0.3;
 
     client->response_cache().emplace_back({
         { "task_id", t.get_header("task_id") },
@@ -121,7 +121,7 @@ auto worse_fit_decision_engine::send(task_element& t, client_device* client) -> 
     const auto bs = this->get_decision_device();
     // fmt::print("bs: {:ip}, client: {:ip}\n", bs->get_address(), client->get_address());
     ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
-    launch_delay += 0.1;
+    launch_delay += 0.01;
 
     return true;
 }
@@ -145,8 +145,10 @@ auto worse_fit_decision_engine::initialize() -> void
 
 auto worse_fit_decision_engine::handle_next() -> void
 {
+
     auto& task_sequence = m_decision_device->task_sequence();
     // auto& task_sequence_status = m_decision_device->task_sequence_status();
+    fmt::print("handle_next.... current task sequence size: {}\n", task_sequence.size());
 
     if (auto it = std::ranges::find_if(task_sequence, [](auto const& item) {
         return item.get_header("status") == "0";
@@ -154,7 +156,7 @@ auto worse_fit_decision_engine::handle_next() -> void
         auto target = make_decision(*it);
         // 决策失败，无法处理任务
         if (target.is_null()) {
-            print_info(fmt::format("No device can handle the task({})!", (*it).get_header("task_id")));
+            print_info(fmt::format("No device can handle the task({})!", it->get_header("task_id")));
             // message response {
             //     { "msgtype", "response" },
             //     { "task_id", (*it).get_header("task_id") },
@@ -182,8 +184,8 @@ auto worse_fit_decision_engine::handle_next() -> void
         msg.type(message_handling);
         msg.content(*it);
         msg.attribute("cpu_supply", TO_STR(target["cpu_supply"]));
+        it->set_header("status", "1"); // 更改任务分发状态
         m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
-        (*it).set_header("status", "1"); // 更改任务分发状态
     }
     
     // 分发任务列表，每次拿出第一个未分发的任务
@@ -257,7 +259,12 @@ auto worse_fit_decision_engine::on_bs_decision_message(
     item.set_header("status", "0"); // 增加处理状态信息 0: 未处理 1: 已处理
     bs->task_sequence(std::move(item));
     
-    if (first_time) {
+
+    // !!!
+    // 接收到所有任务再统一处理，可避免 handle_next 时任务列表为空的问题（因为网络还没收到下一个任务，下一个任务到达时刻在资源变化之后）
+    // 如果 handle_next 时任务列表为空，执行流程将被打断
+    // 但是也有一个问题，如果资源恢复的数量还是不足以处理当前任务，那么执行流程也会被打断，不过资源尽早会全部释放，想来不是问题
+    if (first_time && bs->task_sequence().size() >= 50) {
         this->handle_next();
         first_time = false;
     }
@@ -286,7 +293,7 @@ auto worse_fit_decision_engine::on_bs_response_message(
         task_sequence.erase(it);
     }
 
-    this->handle_next();
+    // this->handle_next();
 
     // for (std::size_t i = 0; i < task_sequence.size(); ++i)
     // {
@@ -309,7 +316,7 @@ auto worse_fit_decision_engine::on_bs_response_message(
 auto worse_fit_decision_engine::on_es_handling_message(
     edge_device* es, Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    this->handle_next();
+    // this->handle_next(); // 这里开始下一个，由于资源尚未更改，容易导致 Conflict.
 
     auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
     message msg(packet);
@@ -317,7 +324,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
     auto task_id = task_item.get_header("task_id");
 
     // print_info(fmt::format("es({:ip}) has received a task({}).", es->get_address(), task_id));
-    fmt::print(fg(fmt::color::red), "es({:ip}) has received a task({}).\n", es->get_address(), task_id);
+    fmt::print(fg(fmt::color::green), "es({:ip}) has received a task({}).\n", es->get_address(), task_id);
 
     auto es_resource = es->get_resource();
     auto cpu_supply = std::stod(es_resource->get_value("cpu"));
@@ -327,7 +334,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
     // 存在冲突，需要重新决策
     if (uncertain_cpu_supply != cpu_supply || cpu_supply < cpu_demand) {
         // 需要重新分配
-        fmt::print(fg(fmt::color::red), "Conflict! cpu_demand: {}, cpu_supply: {}, real_supply: {}.\n", cpu_demand, uncertain_cpu_supply, cpu_supply);
+        fmt::print(fg(fmt::color::light_pink), "Conflict! cpu_demand: {}, cpu_supply: {}, real_supply: {}.\n", cpu_demand, uncertain_cpu_supply, cpu_supply);
         this->conflict(es, task_item, ipv4_remote, es->get_port());
         return;
     }
@@ -338,17 +345,23 @@ auto worse_fit_decision_engine::on_es_handling_message(
 
     // 处理任务
     double processing_time = cpu_demand / cpu_supply; // 任务能分发过来，cpu_supply 就不可能为0
-    Simulator::Schedule(ns3::Seconds(processing_time), +[](edge_device* es, double old_cpu, const Ipv4Address& desination, const std::string& task_id, double processing_time, std::shared_ptr<this_type> self) {
+
+    fmt::print(fg(fmt::color::red), "[{:ip}] 消耗资源：{} --> {}\n", es->get_address(), cpu_supply, cpu_supply - cpu_demand);
+    fmt::print(fg(fmt::color::red), "[{}] demand: {}, supply: {}, processing_time: {}\n", task_id, 
+            cpu_demand, cpu_supply, processing_time);
+
+    auto self = shared_from_base<this_type>();
+    Simulator::Schedule(Seconds(processing_time), [self, es, ipv4_remote, task_id, processing_time, cpu_demand]() {
         // 处理完成，释放内存
         auto device_resource = es->get_resource();
-        device_resource->reset_value("cpu", std::to_string(old_cpu));
+        auto cur_cpu = std::stod(device_resource->get_value("cpu"));
+        device_resource->reset_value("cpu", std::to_string(cur_cpu + cpu_demand));
         auto device_address = fmt::format("{:ip}", es->get_address());
 
-        // 通知资源变化
-        self->resource_changed(es, desination, es->get_port());
+        fmt::print(fg(fmt::color::yellow), "[{}] 恢复资源：{} --> {:.2f}(demand: {})\n", device_address, cur_cpu, cur_cpu + cpu_demand, cpu_demand);
 
-        // 返回处理结果
-        // 返回消息
+        self->resource_changed(es, ipv4_remote, es->get_port());
+
         message response {
             { "msgtype", "response" },
             { "task_id", task_id },
@@ -356,14 +369,14 @@ auto worse_fit_decision_engine::on_es_handling_message(
             { "device_address", device_address },
             { "processing_time", fmt::format("{:.9f}", processing_time) }
         };
-        es->write(response.to_packet(), desination, es->get_port());
-    }, es, cpu_supply, ipv4_remote, task_id, processing_time, shared_from_base<this_type>());
+        es->write(response.to_packet(), ipv4_remote, es->get_port());
+    });
 }
 
 auto worse_fit_decision_engine::on_clients_reponse_message(
     client_device* client, Ptr<Packet> packet, const Address& remote_address) -> void
 {
-    this->handle_next();
+    // this->handle_next();
 
     message msg(packet);
     // fmt::print(fg(fmt::color::red), "At time {:.2f}s client({:ip}) has received a packet: {}\n", 
