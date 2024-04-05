@@ -17,11 +17,25 @@
 
 // int main(int argc, char **argv)
 // {
+
+//     std::size_t edge_num = 5;
+//     std::size_t task_num = 10;
+
+//     CommandLine cmd;
+// 	cmd.AddValue("edge_num", "edge number", edge_num);
+// 	cmd.AddValue("task_num", "task number", task_num);
+// 	cmd.Parse(argc, argv);
+
+// 	// NS_LOG_UNCOND("edge_num: " << edge_num);
+// 	// NS_LOG_UNCOND("task_num: " << task_num);
+//     fmt::print("edge_num: {}, task_num: {}\n", edge_num, task_num);
+
+
 //     okec::simulator simulator;
 
 //     // Create 2 base stations and connect them with some edge serves.
 //     okec::base_station_container base_stations(1);
-//     okec::edge_device_container edge_devices1(5);
+//     okec::edge_device_container edge_devices1(edge_num);
 //     // okec::edge_device_container edge_devices2(8);
 //     base_stations.connect_device(edge_devices1);
 
@@ -39,7 +53,10 @@
 
 //     // Create resources.
 //     okec::resource_container edge_resources1(edge_devices1.size());
-//     // okec::resource_container edge_resources2(edge_devices2.size());
+//     // edge_resources1.initialize([](auto res) {
+//     //     res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
+//     // });
+//     // edge_resources1.save_to_file("resource-" + std::to_string(edge_resources1.size()) + ".json");
 //     edge_resources1.load_from_file("resource-" + std::to_string(edge_resources1.size()) + ".json");
 //     // edge_resources2.load_from_file("resource-" + std::to_string(edge_resources2.size()) + ".json");
 //     edge_resources1.print();
@@ -53,7 +70,7 @@
 //     decision_engine->initialize();
 
 //     okec::task t;
-//     generate_task(t, 50, "dummy");
+//     generate_task(t, task_num, "dummy");
 
 //     auto device_1 = user_devices.get_device(0);
 //     // device_1->send(t);

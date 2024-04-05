@@ -56,6 +56,12 @@ struct multiple_and_single_LAN_WLAN_network_model {
         NetDeviceContainer apDevices;
         mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
         apDevices = wifi.Install(phy, mac, wifiApNode);
+        ////////////////////////////////////////
+        Mac48Address bssid("00:11:22:33:44:55"); // 设置BSSID
+        Ptr<WifiNetDevice> wifiDevice = DynamicCast<WifiNetDevice>(apDevices.Get(0));
+        uint8_t linkId = 0;
+        wifiDevice->GetMac()->SetBssid(bssid, linkId);
+        ////////////////////////////////////////
 
         MobilityHelper mobility;
 
