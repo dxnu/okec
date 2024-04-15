@@ -2,7 +2,8 @@
 #define OKEC_PACKET_HELPER_H
 
 #include "ns3/packet.h"
-#include "nlohmann/json.hpp"
+// #include "nlohmann/json.hpp"
+#include "include/thirdparty/nlohmann/json.hpp"
 #include <string_view>
 
 

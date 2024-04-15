@@ -34,6 +34,10 @@ public:
 
     auto learn(std::size_t step) -> void;
 
+    auto trace_resource(int flag = 0) -> void;
+
+    int episode;
+
 private:
     task t_;
     device_cache cache_;

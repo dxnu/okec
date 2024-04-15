@@ -113,7 +113,8 @@ auto Env::train_next(torch::Tensor observation) -> void
             server["cpu"] = std::to_string(new_cpu);
             // fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
 
-            
+            this->trace_resource();
+
             reward = -alpha * processing_time + beta * new_cpu;
             // reward = alpha * (average_processing_time - processing_time) + beta * new_cpu;
             
@@ -134,6 +135,9 @@ auto Env::train_next(torch::Tensor observation) -> void
 
                 auto observation = self->next_observation();
                 server["cpu"] = std::to_string(new_cpu);
+
+                self->trace_resource();
+
                 if (observation.defined()) {
                     // std::cout << "observation _:\n" << observation << "\n";
 
@@ -195,6 +199,36 @@ auto Env::learn(std::size_t step) -> void
     if (step > 200 and step % 5 == 0) {
         RL_->learn();
     }
+}
+
+auto Env::trace_resource(int flag) -> void
+{
+    static std::ofstream file;
+    if (!file.is_open()) {
+        file.open("scene2-rf-resource_tracer.csv", std::ios::out/* | std::ios::app*/);
+        if (!file.is_open()) {
+            return;
+        }
+    }
+
+    if (flag) {
+        file << "\n\n\n\n===================Episode-" + std::to_string(episode) + "===========================\n\n\n\n";
+    }
+
+    // for (const auto& item : m_resources) {
+    //     file << fmt::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
+    //     for (auto it = item->begin(); it != item->end(); ++it) {
+    //         file << fmt::format(",{}: {}", it.key(), it.value());
+    //     }
+    //     file << "\n";
+    // }
+    // file << "\n";
+    file << fmt::format("{:.2f} [episode={}]", Simulator::Now().GetSeconds(), episode);
+    auto& edge_cache = this->cache_.view();
+    for (const auto& edge : edge_cache) {
+        file << "," << TO_DOUBLE(edge["cpu"]);
+    }
+    file << "\n";
 }
 
 DQN_decision_engine::DQN_decision_engine(
@@ -293,6 +327,7 @@ auto DQN_decision_engine::train(const task& train_task, int episode) -> void
     auto n_actions = this->cache().size();
     auto n_features = this->cache().size() + 1; // +1 是 task cpu demand
     RL = std::make_shared<DeepQNetwork>(n_actions, n_features, 0.01, 0.9, 0.9, 200, 2000, 128, 0.0001);
+
 
     train_start(train_task, episode, episode);
 
@@ -436,6 +471,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
         fmt::print("average total times\n{}\n", total_time / total_times.size());
         auto [min, max] = std::ranges::minmax(total_times);
         fmt::print("min: {}, max: {}\n", min, max);
+        // RL->plot_cost();
         return;
     }
 
@@ -445,6 +481,10 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
 
     // 离散训练，必须每轮都创建一份对象，以隔离状态
     auto env = std::make_shared<Env>(this->cache(), train_task, RL);
+
+    // 记录初始资源情况
+    env->episode = episode_all - episode + 1;
+    env->trace_resource(env->episode);
 
     auto self = shared_from_base<this_type>();
     env->when_done([self, &train_task, episode, episode_all, &total_times](const task& t, const device_cache& cache) {

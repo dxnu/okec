@@ -2,6 +2,7 @@
 #define RL_BRAIN_HPP_
 
 #include <torch/torch.h>
+#include "response_visulizer.hpp"
 
 namespace okec {
 
@@ -155,6 +156,7 @@ public:
     void plot_cost() {
         // plt::plot(cost_his);
         // plt::show();
+        okec::draw(cost_his, "cost hist");
     }
 
     void print_memory() {
