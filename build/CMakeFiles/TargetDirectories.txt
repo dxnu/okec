@@ -1,0 +1,7 @@
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/okec.dir
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/edit_cache.dir
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/rebuild_cache.dir
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/list_install_components.dir
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/install.dir
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/install/local.dir
+/home/lkimuk/lkimuk-github/okec/build/CMakeFiles/install/strip.dir

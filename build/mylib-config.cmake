@@ -1,0 +1,5 @@
+include(CMakeFindDependencyMacro)
+find_dependency(fmt)
+find_package(Torch)
+find_dependency(nlohmann_json)
+find_dependency(ns3)
