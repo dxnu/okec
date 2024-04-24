@@ -34,7 +34,7 @@ add_library(okec SHARED)
 target_sources(okec PRIVATE ${SOURCE_FILES})
 
 target_include_directories(okec PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -44,7 +44,6 @@ target_link_libraries(okec PUBLIC
     ${PYTHON_LIBRARIES}
     fmt::fmt
     nlohmann_json::nlohmann_json
-    # ns3::libcore ns3::libnetwork ns3::libinternet ns3::libcsma ns3::libwifi ns3::libapplications
     ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi
 )
     
@@ -60,7 +59,7 @@ install(TARGETS okec
 )
 
 install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/inc/
+    DIRECTORY ${PROJECT_SOURCE_DIR}/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
