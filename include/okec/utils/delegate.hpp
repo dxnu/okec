@@ -1,5 +1,5 @@
-#ifndef DELEGATE_H_
-#define DELEGATE_H_
+#ifndef OKEC_DELEGATE_H_
+#define OKEC_DELEGATE_H_
 
 #include <map>
 
@@ -51,4 +51,4 @@ private:
 
 } // namespace okec::utils
 
-#endif // DELEGATE_H_
+#endif // OKEC_DELEGATE_H_

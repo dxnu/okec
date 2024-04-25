@@ -1,10 +1,11 @@
-#ifndef OKEC_DEFAULT_DECISION_ENGINE
-#define OKEC_DEFAULT_DECISION_ENGINE
+#ifndef OKEC_DEFAULT_DECISION_ENGINE_H_
+#define OKEC_DEFAULT_DECISION_ENGINE_H_
 
 #include <okec/algorithms/decision_engine.h>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/number.hpp>
+
 
 namespace okec
 {
@@ -46,4 +47,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_DEFAULT_DECISION_ENGINE
+#endif // OKEC_DEFAULT_DECISION_ENGINE_H_

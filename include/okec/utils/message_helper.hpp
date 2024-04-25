@@ -1,5 +1,5 @@
-#ifndef OKEC_MESSAGE_HELPER_
-#define OKEC_MESSAGE_HELPER_
+#ifndef OKEC_MESSAGE_HELPER_HPP_
+#define OKEC_MESSAGE_HELPER_HPP_
 
 #include <okec/common/message.h>
 #include <okec/common/message_handler.hpp>
@@ -22,4 +22,4 @@ static inline auto get_message_type(ns3::Ptr<ns3::Packet> packet) {
 
 } // namespace okec
 
-#endif // OKEC_MESSAGE_HELPER_
+#endif // OKEC_MESSAGE_HELPER_HPP_

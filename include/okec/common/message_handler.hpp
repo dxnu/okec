@@ -1,15 +1,13 @@
-#ifndef OKEC_MESSAGE_HANDLER_
-#define OKEC_MESSAGE_HANDLER_
+#ifndef OKEC_MESSAGE_HANDLER_H_
+#define OKEC_MESSAGE_HANDLER_H_
 
 #include <okec/utils/delegate.hpp>
 #include <functional>
 #include <string>
 
 
-
 namespace okec
 {
-
 
 template <typename CallbackType = std::function<void()>>
 class message_handler {
@@ -38,4 +36,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_MESSAGE_HANDLER_
+#endif // OKEC_MESSAGE_HANDLER_H_

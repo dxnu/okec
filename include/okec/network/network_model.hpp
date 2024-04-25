@@ -1,5 +1,5 @@
-#ifndef NETWORK_MODEL_HPP_
-#define NETWORK_MODEL_HPP_
+#ifndef OKEC_NETWORK_MODEL_HPP_
+#define OKEC_NETWORK_MODEL_HPP_
 
 #include <okec/devices/base_station.h>
 #include <okec/devices/client_device.h>
@@ -257,4 +257,4 @@ void initialize_communication(client_device_container& client,
 } // namespace okec
 
 
-#endif // NETWORK_MODEL_HPP_
+#endif // OKEC_NETWORK_MODEL_HPP_

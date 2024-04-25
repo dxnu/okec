@@ -1,5 +1,5 @@
-#ifndef INCLUDE_OKEC_HPP_
-#define INCLUDE_OKEC_HPP_
+#ifndef OKEC_HPP_
+#define OKEC_HPP_
 
 #include <okec/algorithms/classic/worse_fit_decision_engine.h>
 #include <okec/algorithms//machine_learning/DQN_decision_engine.h>
@@ -7,7 +7,7 @@
 #include <okec/network/multiple_and_single_LAN_WLAN_network_model.hpp>
 #include <okec/network/multiple_LAN_WLAN_network_model.hpp>
 #include <okec/utils/read_csv.h>
-#include <okec/utils/response_visulizer.hpp>
+#include <okec/utils/visulizer.hpp>
 
 
 namespace okec {
@@ -30,7 +30,6 @@ struct simulator {
 };
 
 
-
 } // namespace okec
 
-#endif // INCLUDE_OKEC_HPP_
+#endif // OKEC_HPP_

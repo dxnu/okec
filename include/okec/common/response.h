@@ -1,6 +1,5 @@
-#ifndef OKEC_RESPONSE_H
-#define OKEC_RESPONSE_H
-
+#ifndef OKEC_RESPONSE_H_
+#define OKEC_RESPONSE_H_
 
 #include <okec/utils/packet_helper.h>
 #include <functional>
@@ -60,4 +59,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_RESPONSE_H
+#endif // OKEC_RESPONSE_H_

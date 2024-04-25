@@ -1,8 +1,8 @@
-#ifndef MULTIPLE_LAN_WLAN_NETWORK_MODEL_HPP_
-#define MULTIPLE_LAN_WLAN_NETWORK_MODEL_HPP_
-
+#ifndef OKEC_MULTIPLE_LAN_WLAN_NETWORK_MODEL_HPP_
+#define OKEC_MULTIPLE_LAN_WLAN_NETWORK_MODEL_HPP_
 
 #include "network_model.hpp"
+
 
 namespace okec
 {
@@ -171,4 +171,4 @@ template<> inline constexpr bool enable_network_model<multiple_LAN_WLAN_network_
 } // namespace okec
 
 
-#endif // MULTIPLE_LAN_WLAN_NETWORK_MODEL_HPP_
+#endif // OKEC_MULTIPLE_LAN_WLAN_NETWORK_MODEL_HPP_

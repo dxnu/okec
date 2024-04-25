@@ -1,5 +1,5 @@
-#ifndef NS3_FORMATTING_OUTPUT_H_
-#define NS3_FORMATTING_OUTPUT_H_
+#ifndef OKEC_FORMAT_HELPER_HPP_
+#define OKEC_FORMAT_HELPER_HPP_
 
 #include <okec/common/resource.h>
 #include <okec/common/task.h>
@@ -134,4 +134,4 @@ inline static void print_info(std::string_view info)
     fmt::print("At time {:.2f} seconds {}\n", ns3::Simulator::Now().GetSeconds(), info);
 }
 
-#endif // NS3_FORMATTING_OUTPUT_H_
+#endif // OKEC_FORMAT_HELPER_HPP_

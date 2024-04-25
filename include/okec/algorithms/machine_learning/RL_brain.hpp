@@ -1,8 +1,9 @@
-#ifndef RL_BRAIN_HPP_
-#define RL_BRAIN_HPP_
+#ifndef OKEC_RL_BRAIN_HPP_
+#define OKEC_RL_BRAIN_HPP_
 
-#include <okec/utils/response_visulizer.hpp>
+#include <okec/utils/visulizer.hpp>
 #include <torch/torch.h>
+
 
 namespace okec {
 
@@ -190,4 +191,4 @@ private:
 
 } // namespace okec
 
-#endif // RL_BRAIN_HPP_
+#endif // OKEC_RL_BRAIN_HPP_

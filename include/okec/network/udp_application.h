@@ -1,5 +1,5 @@
-#ifndef UDP_APPLICATION_H_
-#define UDP_APPLICATION_H_
+#ifndef OKEC_UDP_APPLICATION_H_
+#define OKEC_UDP_APPLICATION_H_
 
 #include <okec/common/message_handler.hpp>
 #include <fmt/core.h>
@@ -35,9 +35,6 @@ public:
 private:
     auto StartApplication() -> void override;
     auto StopApplication() -> void override;
-
-    // 打印Packet的信息
-    static inline auto print_packet(ns3::Ptr<ns3::Socket> socket, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remoteAddress) -> void;
     
     // 获取当前IPv4地址
     static auto get_socket_address(ns3::Ptr<ns3::Socket> socket) -> ns3::Ipv4Address;
@@ -53,4 +50,4 @@ private:
 } // namespace okec
 
 
-#endif // UDP_APPLICATION_H_
+#endif // OKEC_UDP_APPLICATION_H_

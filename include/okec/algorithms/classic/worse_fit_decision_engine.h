@@ -1,7 +1,8 @@
-#ifndef WORSE_FIT_DECISION_ENGINE_H_
-#define WORSE_FIT_DECISION_ENGINE_H_
+#ifndef OKEC_WORSE_FIT_DECISION_ENGINE_H_
+#define OKEC_WORSE_FIT_DECISION_ENGINE_H_
 
 #include <okec/algorithms/decision_engine.h>
+
 
 namespace okec
 {
@@ -48,4 +49,4 @@ private:
 
 } // namespace okec
 
-#endif // WORSE_FIT_DECISION_ENGINE_H_
+#endif // OKEC_WORSE_FIT_DECISION_ENGINE_H_

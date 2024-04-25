@@ -1,5 +1,5 @@
-#ifndef DQN_DECISION_ENGINE_H_
-#define DQN_DECISION_ENGINE_H_
+#ifndef OKEC_DQN_DECISION_ENGINE_H_
+#define OKEC_DQN_DECISION_ENGINE_H_
 
 #include <okec/algorithms/decision_engine.h>
 #include <okec/algorithms/machine_learning/RL_brain.hpp>
@@ -94,4 +94,4 @@ private:
 
 } // namespace okec
 
-#endif // DQN_DECISION_ENGINE_H_
+#endif // OKEC_DQN_DECISION_ENGINE_H_

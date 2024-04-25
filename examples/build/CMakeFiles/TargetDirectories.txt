@@ -1,5 +1,0 @@
-/home/lkimuk/lkimuk-github/okec/examples/build/CMakeFiles/wf_net.dir
-/home/lkimuk/lkimuk-github/okec/examples/build/CMakeFiles/wf_discrete.dir
-/home/lkimuk/lkimuk-github/okec/examples/build/CMakeFiles/rf_discrete.dir
-/home/lkimuk/lkimuk-github/okec/examples/build/CMakeFiles/edit_cache.dir
-/home/lkimuk/lkimuk-github/okec/examples/build/CMakeFiles/rebuild_cache.dir

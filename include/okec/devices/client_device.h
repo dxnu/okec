@@ -1,5 +1,5 @@
-#ifndef CLIENT_DEVICE_H_
-#define CLIENT_DEVICE_H_
+#ifndef OKEC_CLIENT_DEVICE_H_
+#define OKEC_CLIENT_DEVICE_H_
 
 #include <okec/algorithms/decision_engine.h>
 #include <okec/common/message.h>
@@ -9,7 +9,6 @@
 #include <okec/utils/format_helper.hpp>
 #include <functional>
 #include <vector>
-
 
 
 namespace okec
@@ -111,6 +110,6 @@ private:
 };
 
 
-} // namespace simeg
+} // namespace okec
 
-#endif // CLIENT_DEVICE_H_
+#endif // OKEC_CLIENT_DEVICE_H_

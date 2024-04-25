@@ -1,9 +1,8 @@
-#ifndef OKEC_TASK_H
-#define OKEC_TASK_H
+#ifndef OKEC_TASK_H_
+#define OKEC_TASK_H_
 
 #include <okec/utils/packet_helper.h>
 #include <string>
-
 
 
 namespace okec
@@ -106,7 +105,6 @@ private:
 };
 
 
-
 } // namespace okec
 
-#endif // OKEC_TASK_H
+#endif // OKEC_TASK_H_

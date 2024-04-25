@@ -19,21 +19,19 @@ int main(int argc, char **argv)
 {
     std::size_t edge_num = 5;
     int task_num = 10;
-    int episode = 1; 
+    int episode = 1;
 
-
-    // CommandLine cmd;
-	// cmd.AddValue("edge_num", "edge number", edge_num);
-	// cmd.AddValue("task_num", "task number", task_num);
-	// cmd.AddValue("episode", "train episode", episode);
-	// cmd.Parse(argc, argv);
+    ns3::CommandLine cmd;
+	cmd.AddValue("edge_num", "edge number", edge_num);
+	cmd.AddValue("task_num", "task number", task_num);
+	cmd.AddValue("episode", "train episode", episode);
+	cmd.Parse(argc, argv);
 
     fmt::print("edge_num: {}, task_num: {}, episode: {}\n", edge_num, task_num, episode);
 
-
     okec::simulator simulator;
 
-    // Create 2 base stations and connect them with some edge serves.
+    // Create 2 base stations and connect them with some edge servers.
     okec::base_station_container base_stations(1);
     okec::edge_device_container edge_devices1(edge_num);
     // okec::edge_device_container edge_devices2(8);
@@ -81,7 +79,6 @@ int main(int argc, char **argv)
     
     //     fmt::print("task is done!\n");
     // });
-
 
 
     simulator.run();

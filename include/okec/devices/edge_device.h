@@ -1,5 +1,5 @@
-#ifndef SIMEG_EDGE_DEVICE_H
-#define SIMEG_EDGE_DEVICE_H
+#ifndef OKEC_EDGE_DEVICE_H_
+#define OKEC_EDGE_DEVICE_H_
 
 #include <okec/common/resource.h>
 #include <okec/network/udp_application.h>
@@ -78,7 +78,6 @@ private:
 };
 
 
-} // namespace simeg
+} // namespace okec
 
-
-#endif // SIMEG_EDGE_DEVICE_H
+#endif // OKEC_EDGE_DEVICE_H_

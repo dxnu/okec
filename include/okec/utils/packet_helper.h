@@ -1,5 +1,5 @@
-#ifndef OKEC_PACKET_HELPER_H
-#define OKEC_PACKET_HELPER_H
+#ifndef OKEC_PACKET_HELPER_H_
+#define OKEC_PACKET_HELPER_H_
 
 #include <string_view>
 #include <nlohmann/json.hpp>
@@ -14,7 +14,6 @@ class response;
 
 namespace packet_helper {
 
-
 auto make_packet(std::string_view sv) -> ns3::Ptr<ns3::Packet>;
 
 // convert packet to string
@@ -27,4 +26,4 @@ auto to_json(ns3::Ptr<ns3::Packet> packet) -> json;
 } // namespace packet_helper
 } // namespace okec
 
-#endif // OKEC_PACKET_HELPER_H
+#endif // OKEC_PACKET_HELPER_H_

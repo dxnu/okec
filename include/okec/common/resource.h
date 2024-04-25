@@ -1,9 +1,9 @@
-#ifndef OKEC_RESOURCE_H
-#define OKEC_RESOURCE_H
+#ifndef OKEC_RESOURCE_H_
+#define OKEC_RESOURCE_H_
 
 #include <okec/utils/packet_helper.h>
-#include "ns3/core-module.h"
-#include "ns3/node-container.h"
+#include <ns3/core-module.h>
+#include <ns3/node-container.h>
 
 
 
@@ -103,4 +103,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_RESOURCE_H
+#endif // OKEC_RESOURCE_H_

@@ -1,5 +1,5 @@
-#ifndef OKEC_DECISION_ENGINE_
-#define OKEC_DECISION_ENGINE_
+#ifndef OKEC_DECISION_ENGINE_H_
+#define OKEC_DECISION_ENGINE_H_
 
 #include <okec/common/task.h>
 #include <okec/common/resource.h>
@@ -112,4 +112,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_DECISION_ENGINE_
+#endif // OKEC_DECISION_ENGINE_H_

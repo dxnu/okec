@@ -1,5 +1,5 @@
-#ifndef RESPONSE_VISULIZER_H_
-#define RESPONSE_VISULIZER_H_
+#ifndef OKEC_VISULIZER_HPP_
+#define OKEC_VISULIZER_HPP_
 
 #include "matplotlibcpp.h"
 
@@ -25,4 +25,4 @@ namespace okec
     }
 }
 
-#endif // RESPONSE_VISULIZER_H_
+#endif // OKEC_VISULIZER_HPP_

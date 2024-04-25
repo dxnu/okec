@@ -144,36 +144,6 @@ auto udp_application::StopApplication() -> void
     m_send_socket->Close();
 }
 
-inline auto udp_application::print_packet(ns3::Ptr<ns3::Socket> socket, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
-{
-    // Ipv4Address local_address = get_socket_address(socket);
-
-    // // 打印接收信息
-    // InetSocketAddress address = InetSocketAddress::ConvertFrom(remote_address);
-    // NS_LOG_INFO(PURPLE_CODE << local_address << " Received a Packet at time: " 
-    //     << Now().GetSeconds() << " from " << address.GetIpv4() << END_CODE);
-
-    // // 打印Packet
-    // auto content = packet_helper::to_string(packet);
-    // NS_LOG_INFO(PURPLE_CODE << "packet: \"" << content << "\" size: " << content.size() << END_CODE);
-
-    // // 打印任务信息
-    // auto t = task::from_packet(packet);
-    // if (!t->empty()) {
-    //     auto task_info = fmt::format("{:t}", *t);
-    //     NS_LOG_INFO(CYAN_CODE << task_info << END_CODE);
-    // }
-
-    // // 获取资源信息
-    // auto res = socket->GetNode()->GetObject<okec::resource>();
-    // if (res == nullptr) {
-    //     NS_LOG_INFO(YELLOW_CODE << " The Node " << address.GetIpv4() << " is on doesn't install any resource." << END_CODE);
-    // } else {
-    //     auto resourceInfo = fmt::format("{:r}", *res);
-    //     NS_LOG_INFO(CYAN_CODE << resourceInfo << END_CODE);
-    // }
-}
-
 auto udp_application::get_socket_address(ns3::Ptr<ns3::Socket> socket) -> ns3::Ipv4Address
 {
     // 获取当前IP地址

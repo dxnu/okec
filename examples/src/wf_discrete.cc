@@ -21,10 +21,10 @@ int main(int argc, char **argv)
     std::size_t edge_num = 5;
     std::size_t task_num = 10;
 
-    // CommandLine cmd;
-	// cmd.AddValue("edge_num", "edge number", edge_num);
-	// cmd.AddValue("task_num", "task number", task_num);
-	// cmd.Parse(argc, argv);
+    ns3::CommandLine cmd;
+	cmd.AddValue("edge_num", "edge number", edge_num);
+	cmd.AddValue("task_num", "task number", task_num);
+	cmd.Parse(argc, argv);
 
     fmt::print("edge_num: {}, task_num: {}\n", edge_num, task_num);
 

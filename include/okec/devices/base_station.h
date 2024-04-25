@@ -1,5 +1,5 @@
-#ifndef SIMEG_BASE_STATION_H
-#define SIMEG_BASE_STATION_H
+#ifndef OKEC_BASE_STATION_H_
+#define OKEC_BASE_STATION_H_
 
 #include <okec/algorithms/decision_engine.h>
 #include <okec/common/message.h>
@@ -7,7 +7,7 @@
 #include <okec/devices/edge_device.h>
 #include <okec/utils/format_helper.hpp>
 #include <concepts>
-#include <functional> // for std::reference_wrapper
+#include <functional>
 #include <ranges>
 
 
@@ -22,7 +22,6 @@ concept decision_maker_t = requires (T t) { t.make_decision(task_element{nullptr
 class base_station
 {
 public:
-    using value_type        = std::reference_wrapper<edge_device>;
     using callback_type     = std::function<void(base_station*, ns3::Ptr<ns3::Packet>, const ns3::Address&)>;
     using es_callback_type  = std::function<void(edge_device*, ns3::Ptr<ns3::Packet>, const ns3::Address&)>;
 
@@ -133,4 +132,4 @@ private:
 
 } // namespace okec
 
-#endif // SIMEG_BASE_STATION_H
+#endif // OKEC_BASE_STATION_H_
