@@ -171,7 +171,7 @@ auto task::dump(int indent) const -> std::string
     return m_task.dump(indent);
 }
 
-auto task::elements() -> std::vector<task_element>
+auto task::elements_view() -> std::vector<task_element>
 {
     std::vector<task_element> items;
     items.reserve(this->size());

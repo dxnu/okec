@@ -6,6 +6,8 @@
 #include <okec/config/config.h>
 #include <okec/network/multiple_and_single_LAN_WLAN_network_model.hpp>
 #include <okec/network/multiple_LAN_WLAN_network_model.hpp>
+#include <okec/utils/log.h>
+#include <okec/utils/sys_test.h>
 #include <okec/utils/read_csv.h>
 #include <okec/utils/visulizer.hpp>
 
@@ -14,9 +16,11 @@ namespace okec {
 
 struct simulator {
     simulator() {
-        fmt::print("C++ version: {}\n", __cplusplus);
+        log::debug("C++ version: {}", __cplusplus);
+        auto winsize = okec::get_winsize();
+        log::debug("col: {}, row: {}", winsize.col, winsize.row);
         ns3::Time::SetResolution(ns3::Time::NS);
-        // LogComponentEnable("udp_application", LOG_LEVEL_INFO);
+        // ns3::LogComponentEnable("udp_application", static_cast<ns3::LogLevel>(ns3::LOG_LEVEL_INFO | ns3::LOG_PREFIX_TIME));
     }
 
     auto run() -> void {

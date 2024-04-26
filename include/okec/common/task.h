@@ -62,7 +62,7 @@ public:
     
     auto dump(int indent = -1) const -> std::string;
 
-    auto elements() -> std::vector<task_element>;
+    auto elements_view() -> std::vector<task_element>;
     auto elements() const -> std::vector<task_element>;
 
     auto at(std::size_t index) -> task_element;

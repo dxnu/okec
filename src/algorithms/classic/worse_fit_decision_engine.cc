@@ -3,6 +3,7 @@
 #include <okec/devices/base_station.h>
 #include <okec/devices/client_device.h>
 #include <okec/devices/edge_device.h>
+#include <okec/utils/log.h>
 #include <functional> // std::bind_front
 
 namespace okec {
@@ -148,7 +149,7 @@ auto worse_fit_decision_engine::handle_next() -> void
 
     auto& task_sequence = m_decision_device->task_sequence();
     // auto& task_sequence_status = m_decision_device->task_sequence_status();
-    fmt::print("handle_next.... current task sequence size: {}\n", task_sequence.size());
+    log::info("handle_next.... current task sequence size: {}", task_sequence.size());
 
     if (auto it = std::ranges::find_if(task_sequence, [](auto const& item) {
         return item.get_header("status") == "0";
@@ -156,7 +157,8 @@ auto worse_fit_decision_engine::handle_next() -> void
         auto target = make_decision(*it);
         // 决策失败，无法处理任务
         if (target.is_null()) {
-            print_info(fmt::format("No device can handle the task({})!", it->get_header("task_id")));
+            log::info("No device can handle the task({})!", it->get_header("task_id"));
+
             // message response {
             //     { "msgtype", "response" },
             //     { "task_id", (*it).get_header("task_id") },
@@ -323,8 +325,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
     auto task_item = msg.get_task_element(); // task_element::from_msg_packet(packet);
     auto task_id = task_item.get_header("task_id");
 
-    // print_info(fmt::format("es({:ip}) has received a task({}).", es->get_address(), task_id));
-    fmt::print(fg(fmt::color::green), "es({:ip}) has received a task({}).\n", es->get_address(), task_id);
+    log::info("edge server({:ip}) has received a task({}).", es->get_address(), task_id);
 
     auto es_resource = es->get_resource();
     auto cpu_supply = std::stod(es_resource->get_value("cpu"));
@@ -334,7 +335,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
     // 存在冲突，需要重新决策
     if (uncertain_cpu_supply != cpu_supply || cpu_supply < cpu_demand) {
         // 需要重新分配
-        fmt::print(fg(fmt::color::light_pink), "Conflict! cpu_demand: {}, cpu_supply: {}, real_supply: {}.\n", cpu_demand, uncertain_cpu_supply, cpu_supply);
+        log::error("Conflict! cpu_demand: {}, cpu_supply: {}, real_supply: {}.", cpu_demand, uncertain_cpu_supply, cpu_supply);
         this->conflict(es, task_item, ipv4_remote, es->get_port());
         return;
     }
@@ -346,9 +347,8 @@ auto worse_fit_decision_engine::on_es_handling_message(
     // 处理任务
     double processing_time = cpu_demand / cpu_supply; // 任务能分发过来，cpu_supply 就不可能为0
 
-    fmt::print(fg(fmt::color::red), "[{:ip}] 消耗资源：{} --> {}\n", es->get_address(), cpu_supply, cpu_supply - cpu_demand);
-    fmt::print(fg(fmt::color::red), "[{}] demand: {}, supply: {}, processing_time: {}\n", task_id, 
-            cpu_demand, cpu_supply, processing_time);
+    log::info("edge server({:ip}) consumes resources: {} --> {}", es->get_address(), cpu_supply, cpu_supply - cpu_demand);
+    log::info("task(id={}) demand: {}, supply: {}, processing_time: {}", task_id, cpu_demand, cpu_supply, processing_time);
 
     auto self = shared_from_base<this_type>();
     ns3::Simulator::Schedule(ns3::Seconds(processing_time), [self, es, ipv4_remote, task_id, processing_time, cpu_demand]() {
@@ -358,7 +358,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
         device_resource->reset_value("cpu", std::to_string(cur_cpu + cpu_demand));
         auto device_address = fmt::format("{:ip}", es->get_address());
 
-        fmt::print(fg(fmt::color::yellow), "[{}] 恢复资源：{} --> {:.2f}(demand: {})\n", device_address, cur_cpu, cur_cpu + cpu_demand, cpu_demand);
+        log::info("edge server({}) restores resources: {} --> {:.2f}(demand: {})", device_address, cur_cpu, cur_cpu + cpu_demand, cpu_demand);
 
         self->resource_changed(es, ipv4_remote, es->get_port());
 
@@ -376,11 +376,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
 auto worse_fit_decision_engine::on_clients_reponse_message(
     client_device* client, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
-    // this->handle_next();
-
     message msg(packet);
-    // fmt::print(fg(fmt::color::red), "At time {:.2f}s client({:ip}) has received a packet: {}\n", 
-    //     Simulator::Now().GetSeconds(), client->get_address(), msg.dump());
 
     auto it = client->response_cache().find_if([&msg](const response::value_type& item) {
         return item["group"] == msg.get_value("group") && item["task_id"] == msg.get_value("task_id");
@@ -390,6 +386,8 @@ auto worse_fit_decision_engine::on_clients_reponse_message(
         (*it)["device_address"] = msg.get_value("device_address");
         (*it)["time_consuming"] = msg.get_value("processing_time");
         (*it)["finished"] = msg.get_value("device_type") != "null" ? "Y" : "N";
+
+        log::success("client({:ip}) has received a response for task(id={}).", client->get_address(), msg.get_value("task_id"));
     }
 
     // 检查是否存在当前任务的信息
@@ -397,7 +395,7 @@ auto worse_fit_decision_engine::on_clients_reponse_message(
         return item["group"] == msg.get_value("group");
     });
     if (exist == client->response_cache().end()) {
-        fmt::print(fg(fmt::color::red), "Fatal error! Invalid response.\n"); // 说明发出去的数据被修改，或是 m_response 被无意间删除了信息
+        log::error("Fatal error! Invalid response."); // 说明发出去的数据被修改，或是 m_response 被无意间删除了信息
         return;
     }
 
@@ -412,8 +410,6 @@ auto worse_fit_decision_engine::on_clients_reponse_message(
     }
 
 }
-
-
 
 
 } // namespace okec

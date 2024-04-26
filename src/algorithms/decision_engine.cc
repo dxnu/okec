@@ -3,6 +3,7 @@
 #include <okec/devices/cloud_server.h>
 #include <okec/devices/edge_device.h>
 #include <okec/utils/format_helper.hpp>
+#include <okec/utils/log.h>
 #include <algorithm>
 #include <charconv>
 #include <ranges>
@@ -294,7 +295,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
                     }
                 }
 
-                print_info(fmt::format("The decision engine received resource information from edge server({}).", (*item)["ip"]));
+                log::info("The decision engine received resource information from edge server({}).", (*item)["ip"]);
             } else {
                 // 说明设备此时还未绑定资源，通过网络询问一下
                 ns3::Simulator::Schedule(ns3::Seconds(delay), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {

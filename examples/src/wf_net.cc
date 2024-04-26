@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     // user->send(tasks[0]);
 
     // !!! 目前记得修改 worse_fit 267 行的任务数，以保证执行效果不受网络影响
-    generate_task(tasks[0], 3000, "dummy");
+    generate_task(tasks[0], 50, "dummy");
     x_points.push_back(tasks[0].size());
     user->send(tasks[0]);
     

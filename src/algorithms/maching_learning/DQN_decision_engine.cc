@@ -15,7 +15,7 @@ Env::Env(const device_cache& cache, const task& t, std::shared_ptr<DeepQNetwork>
     , RL_(RL)
 {
     // 先为所有任务设置处理标识
-    for (auto& t : t_.elements()) {
+    for (auto& t : t_.elements_view()) {
         t.set_header("status", "0"); // 0: 未处理 1: 已处理
     }
 
@@ -32,7 +32,7 @@ auto Env::reset() -> torch::Tensor
 
 auto Env::next_observation() -> torch::Tensor
 {
-    auto task_elements = this->t_.elements();
+    auto task_elements = this->t_.elements_view();
     if (auto it = std::ranges::find_if(task_elements, [](auto const& item) {
         return item.get_header("status") == "0";
     }); it != std::end(task_elements)) {
@@ -64,7 +64,7 @@ auto Env::train_next(torch::Tensor observation) -> void
     // fmt::print("train task:\n {}\n", t_.dump(4));
 
     float reward;
-    auto task_elements = t_.elements();
+    auto task_elements = t_.elements_view();
     if (auto it = std::ranges::find_if(task_elements, [](auto const& item) {
         return item.get_header("status") == "0";
     }); it != std::end(task_elements)) {
@@ -490,7 +490,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
     env->when_done([self, &train_task, episode, episode_all, &total_times](const task& t, const device_cache& cache) {
         print_info(std::format("train end (episode={})", episode_all - episode + 1));
         double total_time = .0f;
-        for (auto& elem : t.elements()) {
+        for (const auto& elem : t.elements()) {
             total_time += std::stod(elem.get_header("processing_time"));
         }
         // t.print();

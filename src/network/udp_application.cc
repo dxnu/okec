@@ -1,6 +1,7 @@
 #include <okec/common/task.h>
 #include <okec/network/udp_application.h>
 #include <okec/utils/format_helper.hpp>
+#include <okec/utils/log.h>
 #include <okec/utils/message_helper.hpp>
 #include <ns3/arp-header.h>
 #include <ns3/csma-net-device.h>
@@ -65,39 +66,22 @@ auto udp_application::read_handler(ns3::Ptr<ns3::Socket> socket) -> void
     ns3::Address remote_address;
 
     while ((packet = socket->RecvFrom(remote_address))) {
-        // print_packet(socket, packet, remote_address);
-
-        // 处理消息
         auto content = packet_helper::to_string(packet);
-        NS_LOG_INFO(PURPLE_CODE << "At time " << fmt::format("{:.2f}", ns3::Simulator::Now().GetSeconds()) << " seconds "
-            << fmt::format("{:ip}", this->get_address()) << " has received a packet: \"" << content << "\" size: " << content.size() << END_CODE);
-        // fmt::print("handling message. begin-----------------------\n");
+        log::info("{:ip} has received a packet: \"{}\" size: {}", this->get_address(), content, content.size());
         if (packet) {
             auto msg_type = get_message_type(packet);
-            NS_LOG_INFO(CYAN_CODE << "At time " << fmt::format("{:.2f}", ns3::Simulator::Now().GetSeconds()) << " seconds "
-                << fmt::format("{:ip}", this->get_address()) <<  " is processing " << msg_type << " message......" << END_CODE);
-            m_msg_handler.dispatch(msg_type, packet, remote_address);
-            // if (m_msg_handler.dispatch(msg_type, packet, remote_address)) {
-                // fmt::print("handling {} message. end------------------\n", msg_type);
-            // }
+            log::info("{:ip} is processing [{}] message...", this->get_address(), msg_type);
+            auto dispatched = m_msg_handler.dispatch(msg_type, packet, remote_address);
+            NS_ASSERT_MSG(dispatched, "Invalid message type");
         }
-        
-
-        // Ptr<Task> task = Task::GetTaskFromPacket(packet);
-        // if (task->Empty())
-        //     continue;
-
-        // auto resource = socket->GetNode()->GetObject<Resource>();
-        // TaskOffloading(resource, task, remoteAddress);
     }
 }
 
 auto udp_application::write(ns3::Ptr<ns3::Packet> packet, ns3::Ipv4Address destination, uint16_t port) -> void
 {
-    print_info(fmt::format("{:ip}:{} ---> {:ip}:{}", this->get_address(), this->get_port(), ns3::Ipv4Address::ConvertFrom(destination), port));
+    log::info("{:ip}:{} ---> {:ip}:{}", this->get_address(), this->get_port(), ns3::Ipv4Address::ConvertFrom(destination), port);
     NS_LOG_FUNCTION (this << packet << destination << port);
     
-    // m_socket->Connect(InetSocketAddress(Ipv4Address::ConvertFrom(destination), port));
     m_send_socket->Connect(ns3::InetSocketAddress(destination, port));
     m_send_socket->Send(packet);
 }
@@ -114,7 +98,6 @@ auto udp_application::get_port() -> u_int16_t const
 
 auto udp_application::set_request_handler(std::string_view msg_type, callback_type callback) -> void
 {
-    // push_message_handler<callback_type>({ msg_type, callback});
     m_msg_handler.add_handler(msg_type, callback);
 }
 
@@ -130,7 +113,8 @@ auto udp_application::StartApplication() -> void
 
     ns3::InetSocketAddress local = ns3::InetSocketAddress(ns3::Ipv4Address::GetAny(), m_port);
     if (m_recv_socket->Bind(local) == -1) {
-        NS_FATAL_ERROR("Failed to bind socket");
+        log::error("Failed to build socket");
+        return;
     }
     
     m_recv_socket->SetRecvCallback(MakeCallback(&udp_application::read_handler, this));
