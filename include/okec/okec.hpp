@@ -7,7 +7,6 @@
 #include <okec/network/multiple_and_single_LAN_WLAN_network_model.hpp>
 #include <okec/network/multiple_LAN_WLAN_network_model.hpp>
 #include <okec/utils/log.h>
-#include <okec/utils/sys_test.h>
 #include <okec/utils/read_csv.h>
 #include <okec/utils/visulizer.hpp>
 

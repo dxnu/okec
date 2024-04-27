@@ -13,26 +13,23 @@
 #include <ns3/udp-header.h>
 #include <ns3/udp-socket.h>
 
-
-
-#define PURPLE_CODE "\033[95m"
-#define CYAN_CODE "\033[96m"
-#define TEAL_CODE "\033[36m"
-#define BLUE_CODE "\033[94m"
-#define GREEN_CODE "\033[32m"
-#define YELLOW_CODE "\033[33m"
-#define LIGHT_YELLOW_CODE "\033[93m"
-#define RED_CODE "\033[91m"
-#define BOLD_CODE "\033[1m"
-#define END_CODE "\033[0m"
-
+// #define PURPLE_CODE "\033[95m"
+// #define CYAN_CODE "\033[96m"
+// #define TEAL_CODE "\033[36m"
+// #define BLUE_CODE "\033[94m"
+// #define GREEN_CODE "\033[32m"
+// #define YELLOW_CODE "\033[33m"
+// #define LIGHT_YELLOW_CODE "\033[93m"
+// #define RED_CODE "\033[91m"
+// #define BOLD_CODE "\033[1m"
+// #define END_CODE "\033[0m"
 
 
 namespace okec
 {
 
-NS_LOG_COMPONENT_DEFINE("udp_application");
-NS_OBJECT_ENSURE_REGISTERED(udp_application);
+// NS_LOG_COMPONENT_DEFINE("udp_application");
+// NS_OBJECT_ENSURE_REGISTERED(udp_application);
 
 
 udp_application::udp_application()
@@ -61,16 +58,16 @@ auto udp_application::GetInstanceTypeId() const -> ns3::TypeId
 
 auto udp_application::read_handler(ns3::Ptr<ns3::Socket> socket) -> void
 {
-    NS_LOG_FUNCTION(this << socket);
+    // NS_LOG_FUNCTION(this << socket);
     ns3::Ptr<ns3::Packet> packet;
     ns3::Address remote_address;
 
     while ((packet = socket->RecvFrom(remote_address))) {
         auto content = packet_helper::to_string(packet);
-        log::info("{:ip} has received a packet: \"{}\" size: {}", this->get_address(), content, content.size());
+        log::debug("{:ip} has received a packet: \"{}\" size: {}", this->get_address(), content, content.size());
         if (packet) {
             auto msg_type = get_message_type(packet);
-            log::info("{:ip} is processing [{}] message...", this->get_address(), msg_type);
+            log::debug("{:ip} is processing [{}] message...", this->get_address(), msg_type);
             auto dispatched = m_msg_handler.dispatch(msg_type, packet, remote_address);
             NS_ASSERT_MSG(dispatched, "Invalid message type");
         }
@@ -79,8 +76,8 @@ auto udp_application::read_handler(ns3::Ptr<ns3::Socket> socket) -> void
 
 auto udp_application::write(ns3::Ptr<ns3::Packet> packet, ns3::Ipv4Address destination, uint16_t port) -> void
 {
-    log::info("{:ip}:{} ---> {:ip}:{}", this->get_address(), this->get_port(), ns3::Ipv4Address::ConvertFrom(destination), port);
-    NS_LOG_FUNCTION (this << packet << destination << port);
+    log::debug("{:ip}:{} ---> {:ip}:{}", this->get_address(), this->get_port(), ns3::Ipv4Address::ConvertFrom(destination), port);
+    // NS_LOG_FUNCTION (this << packet << destination << port);
     
     m_send_socket->Connect(ns3::InetSocketAddress(destination, port));
     m_send_socket->Send(packet);
