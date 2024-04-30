@@ -29,6 +29,10 @@ void my_monitor(std::string_view address, std::string_view attr, std::string_vie
 
 int main(int argc, char **argv)
 {
+    okec::log::set_level(okec::log::level::debug | okec::log::level::success);
+    okec::log::set_level(okec::log::level::debug, false);
+    okec::log::set_level(okec::log::level::info);
+
     okec::simulator simulator;
 
     // Create 1 base station

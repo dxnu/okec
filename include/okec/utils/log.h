@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+//   __  __ _  ____  ___ 
+//  /  \(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)
+// (  O ))  (  ) _)( (__  version 1.0.1
+//  \__/(__\_)(____)\___) https://github.com/dxnu/okec
+// 
+// Copyright 2023-2024 Gaoxing Li
+// Licenced under Apache-2.0 license. See LICENSE.txt for details.
+///////////////////////////////////////////////////////////////////////////////
+
 #ifndef OKEC_LOG_H_
 #define OKEC_LOG_H_
 
@@ -12,15 +22,38 @@
 namespace okec::log {
 
 enum class level : uint8_t {
-    debug = 0,
-    info,
-    warning,
-    success,
-    error
+    debug = 1 << 0,
+    info = 1 << 1,
+    warning = 1 << 2,
+    success = 1 << 3,
+    error = 1 << 4,
+    all = debug | info | warning | success | error
 };
 
-inline auto set_level(level, bool status) -> void {
+inline constinit bool level_debug_enabled   = false;
+inline constinit bool level_info_enabled    = false;
+inline constinit bool level_warning_enabled = false;
+inline constinit bool level_success_enabled = false;
+inline constinit bool level_error_enabled   = false;
 
+inline auto set_level(level log_level, bool enabled = true) -> void {
+    if (enabled) {
+        level_debug_enabled   |= std::to_underlying(log_level) & std::to_underlying(level::debug);
+        level_info_enabled    |= std::to_underlying(log_level) & std::to_underlying(level::info);
+        level_warning_enabled |= std::to_underlying(log_level) & std::to_underlying(level::warning);
+        level_success_enabled |= std::to_underlying(log_level) & std::to_underlying(level::success);
+        level_error_enabled   |= std::to_underlying(log_level) & std::to_underlying(level::error);
+    } else {
+        level_debug_enabled   &= ~(std::to_underlying(log_level) & std::to_underlying(level::debug));
+        level_info_enabled    &= ~(std::to_underlying(log_level) & std::to_underlying(level::info));
+        level_warning_enabled &= ~(std::to_underlying(log_level) & std::to_underlying(level::warning));
+        level_success_enabled &= ~(std::to_underlying(log_level) & std::to_underlying(level::success));
+        level_error_enabled   &= ~(std::to_underlying(log_level) & std::to_underlying(level::error));
+    }
+}
+
+inline auto operator|(level lhs, level rhs) -> level {
+    return static_cast<level>(std::to_underlying(lhs) | std::to_underlying(rhs));
 }
 
 
@@ -47,10 +80,6 @@ inline auto print(okec::color text_color, fmt::format_string<Args...>&& fmt, Arg
     } else {
         fmt::print(fg(fmt::rgb(std::to_underlying(text_color))), "{}\n", content);
     }
-    
-    // fmt::print(fg(fmt::rgb(std::to_underlying(text_color))), "\u2588 {}\n",
-    //     fmt::format(std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...));
-
 }
 
 } // namespace detail
@@ -58,31 +87,36 @@ inline auto print(okec::color text_color, fmt::format_string<Args...>&& fmt, Arg
 template <typename... Args>
 inline auto debug(fmt::format_string<Args...>&& fmt, Args&&... args)
     -> void {
-    detail::print(okec::color::debug, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+    if (level_debug_enabled)
+        detail::print(okec::color::debug, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline auto info(fmt::format_string<Args...>&& fmt, Args&&... args)
     -> void {
-    detail::print(okec::color::info, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+    if (level_info_enabled)
+        detail::print(okec::color::info, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline auto warning(fmt::format_string<Args...>&& fmt, Args&&... args)
     -> void {
-    detail::print(okec::color::warning, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+    if (level_warning_enabled)
+        detail::print(okec::color::warning, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline auto success(fmt::format_string<Args...>&& fmt, Args&&... args)
     -> void {
-    detail::print(okec::color::success, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+    if (level_success_enabled)
+        detail::print(okec::color::success, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 inline auto error(fmt::format_string<Args...>&& fmt, Args&&... args)
     -> void {
-    detail::print(okec::color::error, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+    if (level_error_enabled)
+        detail::print(okec::color::error, std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
 }
 
 

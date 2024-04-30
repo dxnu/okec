@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+//   __  __ _  ____  ___ 
+//  /  \(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)
+// (  O ))  (  ) _)( (__  version 1.0.1
+//  \__/(__\_)(____)\___) https://github.com/dxnu/okec
+// 
+// Copyright 2023-2024 Gaoxing Li
+// Licenced under Apache-2.0 license. See LICENSE.txt for details.
+///////////////////////////////////////////////////////////////////////////////
+
 #ifndef OKEC_HPP_
 #define OKEC_HPP_
 
@@ -16,8 +26,6 @@ namespace okec {
 struct simulator {
     simulator() {
         log::debug("C++ version: {}", __cplusplus);
-        auto winsize = okec::get_winsize();
-        log::debug("col: {}, row: {}", winsize.col, winsize.row);
         ns3::Time::SetResolution(ns3::Time::NS);
         // ns3::LogComponentEnable("udp_application", static_cast<ns3::LogLevel>(ns3::LOG_LEVEL_INFO | ns3::LOG_PREFIX_TIME));
     }

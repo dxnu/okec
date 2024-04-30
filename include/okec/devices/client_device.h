@@ -1,3 +1,13 @@
+///////////////////////////////////////////////////////////////////////////////
+//   __  __ _  ____  ___ 
+//  /  \(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)
+// (  O ))  (  ) _)( (__  version 1.0.1
+//  \__/(__\_)(____)\___) https://github.com/dxnu/okec
+// 
+// Copyright 2023-2024 Gaoxing Li
+// Licenced under Apache-2.0 license. See LICENSE.txt for details.
+///////////////////////////////////////////////////////////////////////////////
+
 #ifndef OKEC_CLIENT_DEVICE_H_
 #define OKEC_CLIENT_DEVICE_H_
 
