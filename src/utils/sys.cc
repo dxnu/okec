@@ -13,6 +13,7 @@
     #include <sys/ioctl.h>
     #include <unistd.h>
 #elif _WIN32
+    #include <windows.h>
 #else
 #endif
 
@@ -23,11 +24,15 @@ auto get_winsize() -> winsize_t {
 #ifdef __linux__
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    return winsize_t { .row = w.ws_row, .col = w.ws_col, .x = w.ws_xpixel, .y = w.ws_ypixel };
+    return winsize_t { .row = w.ws_row, .col = w.ws_col };
 #elif _WIN32
-    return winsize_t { .row = 0, .col = 0, .x = 0, .y = 0 };
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    int col = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int row = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    return winsize_t { .row = row, .col = col };
 #else
-    return winsize_t { .row = 0, .col = 0, .x = 0, .y = 0 };
+    return winsize_t { .row = 0, .col = 0 };
 #endif // sys
 }
 

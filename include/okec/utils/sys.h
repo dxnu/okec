@@ -17,8 +17,8 @@ namespace okec {
 struct winsize_t {
     unsigned short int row;
     unsigned short int col;
-    unsigned short int x;
-    unsigned short int y;
+    // unsigned short int x;
+    // unsigned short int y;
 };
 
 auto get_winsize() -> winsize_t;
