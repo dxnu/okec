@@ -4,7 +4,7 @@
 // (  O ))  (  ) _)( (__  version 1.0.1
 //  \__/(__\_)(____)\___) https://github.com/dxnu/okec
 // 
-// Copyright 2023-2024 Gaoxing Li
+// Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -97,7 +97,7 @@ public:
     
     virtual auto local_test(const task_element& header, client_device* client) -> bool = 0;
 
-    virtual auto send(task_element& t, client_device* client) -> bool = 0;
+    virtual auto send(task_element t, std::shared_ptr<client_device> client) -> bool = 0;
 
     virtual auto initialize() -> void = 0;
 

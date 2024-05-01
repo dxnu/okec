@@ -4,7 +4,7 @@
 // (  O ))  (  ) _)( (__  version 1.0.1
 //  \__/(__\_)(____)\___) https://github.com/dxnu/okec
 // 
-// Copyright 2023-2024 Gaoxing Li
+// Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -71,7 +71,7 @@ public:
 
     auto local_test(const task_element& header, client_device* client) -> bool override;
 
-    auto send(task_element& t, client_device* client) -> bool override;
+    auto send(task_element t, std::shared_ptr<client_device> client) -> bool override;
 
     auto train(const task& train_task, int episode = 1) -> void;
 

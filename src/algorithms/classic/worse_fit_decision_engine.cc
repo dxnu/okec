@@ -4,7 +4,7 @@
 // (  O ))  (  ) _)( (__  version 1.0.1
 //  \__/(__\_)(____)\___) https://github.com/dxnu/okec
 // 
-// Copyright 2023-2024 Gaoxing Li
+// Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -108,7 +108,7 @@ auto worse_fit_decision_engine::local_test(const task_element& header, client_de
     return false;
 }
 
-auto worse_fit_decision_engine::send(task_element& t, client_device* client) -> bool
+auto worse_fit_decision_engine::send(task_element t, std::shared_ptr<client_device> client) -> bool
 {
     static double launch_delay = 0.3;
 
@@ -130,8 +130,10 @@ auto worse_fit_decision_engine::send(task_element& t, client_device* client) -> 
     msg.type(message_decision);
     msg.content(t);
     const auto bs = this->get_decision_device();
-    // fmt::print("bs: {:ip}, client: {:ip}\n", bs->get_address(), client->get_address());
-    ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
+    auto write = [client, bs, content = msg.to_packet()]() {
+        client->write(content, bs->get_address(), bs->get_port());
+    };
+    ns3::Simulator::Schedule(ns3::Seconds(launch_delay), write);
     launch_delay += 0.01;
 
     return true;
@@ -276,7 +278,7 @@ auto worse_fit_decision_engine::on_bs_decision_message(
     // 接收到所有任务再统一处理，可避免 handle_next 时任务列表为空的问题（因为网络还没收到下一个任务，下一个任务到达时刻在资源变化之后）
     // 如果 handle_next 时任务列表为空，执行流程将被打断
     // 但是也有一个问题，如果资源恢复的数量还是不足以处理当前任务，那么执行流程也会被打断，不过资源尽早会全部释放，想来不是问题
-    if (first_time && bs->task_sequence().size() >= 50) {
+    if (first_time/* && bs->task_sequence().size() >= 50*/) {
         this->handle_next();
         first_time = false;
     }
@@ -285,8 +287,8 @@ auto worse_fit_decision_engine::on_bs_decision_message(
 auto worse_fit_decision_engine::on_bs_response_message(
     base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
-    // auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
-    // print_info(fmt::format("bs({:ip}) has received a response from {:ip}", bs->get_address(), ipv4_remote));
+    auto ipv4_remote = ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
+    // log::success("bs({:ip}) has received a response from {:ip}", bs->get_address(), ipv4_remote);
 
     message msg(packet);
     // fmt::print("{}\n", msg.dump());
@@ -414,9 +416,7 @@ auto worse_fit_decision_engine::on_clients_reponse_message(
         return item["group"] == msg.get_value("group") && item["finished"] == "0";
     });
     if (unfinished == client->response_cache().end()) {
-        if (client->has_done_callback()) {
-            client->done_callback(client->response_cache().dump_with({ "group", msg.get_value("group") }));
-        }
+        client->when_done(client->response_cache().dump_with({ "group", msg.get_value("group") }));
     }
 
 }

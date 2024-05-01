@@ -4,7 +4,7 @@
 // (  O ))  (  ) _)( (__  version 1.0.1
 //  \__/(__\_)(____)\___) https://github.com/dxnu/okec
 // 
-// Copyright 2023-2024 Gaoxing Li
+// Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -303,7 +303,7 @@ auto DQN_decision_engine::local_test(const task_element& header, client_device* 
     return false;
 }
 
-auto DQN_decision_engine::send(task_element& t, client_device* client) -> bool
+auto DQN_decision_engine::send(task_element t, std::shared_ptr<client_device> client) -> bool
 {
     static double launch_delay = 1.0;
 
@@ -326,7 +326,11 @@ auto DQN_decision_engine::send(task_element& t, client_device* client) -> bool
     msg.type(message_decision);
     msg.content(t);
     const auto bs = this->get_decision_device();
-    ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
+    auto write = [client, bs, content = msg.to_packet()]() {
+        client->write(content, bs->get_address(), bs->get_port());
+    };
+    ns3::Simulator::Schedule(ns3::Seconds(launch_delay), write);
+    // ns3::Simulator::Schedule(ns3::Seconds(launch_delay), &client_device::write, client, msg.to_packet(), bs->get_address(), bs->get_port());
     launch_delay += 0.1;
 
     return true;

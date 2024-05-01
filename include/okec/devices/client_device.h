@@ -4,7 +4,7 @@
 // (  O ))  (  ) _)( (__  version 1.0.1
 //  \__/(__\_)(____)\___) https://github.com/dxnu/okec
 // 
-// Copyright 2023-2024 Gaoxing Li
+// Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -18,8 +18,11 @@
 #include <okec/common/task.h>
 #include <okec/utils/format_helper.hpp>
 #include <functional>
+#include <memory>
 #include <vector>
 
+#include <okec/common/awaitable.h>
+#include <okec/utils/log.h>
 
 namespace okec
 {
@@ -28,8 +31,7 @@ namespace okec
 class udp_application;
 class base_station;
 
-
-class client_device
+class client_device : public std::enable_shared_from_this<client_device>
 {
     using response_type   = response;
     using done_callback_t = std::function<void(const response_type&)>;
@@ -54,9 +56,44 @@ public:
 
     // 发送任务
     // 发送时间如果是0s，因为UdpApplication的StartTime也是0s，所以m_socket可能尚未初始化，此时Write将无法发送
-    auto send(task& t) -> void;
+    auto send(task t) -> void;
+
+    auto async_send(task t) {
+        struct response_awaiter {
+            response_awaiter(std::shared_ptr<client_device> client, task t)
+                : client(client), t(std::move(t)) {}
+
+            [[nodiscard]] bool await_ready() noexcept {
+                log::debug("response_awaiter::await_ready()");
+                return false;
+            }
+
+            void await_suspend(std::coroutine_handle<> handle) noexcept {
+                log::debug("response_awaiter::await_suspend()");
+                client->Coro_ = handle;
+
+                for (auto&& item : t.elements_view()) {
+                    client->m_decision_engine->send(std::move(item), client);
+                }
+            }
+
+            response_type await_resume() noexcept {
+                log::debug("response_awaiter::await_resume()");
+                client->Coro_ = nullptr;
+                return std::move(client->Response_);
+            }
+
+        private:
+            std::shared_ptr<client_device> client;
+            task t;
+        };
+
+        return response_awaiter{shared_from_this(), std::move(t)};
+    }
 
     auto when_done(done_callback_t fn) -> void;
+
+    auto when_done(response_type res) -> void;
 
     auto set_position(double x, double y, double z) -> void;
 
@@ -73,12 +110,15 @@ public:
 
     auto write(ns3::Ptr<ns3::Packet> packet, ns3::Ipv4Address destination, uint16_t port) const -> void;
 
+
 private:
     ns3::Ptr<ns3::Node> m_node;
     ns3::Ptr<udp_application> m_udp_application;
     response_type m_response;
     done_callback_t m_done_fn;
     std::shared_ptr<decision_engine> m_decision_engine;
+    std::coroutine_handle<> Coro_{nullptr};
+    response_type Response_;
 };
 
 

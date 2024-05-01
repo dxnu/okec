@@ -4,7 +4,7 @@
 // (  O ))  (  ) _)( (__  version 1.0.1
 //  \__/(__\_)(____)\___) https://github.com/dxnu/okec
 // 
-// Copyright 2023-2024 Gaoxing Li
+// Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -17,6 +17,8 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/number.hpp>
 #include <ns3/mobility-module.h>
+
+#include <okec/utils/log.h>
 
 
 namespace okec
@@ -59,19 +61,32 @@ auto client_device::install_resource(ns3::Ptr<resource> res) -> void
     res->install(m_node);
 }
 
-auto client_device::send(task& t) -> void
+auto client_device::send(task t) -> void
 {
     // 任务不能以 task 为单位发送，因为 task 可能会非常大，导致发送的数据断页，在目的端便无法恢复数据
     // 以 task_element 为单位发送则可以避免 task 大小可能会带来的问题
     // double launch_delay{ 1.0 };
-    for (auto& item : t.elements()) {
-        m_decision_engine->send(item, this);
+    for (auto&& item : t.elements_view()) {
+        m_decision_engine->send(std::move(item), shared_from_this());
     }
 }
 
 auto client_device::when_done(done_callback_t fn) -> void
 {
     m_done_fn = fn;
+}
+
+auto client_device::when_done(response_type res) -> void
+{
+    if (Coro_ && !Coro_.done()) {
+        log::debug("when done");
+        Response_ = std::move(res);
+        Coro_.resume();
+    }
+
+    if (this->has_done_callback()) {
+        std::invoke(m_done_fn, std::move(res));
+    }
 }
 
 auto client_device::set_position(double x, double y, double z) -> void

@@ -16,3 +16,7 @@ target_link_libraries(wf_discrete PRIVATE okec::okec)
 
 add_executable(rf_discrete src/rf_discrete.cc)
 target_link_libraries(rf_discrete PRIVATE okec::okec)
+
+add_executable(wf_async src/wf_async.cc)
+target_compile_options(wf_async PRIVATE -Wall -g)
+target_link_libraries(wf_async PRIVATE okec::okec)
