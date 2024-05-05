@@ -29,11 +29,11 @@ int main(int argc, char **argv)
     fmt::print("edge_num: {}, task_num: {}\n", edge_num, task_num);
 
 
-    okec::simulator simulator;
+    okec::simulator sim;
 
     // Create 2 base stations and connect them with some edge serves.
-    okec::base_station_container base_stations(1);
-    okec::edge_device_container edge_devices1(edge_num);
+    okec::base_station_container base_stations(sim, 1);
+    okec::edge_device_container edge_devices1(sim, edge_num);
     // okec::edge_device_container edge_devices2(8);
     base_stations.connect_device(edge_devices1);
 
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
     // std::vector<okec::client_device_container> client_devices;
     // client_devices.push_back(std::move(client_devices1));
     // client_devices.push_back(std::move(client_devices2));
-    okec::client_device_container user_devices(2);
+    okec::client_device_container user_devices(sim, 2);
 
     // Initialize the network
     okec::multiple_and_single_LAN_WLAN_network_model net_model;
@@ -81,5 +81,5 @@ int main(int argc, char **argv)
     // });
 
 
-    simulator.run();
+    sim.run();
 }

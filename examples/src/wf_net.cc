@@ -33,14 +33,14 @@ int main(int argc, char **argv)
     okec::log::set_level(okec::log::level::debug, false);
     okec::log::set_level(okec::log::level::info);
 
-    okec::simulator simulator;
+    okec::simulator sim;
 
     // Create 1 base station
-    okec::base_station_container bs(1);
+    okec::base_station_container bs(sim, 1);
     // Create 5 edge servers
-    okec::edge_device_container edge_servers(5);
+    okec::edge_device_container edge_servers(sim, 5);
     // Create 2 user devices
-    okec::client_device_container user_devices(2);
+    okec::client_device_container user_devices(sim, 2);
 
     // Connect the bs and edge servers
     bs.connect_device(edge_servers);
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     });
 
     // Set decision engine
-    auto decision_engine = std::make_shared<okec::worse_fit_decision_engine>(&user_devices, &bs);
+    auto decision_engine = std::make_shared<okec::worst_fit_decision_engine>(&user_devices, &bs);
     decision_engine->initialize();
 
     std::vector<std::string> groups = { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
     // Client request someone to handle the task.
     auto user = user_devices.get_device(0);
-    user->when_done([&time_total_points, &time_average_points, &x_points, task_size = tasks.size()](okec::response response) {
+    user->async_read([&time_total_points, &time_average_points, &x_points, task_size = tasks.size()](okec::response response) {
         fmt::print("{0:=^{1}}\n", "Response Info", 180);
         double finished = 0;
         int index = 1;
@@ -138,5 +138,5 @@ int main(int argc, char **argv)
     user->send(tasks[0]);
     
 
-    simulator.run();
+    sim.run();
 }

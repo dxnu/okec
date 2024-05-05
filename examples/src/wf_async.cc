@@ -25,27 +25,42 @@ void my_monitor(std::string_view address, std::string_view attr, std::string_vie
     file << fmt::format("At time {:.2f}s,{},{},{}\n", ns3::Simulator::Now().GetSeconds(), address, old_val, new_val);
 }
 
-okec::awaitable offloading(std::shared_ptr<okec::client_device> client, okec::task t) {
+[[nodiscard]] okec::awaitable
+offloading(std::shared_ptr<okec::client_device> client, okec::task t) {
     log::debug("offloading begin");
 
-    auto response = co_await client->async_send(std::move(t));
+    co_await client->async_send(std::move(t));
+    auto resp1 =  co_await client->async_read();
     
-    log::debug("received response.");
-    log::debug("response: {}", response.dump());
+    log::debug("received resp1.");
+    log::debug("resp1: {}", resp1.dump());
+
+    okec::task t2; // 10 batch of tasks
+    generate_task(t2, 3, "2nd");
+
+    co_await client->async_send(std::move(t2));
+    auto resp2 = co_await client->async_read();
+    log::debug("received resp2.");
+    log::debug("resp2: {}", resp2.dump());
+}
+
+void co_spawn(okec::simulator& ctx, okec::awaitable a) {
+    ctx.coro = std::move(a);
+    ctx.coro.start();
 }
 
 int main(int argc, char **argv)
 {
     log::set_level(log::level::all);
 
-    okec::simulator simulator;
+    okec::simulator sim;
 
     // Create 1 base station
-    okec::base_station_container bs(1);
+    okec::base_station_container bs(sim, 1);
     // Create 5 edge servers
-    okec::edge_device_container edge_servers(5);
+    okec::edge_device_container edge_servers(sim, 5);
     // Create 2 user devices
-    okec::client_device_container user_devices(2);
+    okec::client_device_container user_devices(sim, 2);
 
     // Connect the bs and edge servers
     bs.connect_device(edge_servers);
@@ -71,7 +86,7 @@ int main(int argc, char **argv)
     });
 
     // Set decision engine
-    auto decision_engine = std::make_shared<okec::worse_fit_decision_engine>(&user_devices, &bs);
+    auto decision_engine = std::make_shared<okec::worst_fit_decision_engine>(&user_devices, &bs);
     decision_engine->initialize();
 
     // Initialize a task
@@ -80,13 +95,14 @@ int main(int argc, char **argv)
     std::vector<int> x_points;
 
     // Client request someone to handle the task.
+    // okec::io_context ctx;
     auto user = user_devices.get_device(0);
 
     okec::task t; // 10 batch of tasks
     generate_task(t, 5, "dummy");
     x_points.push_back(t.size());
     
-    auto coro = offloading(user, std::move(t));
+    co_spawn(sim, offloading(user, std::move(t)));
 
     log::debug("main---");
     
@@ -127,5 +143,5 @@ int main(int argc, char **argv)
     //     // okec::draw(x_points, time_average_points, "Number of tasks", "Average Processing Time(Seconds)");
     // }
 
-    simulator.run();
+    sim.run();
 }
