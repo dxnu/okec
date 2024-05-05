@@ -12,24 +12,27 @@
 #include <okec/common/resource.h>
 #include <okec/devices/base_station.h>
 #include <okec/network/udp_application.h>
-#include <okec/config/config.h>
+#include <okec/common/awaitable.h>
+#include <okec/common/response.h>
+#include <okec/common/simulator.h>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/number.hpp>
 #include <ns3/mobility-module.h>
-
 #include <okec/utils/log.h>
+
 
 
 namespace okec
 {
 
-client_device::client_device()
-    : m_node{ ns3::CreateObject<ns3::Node>() },
+client_device::client_device(simulator& sim)
+    : sim_{ sim },
+      m_node{ ns3::CreateObject<ns3::Node>() },
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(ns3::Seconds(0));
-    m_udp_application->SetStopTime(ns3::Seconds(simulator_stop_time));
+    m_udp_application->SetStopTime(sim_.stop_time());
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);
@@ -71,21 +74,34 @@ auto client_device::send(task t) -> void
     }
 }
 
-auto client_device::when_done(done_callback_t fn) -> void
+auto client_device::async_send(task t) -> std::suspend_never
+{
+    for (auto&& item : t.elements_view()) {
+        m_decision_engine->send(std::move(item), shared_from_this());
+    }
+
+    return {};
+}
+
+auto client_device::async_read() -> response_awaiter
+{
+    return response_awaiter{sim_};
+}
+
+auto client_device::async_read(done_callback_t fn) -> void
 {
     m_done_fn = fn;
 }
 
-auto client_device::when_done(response_type res) -> void
+auto client_device::when_done(response_type resp) -> void
 {
-    if (Coro_ && !Coro_.done()) {
+    if (sim_) {
         log::debug("when done");
-        Response_ = std::move(res);
-        Coro_.resume();
+        sim_.complete(std::move(resp));
     }
 
     if (this->has_done_callback()) {
-        std::invoke(m_done_fn, std::move(res));
+        std::invoke(m_done_fn, std::move(resp));
     }
 }
 
@@ -137,6 +153,11 @@ auto client_device::done_callback(response_type res) -> void
 auto client_device::write(ns3::Ptr<ns3::Packet> packet, ns3::Ipv4Address destination, uint16_t port) const -> void
 {
     m_udp_application->write(packet, destination, port);
+}
+
+auto client_device_container::get_device(std::size_t index) -> pointer_type
+{
+    return m_devices[index];
 }
 
 auto client_device_container::size() -> std::size_t

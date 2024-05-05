@@ -7,6 +7,13 @@ project(
     LANGUAGES CXX
 )
 
+message("\
+  __  __ _  ____  ___ \n\
+ /  \\(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)\n\
+(  O ))  (  ) _)( (__  version ${PROJECT_VERSION}\n\
+ \\__/(__\\_)(____)\\___) https://github.com/dxnu/okec\n\
+")
+
 # Find the dependencies
 find_package(Torch REQUIRED)
 find_package(fmt REQUIRED)
@@ -14,7 +21,8 @@ find_package(nlohmann_json REQUIRED)
 find_package(ns3 3.41 COMPONENTS libcore REQUIRED)
 find_package(PythonLibs REQUIRED)
 
-message(${TORCH_CXX_FLAGS})
+# message(${TORCH_CXX_FLAGS})
+message("Welcome to the installation wizard for OKEC")
 message(STATUS "Found Torch: ${TORCH_FOUND}")
 message(STATUS "Found fmtlib: ${fmt_FOUND}")
 message(STATUS "Found nlohmann_json: ${nlohmann_json_FOUND}")

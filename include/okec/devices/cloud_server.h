@@ -21,11 +21,13 @@
 namespace okec
 {
 
+class simulator;
+
 class cloud_server {
     using callback_type  = std::function<void(cloud_server*, ns3::Ptr<ns3::Packet>, const ns3::Address&)>;
 
 public:
-    cloud_server();
+    cloud_server(simulator& sim);
 
     auto get_node() -> ns3::Ptr<ns3::Node>;
 
@@ -55,6 +57,7 @@ private:
     auto on_get_resource_information(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
 
 private:
+    simulator& sim_;
     ns3::Ptr<ns3::Node> m_node;
     ns3::Ptr<udp_application> m_udp_application;
 };

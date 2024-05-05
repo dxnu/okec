@@ -17,6 +17,7 @@
 #include <ranges>
 #include <string_view>
 #include <fmt/core.h>
+#include <ns3/core-module.h>
 
 
 namespace okec::log {

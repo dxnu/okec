@@ -37,3 +37,6 @@ build/
 # vscode
 .vscode/
 .VSCodeCounter/
+
+# Runtime data files
+/examples/data/

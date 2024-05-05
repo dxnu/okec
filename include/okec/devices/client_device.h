@@ -14,15 +14,13 @@
 #include <okec/algorithms/decision_engine.h>
 #include <okec/common/message.h>
 #include <okec/common/resource.h>
-#include <okec/common/response.h>
 #include <okec/common/task.h>
 #include <okec/utils/format_helper.hpp>
+#include <coroutine>
 #include <functional>
 #include <memory>
 #include <vector>
 
-#include <okec/common/awaitable.h>
-#include <okec/utils/log.h>
 
 namespace okec
 {
@@ -30,6 +28,9 @@ namespace okec
 
 class udp_application;
 class base_station;
+class response_awaiter;
+class simulator;
+
 
 class client_device : public std::enable_shared_from_this<client_device>
 {
@@ -39,7 +40,7 @@ public:
     using callback_type  = std::function<void(client_device*, ns3::Ptr<ns3::Packet>, const ns3::Address&)>;
 
 public:
-    client_device();
+    client_device(simulator& sim);
 
     auto get_resource() -> ns3::Ptr<resource>;
 
@@ -58,40 +59,11 @@ public:
     // 发送时间如果是0s，因为UdpApplication的StartTime也是0s，所以m_socket可能尚未初始化，此时Write将无法发送
     auto send(task t) -> void;
 
-    auto async_send(task t) {
-        struct response_awaiter {
-            response_awaiter(std::shared_ptr<client_device> client, task t)
-                : client(client), t(std::move(t)) {}
+    auto async_send(task t) -> std::suspend_never;
 
-            [[nodiscard]] bool await_ready() noexcept {
-                log::debug("response_awaiter::await_ready()");
-                return false;
-            }
+    auto async_read() -> response_awaiter;
 
-            void await_suspend(std::coroutine_handle<> handle) noexcept {
-                log::debug("response_awaiter::await_suspend()");
-                client->Coro_ = handle;
-
-                for (auto&& item : t.elements_view()) {
-                    client->m_decision_engine->send(std::move(item), client);
-                }
-            }
-
-            response_type await_resume() noexcept {
-                log::debug("response_awaiter::await_resume()");
-                client->Coro_ = nullptr;
-                return std::move(client->Response_);
-            }
-
-        private:
-            std::shared_ptr<client_device> client;
-            task t;
-        };
-
-        return response_awaiter{shared_from_this(), std::move(t)};
-    }
-
-    auto when_done(done_callback_t fn) -> void;
+    auto async_read(done_callback_t fn) -> void;
 
     auto when_done(response_type res) -> void;
 
@@ -112,13 +84,13 @@ public:
 
 
 private:
+    simulator& sim_;
     ns3::Ptr<ns3::Node> m_node;
     ns3::Ptr<udp_application> m_udp_application;
     response_type m_response;
     done_callback_t m_done_fn;
     std::shared_ptr<decision_engine> m_decision_engine;
-    std::coroutine_handle<> Coro_{nullptr};
-    response_type Response_;
+    // io_context* ctx{nullptr};
 };
 
 
@@ -131,10 +103,10 @@ class client_device_container
 
 public:
     // 创建含有n个ClientDevice的容器
-    client_device_container(std::size_t n) {
+    client_device_container(simulator& sim, std::size_t n) {
         m_devices.reserve(n);
         for (std::size_t i = 0; i < n; ++i)
-            m_devices.emplace_back(std::make_shared<value_type>());
+            m_devices.emplace_back(std::make_shared<value_type>(sim));
     }
 
     // 获取所有Nodes
@@ -143,9 +115,7 @@ public:
             nodes.Add(device->get_node());
     }
 
-    auto get_device(std::size_t index) -> pointer_type {
-        return m_devices[index];
-    }
+    auto get_device(std::size_t index) -> pointer_type;
 
     auto size() -> std::size_t;
 

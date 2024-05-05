@@ -8,17 +8,17 @@
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <okec/algorithms/classic/worse_fit_decision_engine.h>
+#include <okec/algorithms/classic/worst_fit_decision_engine.h>
 #include <okec/common/message.h>
 #include <okec/devices/base_station.h>
 #include <okec/devices/client_device.h>
 #include <okec/devices/edge_device.h>
 #include <okec/utils/log.h>
-#include <functional> // std::bind_front
+#include <functional> // bind_front
 
 namespace okec {
 
-worse_fit_decision_engine::worse_fit_decision_engine(
+worst_fit_decision_engine::worst_fit_decision_engine(
     client_device_container* clients,
     base_station_container* base_stations)
     : clients_{clients}
@@ -41,7 +41,7 @@ worse_fit_decision_engine::worse_fit_decision_engine(
     clients->set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
 }
 
-worse_fit_decision_engine::worse_fit_decision_engine(
+worst_fit_decision_engine::worst_fit_decision_engine(
     std::vector<client_device_container>* clients_container,
     base_station_container* base_stations)
     : clients_container_{clients_container}
@@ -68,7 +68,7 @@ worse_fit_decision_engine::worse_fit_decision_engine(
     fmt::print("{}\n", this->cache().dump(4));
 }
 
-auto worse_fit_decision_engine::make_decision(const task_element& header) -> result_t
+auto worst_fit_decision_engine::make_decision(const task_element& header) -> result_t
 {
     auto edge_cache = this->cache().data();
     auto edge_max = *std::max_element(edge_cache.begin(), edge_cache.end(), 
@@ -103,12 +103,12 @@ auto worse_fit_decision_engine::make_decision(const task_element& header) -> res
     return result_t();
 }
 
-auto worse_fit_decision_engine::local_test(const task_element& header, client_device* client) -> bool
+auto worst_fit_decision_engine::local_test(const task_element& header, client_device* client) -> bool
 {
     return false;
 }
 
-auto worse_fit_decision_engine::send(task_element t, std::shared_ptr<client_device> client) -> bool
+auto worst_fit_decision_engine::send(task_element t, std::shared_ptr<client_device> client) -> bool
 {
     static double launch_delay = 0.3;
 
@@ -139,7 +139,7 @@ auto worse_fit_decision_engine::send(task_element t, std::shared_ptr<client_devi
     return true;
 }
 
-auto worse_fit_decision_engine::initialize() -> void
+auto worst_fit_decision_engine::initialize() -> void
 {
     if (clients_) {
         clients_->set_decision_engine(shared_from_base<this_type>());
@@ -156,7 +156,7 @@ auto worse_fit_decision_engine::initialize() -> void
     }
 }
 
-auto worse_fit_decision_engine::handle_next() -> void
+auto worst_fit_decision_engine::handle_next() -> void
 {
 
     auto& task_sequence = m_decision_device->task_sequence();
@@ -259,10 +259,10 @@ auto worse_fit_decision_engine::handle_next() -> void
     // }
 }
 
-auto worse_fit_decision_engine::on_bs_decision_message(
+auto worst_fit_decision_engine::on_bs_decision_message(
     base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
-    static bool first_time = true;
+    // static bool first_time = true;
     // auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
     // print_info(fmt::format("The base station[{:ip}] has received the decision request from {:ip}", bs->get_address(), ipv4_remote));
 
@@ -277,14 +277,15 @@ auto worse_fit_decision_engine::on_bs_decision_message(
     // !!!
     // 接收到所有任务再统一处理，可避免 handle_next 时任务列表为空的问题（因为网络还没收到下一个任务，下一个任务到达时刻在资源变化之后）
     // 如果 handle_next 时任务列表为空，执行流程将被打断
-    // 但是也有一个问题，如果资源恢复的数量还是不足以处理当前任务，那么执行流程也会被打断，不过资源尽早会全部释放，想来不是问题
-    if (first_time/* && bs->task_sequence().size() >= 50*/) {
-        this->handle_next();
-        first_time = false;
-    }
+    // 但是也有一个问题，如果资源恢复的数量还是不足以处理当前任务，那么执行流程也会被打断，不过资源迟早会全部释放，想来不是问题
+    // if (first_time/* && bs->task_sequence().size() >= 50*/) {
+    //     this->handle_next();
+    //     first_time = false;
+    // }
+    this->handle_next();
 }
 
-auto worse_fit_decision_engine::on_bs_response_message(
+auto worst_fit_decision_engine::on_bs_response_message(
     base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
     auto ipv4_remote = ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
@@ -327,7 +328,7 @@ auto worse_fit_decision_engine::on_bs_response_message(
     // }
 }
 
-auto worse_fit_decision_engine::on_es_handling_message(
+auto worst_fit_decision_engine::on_es_handling_message(
     edge_device* es, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
     // this->handle_next(); // 这里开始下一个，由于资源尚未更改，容易导致 Conflict.
@@ -385,7 +386,7 @@ auto worse_fit_decision_engine::on_es_handling_message(
     });
 }
 
-auto worse_fit_decision_engine::on_clients_reponse_message(
+auto worst_fit_decision_engine::on_clients_reponse_message(
     client_device* client, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
     message msg(packet);

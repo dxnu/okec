@@ -25,6 +25,7 @@ namespace okec
 {
 
 class base_station_container;
+class simulator;
 
 template <typename T>
 concept decision_maker_t = requires (T t) { t.make_decision(task_element{nullptr}); };
@@ -36,7 +37,7 @@ public:
     using es_callback_type  = std::function<void(edge_device*, ns3::Ptr<ns3::Packet>, const ns3::Address&)>;
 
 public:
-    base_station();
+    base_station(simulator& sim);
     ~base_station();
     auto connect_device(edge_device_container& devices) -> void;
     
@@ -76,6 +77,7 @@ public:
     auto handle_next() -> void;
 
 public:
+    simulator& sim_;
     edge_device_container* m_edge_devices;
     ns3::Ptr<udp_application> m_udp_application;
     ns3::Ptr<ns3::Node> m_node;
@@ -93,7 +95,7 @@ public:
     using es_callback_type = base_station::es_callback_type;
 
 public:
-    base_station_container(std::size_t n);
+    base_station_container(simulator& sim, std::size_t n);
 
     template <typename... EdgeDeviceContainers>
     auto connect_device(EdgeDeviceContainers&... containers) -> bool {

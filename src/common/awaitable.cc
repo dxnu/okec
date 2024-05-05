@@ -9,12 +9,16 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <okec/common/awaitable.h>
+#include <okec/common/simulator.h>
+#include <okec/utils/log.h>
 #include <utility> // exchange
+
+#include <iostream>
 
 
 namespace okec {
 
-auto awaitable_promise_base::initial_suspend() noexcept -> std::suspend_never
+auto awaitable_promise_base::initial_suspend() noexcept -> std::suspend_always
 {
     return {};
 }
@@ -37,28 +41,62 @@ awaitable::awaitable(awaitable &&other) noexcept
 {
 }
 
-awaitable::~awaitable()
+awaitable &awaitable::operator=(awaitable&& other) noexcept
 {
-    if (handle_)
-        handle_.destroy();
+    if (handle_) handle_.destroy();
+
+    handle_ = std::exchange(other.handle_, nullptr);
+    return *this;
 }
 
-awaitable &awaitable::operator=(awaitable other) noexcept
+awaitable::~awaitable()
 {
-    
-    std::swap(handle_, other.handle_);
-    return *this;
+    if (handle_) {
+        std::cout << "awaitable is about to be destroyed\n";
+        handle_.destroy();
+    }
 }
 
 void awaitable::resume()
 {
-    if (!handle_.done())
+    if (handle_ && !handle_.done())
         handle_.resume();
 }
 
-awaitable::awaitable(std::coroutine_handle<promise_type> handle) noexcept
-    : handle_{ handle }
+void awaitable::start()
 {
+    resume();
+}
+
+awaitable::awaitable(std::coroutine_handle<promise_type> handle) noexcept
+    : handle_{handle}
+{
+}
+
+response_awaiter::response_awaiter(simulator& sim)
+    : sim{ sim }
+{
+}
+
+auto response_awaiter::await_ready() noexcept -> bool
+{
+    log::debug("response_awaiter::await_ready()");
+    return false;
+}
+
+auto response_awaiter::await_suspend(std::coroutine_handle<> handle) noexcept -> void
+{
+    log::debug("response_awaiter::await_suspend()");
+    sim.completion = [this, handle](response resp) {
+        this->r = std::move(resp);
+        handle.resume();
+    };
+}
+
+auto response_awaiter::await_resume() noexcept -> response
+{
+    log::debug("response_awaiter::await_resume()");
+    return std::move(this->r);
 }
 
 } // namespace okec

@@ -10,7 +10,7 @@
 
 #include <okec/devices/base_station.h>
 #include <okec/devices/cloud_server.h>
-#include <okec/config/config.h>
+#include <okec/common/simulator.h>
 #include <algorithm>  // for std::ranges::for_each
 #include <ns3/csma-module.h>
 #include <ns3/internet-module.h>
@@ -25,13 +25,14 @@ if (index > size()) throw std::out_of_range{"index out of range"}
 namespace okec
 {
 
-base_station::base_station()
-    : m_edge_devices{ nullptr },
+base_station::base_station(simulator& sim)
+    : sim_{ sim },
+      m_edge_devices{ nullptr },
       m_udp_application{ ns3::CreateObject<udp_application>() },
       m_node{ ns3::CreateObject<ns3::Node>() }
 {
     m_udp_application->SetStartTime(ns3::Seconds(0));
-    m_udp_application->SetStopTime(ns3::Seconds(simulator_stop_time));
+    m_udp_application->SetStopTime(sim_.stop_time());
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);
@@ -198,11 +199,11 @@ auto base_station::handle_next() -> void
     // }
 }
 
-base_station_container::base_station_container(std::size_t n)
+base_station_container::base_station_container(simulator& sim, std::size_t n)
 {
     m_base_stations.reserve(n);
     for (std::size_t i = 0; i < n; ++i) {
-        auto bs = std::make_shared<base_station>();
+        auto bs = std::make_shared<base_station>(sim);
         m_base_stations.emplace_back(bs);
     }
 }

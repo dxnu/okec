@@ -10,6 +10,7 @@
 
 #include <okec/common/resource.h>
 #include <okec/utils/format_helper.hpp>
+#include <fstream>
 #include <random>
 
 
@@ -175,9 +176,17 @@ auto resource_container::print(std::string title) -> void
 
 auto resource_container::trace_resource() -> void
 {
+    namespace fs = std::filesystem;
     static std::ofstream file;
+    fs::path p{"data/"};
+    if (!fs::exists(p)) {
+        fs::create_directory(p);
+    }
+    
+    p.append("resource_tracer.csv");
+
     if (!file.is_open()) {
-        file.open("resource_tracer.csv", std::ios::out/* | std::ios::app*/);
+        file.open(p, std::ios::out/* | std::ios::app*/);
         if (!file.is_open()) {
             return;
         }

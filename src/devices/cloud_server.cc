@@ -9,7 +9,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <okec/common/message.h>
-#include <okec/config/config.h>
+#include <okec/common/simulator.h>
 #include <okec/devices/base_station.h>
 #include <okec/devices/cloud_server.h>
 #include <okec/utils/format_helper.hpp>
@@ -19,12 +19,13 @@
 namespace okec
 {
 
-cloud_server::cloud_server()
-    : m_node{ ns3::CreateObject<ns3::Node>() },
+cloud_server::cloud_server(simulator& sim)
+    : sim_{ sim },
+      m_node{ ns3::CreateObject<ns3::Node>() },
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(ns3::Seconds(0));
-    m_udp_application->SetStopTime(ns3::Seconds(simulator_stop_time));
+    m_udp_application->SetStopTime(sim_.stop_time());
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);

@@ -8,8 +8,8 @@
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef OKEC_WORSE_FIT_DECISION_ENGINE_H_
-#define OKEC_WORSE_FIT_DECISION_ENGINE_H_
+#ifndef OKEC_WORST_FIT_DECISION_ENGINE_H_
+#define OKEC_WORST_FIT_DECISION_ENGINE_H_
 
 #include <okec/algorithms/decision_engine.h>
 
@@ -22,14 +22,14 @@ class client_device_container;
 class edge_device;
 
 
-class worse_fit_decision_engine : public decision_engine
+class worst_fit_decision_engine : public decision_engine
 {
-    using this_type = worse_fit_decision_engine;
+    using this_type = worst_fit_decision_engine;
 
 public:
-    worse_fit_decision_engine() = default;
-    worse_fit_decision_engine(client_device_container* clients, base_station_container* base_stations);
-    worse_fit_decision_engine(std::vector<client_device_container>* clients_container, base_station_container* base_stations);
+    worst_fit_decision_engine() = default;
+    worst_fit_decision_engine(client_device_container* clients, base_station_container* base_stations);
+    worst_fit_decision_engine(std::vector<client_device_container>* clients_container, base_station_container* base_stations);
 
     auto make_decision(const task_element& header) -> result_t override;
 
@@ -59,4 +59,4 @@ private:
 
 } // namespace okec
 
-#endif // OKEC_WORSE_FIT_DECISION_ENGINE_H_
+#endif // OKEC_WORST_FIT_DECISION_ENGINE_H_

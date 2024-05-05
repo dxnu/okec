@@ -11,14 +11,18 @@
 #ifndef OKEC_AWAITABLE_H_
 #define OKEC_AWAITABLE_H_
 
+#include <okec/common/response.h>
 #include <coroutine>
 
 
 namespace okec {
 
+class simulator;
+
+
 class awaitable_promise_base {
 public:
-    auto initial_suspend() noexcept -> std::suspend_never;
+    auto initial_suspend() noexcept -> std::suspend_always;
     [[nodiscard]] auto final_suspend() noexcept -> std::suspend_always;
 
     auto unhandled_exception() -> void;
@@ -27,26 +31,42 @@ public:
 
 
 class awaitable {
-    using this_type = awaitable;
-
 public:
     struct promise_type : awaitable_promise_base {
-        [[nodiscard]] auto get_return_object() noexcept -> this_type {
-            return this_type { std::coroutine_handle<promise_type>::from_promise(*this) };
+        [[nodiscard]] auto get_return_object() noexcept -> awaitable {
+            return awaitable { std::coroutine_handle<promise_type>::from_promise(*this) };
         }
     };
 
+    awaitable() = default;
     awaitable(awaitable&& other) noexcept;
+    awaitable& operator=(awaitable&& other) noexcept;
     ~awaitable();
-    awaitable& operator=(awaitable other) noexcept;
 
     void resume();
+
+    void start();
 
 private:
     std::coroutine_handle<promise_type> handle_ = nullptr;
 
     explicit(true) awaitable(std::coroutine_handle<promise_type> handle) noexcept;
+    awaitable(const awaitable&) = delete;
+    awaitable& operator=(const awaitable&) = delete;
 };
+
+class response_awaiter {
+public:
+    response_awaiter(simulator& sim);
+    auto await_ready() noexcept -> bool;
+    auto await_suspend(std::coroutine_handle<> handle) noexcept -> void;
+    [[nodiscard]] auto await_resume() noexcept -> response;
+
+private:
+    simulator& sim;
+    response r;
+};
+
 
 } // namespace okec
 

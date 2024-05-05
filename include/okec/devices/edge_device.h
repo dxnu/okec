@@ -18,6 +18,7 @@
 namespace okec
 {
 
+class simulator;
 class task;
 
 
@@ -26,7 +27,7 @@ class edge_device
     using callback_type  = std::function<void(edge_device*, ns3::Ptr<ns3::Packet>, const ns3::Address&)>;
 
 public:
-    edge_device();
+    edge_device(simulator& sim);
 
     // 返回当前设备的IP地址
     auto get_address() const -> ns3::Ipv4Address;
@@ -53,6 +54,7 @@ private:
     auto on_get_resource_information(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;
 
 public:
+    simulator& sim_;
     ns3::Ptr<ns3::Node> m_node;
     ns3::Ptr<okec::udp_application> m_udp_application;
 };
@@ -64,7 +66,7 @@ class edge_device_container
     using pointer_type = std::shared_ptr<value_type>;
 
 public:
-    edge_device_container(std::size_t n);
+    edge_device_container(simulator& sim, std::size_t n);
 
     // 获取所有Nodes
     auto get_nodes(ns3::NodeContainer &nodes) -> void;

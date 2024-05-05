@@ -10,8 +10,8 @@
 
 #include <okec/common/message.h>
 #include <okec/common/resource.h>
+#include <okec/common/simulator.h>
 #include <okec/common/task.h>
-#include <okec/config/config.h>
 #include <okec/devices/edge_device.h>
 #include <okec/utils/format_helper.hpp>
 #include <ns3/ipv4.h>
@@ -21,12 +21,13 @@
 namespace okec
 {
 
-edge_device::edge_device()
-    : m_node{ ns3::CreateObject<ns3::Node>() },
+edge_device::edge_device(simulator& sim)
+    : sim_{ sim },
+      m_node{ ns3::CreateObject<ns3::Node>() },
       m_udp_application{ ns3::CreateObject<udp_application>() }
 {
     m_udp_application->SetStartTime(ns3::Seconds(0));
-    m_udp_application->SetStopTime(ns3::Seconds(simulator_stop_time));
+    m_udp_application->SetStopTime(sim_.stop_time());
 
     // 为当前设备安装通信功能
     m_node->AddApplication(m_udp_application);
@@ -115,11 +116,11 @@ auto edge_device::on_get_resource_information(ns3::Ptr<ns3::Packet> packet, cons
     this->write(msg.to_packet(), ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4(), 8860);
 }
 
-edge_device_container::edge_device_container(std::size_t n)
+edge_device_container::edge_device_container(simulator& sim, std::size_t n)
 {
     m_devices.reserve(n);
     for (std::size_t i = 0; i < n; ++i)
-        m_devices.emplace_back(std::make_shared<value_type>());
+        m_devices.emplace_back(std::make_shared<value_type>(sim));
 }
 
 auto edge_device_container::get_nodes(ns3::NodeContainer& nodes) -> void
