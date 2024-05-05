@@ -136,6 +136,10 @@ int main(int argc, char **argv)
     generate_task(tasks[0], 50, "dummy");
     x_points.push_back(tasks[0].size());
     user->send(tasks[0]);
+
+    okec::task t2; // 10 batch of tasks
+    generate_task(t2, 3, "2nd");
+    user->send(t2);
     
 
     sim.run();

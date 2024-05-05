@@ -12,7 +12,6 @@ class response;
 class simulator {
 public:
     std::function<void(response)> completion;
-    awaitable coro;
 
     simulator(ns3::Time time = ns3::Seconds(300));
     ~simulator();
@@ -24,10 +23,13 @@ public:
 
     void complete(response r);
 
+    auto hold_coro(awaitable a) -> void;
+
     explicit operator bool() const;
 
 private:
     ns3::Time stop_time_;
+    std::vector<awaitable> coros_;
 };
 
 

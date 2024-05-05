@@ -4,6 +4,7 @@
 #include <okec/utils/log.h>
 
 
+
 namespace okec
 {
 
@@ -39,6 +40,12 @@ auto simulator::stop_time() const -> ns3::Time
 void simulator::complete(response r)
 {
     completion(std::move(r));
+}
+
+auto simulator::hold_coro(awaitable a) -> void
+{
+    coros_.emplace_back(std::move(a));
+    coros_[coros_.size() - 1].start();
 }
 
 simulator::operator bool() const

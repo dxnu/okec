@@ -25,28 +25,34 @@ void my_monitor(std::string_view address, std::string_view attr, std::string_vie
     file << fmt::format("At time {:.2f}s,{},{},{}\n", ns3::Simulator::Now().GetSeconds(), address, old_val, new_val);
 }
 
-[[nodiscard]] okec::awaitable
-offloading(std::shared_ptr<okec::client_device> client, okec::task t) {
+okec::awaitable
+offloading(okec::client_device_container& clients) {
     log::debug("offloading begin");
+    
+    auto user1 = clients.get_device(0);
+    auto user2 = clients.get_device(1); 
 
-    co_await client->async_send(std::move(t));
-    auto resp1 =  co_await client->async_read();
+    okec::task t1;
+    generate_task(t1, 5, "1st");
+    co_await user1->async_send(std::move(t1));
+
+    okec::task t2;
+    generate_task(t2, 5, "2nd");
+    co_await user2->async_send(std::move(t2));
+
+    auto resp1 =  co_await user1->async_read();
     
     log::debug("received resp1.");
     log::debug("resp1: {}", resp1.dump());
 
-    okec::task t2; // 10 batch of tasks
-    generate_task(t2, 3, "2nd");
-
-    co_await client->async_send(std::move(t2));
-    auto resp2 = co_await client->async_read();
+    auto resp2 =  co_await user2->async_read();
+    
     log::debug("received resp2.");
     log::debug("resp2: {}", resp2.dump());
 }
 
 void co_spawn(okec::simulator& ctx, okec::awaitable a) {
-    ctx.coro = std::move(a);
-    ctx.coro.start();
+    ctx.hold_coro(std::move(a));
 }
 
 int main(int argc, char **argv)
@@ -89,26 +95,9 @@ int main(int argc, char **argv)
     auto decision_engine = std::make_shared<okec::worst_fit_decision_engine>(&user_devices, &bs);
     decision_engine->initialize();
 
-    // Initialize a task
-    std::vector<double> time_total_points;
-    std::vector<double> time_average_points;
-    std::vector<int> x_points;
-
-    // Client request someone to handle the task.
-    // okec::io_context ctx;
-    auto user = user_devices.get_device(0);
-
-    okec::task t; // 10 batch of tasks
-    generate_task(t, 5, "dummy");
-    x_points.push_back(t.size());
-    
-    co_spawn(sim, offloading(user, std::move(t)));
+    co_spawn(sim, offloading(user_devices));
 
     log::debug("main---");
-    
-    // if (user->handle_ && !user->handle_.done())
-    //     user->handle_.resume();
-    // coro.resume();
 
     // double finished = 0;
     // int index = 1;
