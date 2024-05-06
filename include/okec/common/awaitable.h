@@ -17,12 +17,13 @@
 
 namespace okec {
 
+class client_device;
 class simulator;
 
 
 class awaitable_promise_base {
 public:
-    auto initial_suspend() noexcept -> std::suspend_always;
+    auto initial_suspend() noexcept -> std::suspend_never;
     [[nodiscard]] auto final_suspend() noexcept -> std::suspend_always;
 
     auto unhandled_exception() -> void;
@@ -45,7 +46,7 @@ public:
 
     void resume();
 
-    void start();
+    // void start();
 
 private:
     std::coroutine_handle<promise_type> handle_ = nullptr;
@@ -57,16 +58,18 @@ private:
 
 class response_awaiter {
 public:
-    response_awaiter(simulator& sim);
+    response_awaiter(simulator& sim, std::string client_address);
     auto await_ready() noexcept -> bool;
     auto await_suspend(std::coroutine_handle<> handle) noexcept -> void;
     [[nodiscard]] auto await_resume() noexcept -> response;
 
 private:
     simulator& sim;
+    std::string client_address;
     response r;
 };
 
+auto co_spawn(okec::simulator& ctx, okec::awaitable a) -> void;
 
 } // namespace okec
 

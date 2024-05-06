@@ -37,20 +37,35 @@ auto simulator::stop_time() const -> ns3::Time
     return stop_time_;
 }
 
-void simulator::complete(response r)
+auto simulator::submit(const std::string& ip, std::function<void(response&&)> fn) -> void
 {
-    completion(std::move(r));
+    completion_[ip] = fn;
+}
+
+auto simulator::complete(const std::string& ip, response&& r) -> void
+{
+    if (auto it = completion_.find(ip);
+        it != completion_.end()) {
+        auto fn = it->second;
+        completion_.erase(it);
+        fn(std::move(r));
+    }
+}
+
+auto simulator::is_valid(const std::string &ip) -> bool
+{
+    if (auto it = completion_.find(ip);
+        it != completion_.end()) {
+        return true;
+    }
+
+    return false;
 }
 
 auto simulator::hold_coro(awaitable a) -> void
 {
     coros_.emplace_back(std::move(a));
-    coros_[coros_.size() - 1].start();
-}
-
-simulator::operator bool() const
-{
-    return completion ? true : false;
+    // coros_[coros_.size() - 1].start();
 }
 
 } // namespace okec

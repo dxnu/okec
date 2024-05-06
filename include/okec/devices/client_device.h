@@ -90,7 +90,6 @@ private:
     response_type m_response;
     done_callback_t m_done_fn;
     std::shared_ptr<decision_engine> m_decision_engine;
-    // io_context* ctx{nullptr};
 };
 
 

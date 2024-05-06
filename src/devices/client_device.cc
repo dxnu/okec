@@ -19,7 +19,6 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/number.hpp>
 #include <ns3/mobility-module.h>
-#include <okec/utils/log.h>
 
 
 
@@ -85,7 +84,7 @@ auto client_device::async_send(task t) -> std::suspend_never
 
 auto client_device::async_read() -> response_awaiter
 {
-    return response_awaiter{sim_};
+    return response_awaiter{sim_, fmt::format("{:ip}", this->get_address())};
 }
 
 auto client_device::async_read(done_callback_t fn) -> void
@@ -95,9 +94,9 @@ auto client_device::async_read(done_callback_t fn) -> void
 
 auto client_device::when_done(response_type resp) -> void
 {
-    if (sim_) {
-        log::debug("when done");
-        sim_.complete(std::move(resp));
+    auto ip = fmt::format("{:ip}", this->get_address());
+    if (sim_.is_valid(ip)) {
+        sim_.complete(ip, std::move(resp));
     }
 
     if (this->has_done_callback()) {

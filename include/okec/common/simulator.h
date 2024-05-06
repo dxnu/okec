@@ -11,8 +11,6 @@ class response;
 
 class simulator {
 public:
-    std::function<void(response)> completion;
-
     simulator(ns3::Time time = ns3::Seconds(300));
     ~simulator();
 
@@ -21,15 +19,18 @@ public:
     auto stop_time(ns3::Time time) -> void;
     auto stop_time() const -> ns3::Time;
 
-    void complete(response r);
+    auto submit(const std::string& ip, std::function<void(response&&)> fn) -> void;
+
+    auto complete(const std::string& ip, response&& r) -> void;
+
+    auto is_valid(const std::string& ip) -> bool;
 
     auto hold_coro(awaitable a) -> void;
-
-    explicit operator bool() const;
 
 private:
     ns3::Time stop_time_;
     std::vector<awaitable> coros_;
+    std::unordered_map<std::string, std::function<void(response&&)>> completion_;
 };
 
 

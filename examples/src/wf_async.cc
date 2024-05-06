@@ -26,33 +26,33 @@ void my_monitor(std::string_view address, std::string_view attr, std::string_vie
 }
 
 okec::awaitable
-offloading(okec::client_device_container& clients) {
+offloading(std::shared_ptr<okec::client_device> user, okec::task t) {
     log::debug("offloading begin");
     
-    auto user1 = clients.get_device(0);
-    auto user2 = clients.get_device(1); 
+    co_await user->async_send(std::move(t));
+    auto resp = co_await user->async_read();
+    log::success("received resp.");
 
-    okec::task t1;
-    generate_task(t1, 5, "1st");
-    co_await user1->async_send(std::move(t1));
 
-    okec::task t2;
-    generate_task(t2, 5, "2nd");
-    co_await user2->async_send(std::move(t2));
+    double finished = 0;
+    int index = 1;
+    std::vector<double> time_points;
+    fmt::print("{0:=^{1}}\n", "Response Info", okec::get_winsize().col);
+    for (const auto& item : resp.data()) {
+        fmt::print("[{:>3}] ", index++);
+        fmt::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
+            item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["finished"]);
+        if (item["finished"] == "Y") {
+            finished++;
+            time_points.push_back(TO_DOUBLE(item["time_consuming"]));
+        }
+    }
 
-    auto resp1 =  co_await user1->async_read();
-    
-    log::debug("received resp1.");
-    log::debug("resp1: {}", resp1.dump());
-
-    auto resp2 =  co_await user2->async_read();
-    
-    log::debug("received resp2.");
-    log::debug("resp2: {}", resp2.dump());
-}
-
-void co_spawn(okec::simulator& ctx, okec::awaitable a) {
-    ctx.hold_coro(std::move(a));
+    auto total_time = std::accumulate(time_points.begin(), time_points.end(), .0);
+    fmt::print("Task completion rate: {:2.0f}%\n", finished / resp.size() * 100);
+    fmt::print("Total processing time: {:.6f}\n", total_time);
+    fmt::print("Average processing time: {:.6f}\n", total_time / time_points.size());
+    fmt::print("{0:=^{1}}", "", okec::get_winsize().col);
 }
 
 int main(int argc, char **argv)
@@ -95,42 +95,21 @@ int main(int argc, char **argv)
     auto decision_engine = std::make_shared<okec::worst_fit_decision_engine>(&user_devices, &bs);
     decision_engine->initialize();
 
-    co_spawn(sim, offloading(user_devices));
+    // co_spawn(sim, offloading(user_devices));
 
-    log::debug("main---");
+    okec::task t1;
+    generate_task(t1, 100, "1st");
+    auto user1 = user_devices.get_device(0);
+    co_spawn(sim, offloading(user1, t1));
 
-    // double finished = 0;
-    // int index = 1;
-    // std::vector<double> time_points;
-    // for (const auto& item : response.data()) {
-    //     fmt::print("[{:>3}] ", index++);
-    //     fmt::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
-    //         item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["finished"]);
-    //     if (item["finished"] == "Y") {
-    //         finished++;
-    //         time_points.push_back(TO_DOUBLE(item["time_consuming"]));
-    //     }
-    // }
+    log::debug("main-1--");
 
-    // auto total_time = std::accumulate(time_points.begin(), time_points.end(), .0);
-    // fmt::print("Task completion rate: {:2.0f}%\n", finished / response.size() * 100);
-    // fmt::print("Total processing time: {:.6f}\n", total_time);
-    // fmt::print("Average processing time: {:.6f}\n", total_time / time_points.size());
+    okec::task t2;
+    generate_task(t2, 1, "2st");
+    auto user2 = user_devices.get_device(1);
+    co_spawn(sim, offloading(user2, t2));
 
-    // fmt::print("{0:=^{1}}\n", "", 180);
-
-    // // okec::draw(time_points, "Time Comsumption(Seconds)");
-    // time_total_points.push_back(total_time);
-    // time_average_points.push_back(total_time / time_points.size());
-
-    // if (time_total_points.size() == task_size) {
-    //     fmt::print("time_total_points: {}\n", time_total_points);
-    //     fmt::print("time_average_points: {}\n", time_average_points);
-    //     fmt::print("x_points: {}\n", x_points);
-
-    //     // okec::draw(x_points, time_total_points, "Number of tasks", "Total Processing Time(Seconds)");
-    //     // okec::draw(x_points, time_average_points, "Number of tasks", "Average Processing Time(Seconds)");
-    // }
+    log::debug("main-2--");
 
     sim.run();
 }
