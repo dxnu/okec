@@ -1,5 +1,10 @@
+# Copyright(c) 2023-2024 Gaoxing Li Distributed under the Apache License 2.0 (http://www.apache.org/licenses/)
+
 cmake_minimum_required(VERSION 3.12)
 
+# ---------------------------------------------------------------------------------------
+# Start okec project
+# ---------------------------------------------------------------------------------------
 project(
     okec
     VERSION 1.0.1
