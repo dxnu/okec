@@ -13,7 +13,6 @@ simulator::simulator(ns3::Time time)
 {
     log::debug("C++ version: {}", __cplusplus);
     ns3::Time::SetResolution(ns3::Time::NS);
-    // ns3::LogComponentEnable("udp_application", static_cast<ns3::LogLevel>(ns3::LOG_LEVEL_INFO | ns3::LOG_PREFIX_TIME));
 }
 
 simulator::~simulator()
