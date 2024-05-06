@@ -22,6 +22,24 @@ $ cmake --build build
 $ ./wf-async
 ```
 
+## Features
+
+- Dynamic network modeling.
+- Mobility.
+- Multi-MEC architectures.
+- Dynamic Task/Resource attributes.
+- Resource monitoring.
+- Device interaction.
+- Decision engine
+  - Non-maching learning based offloading algorithms.
+  - Maching learning based offloading algorithms.
+- Linear/Discrete simulation.
+- Network topology visualization.
+- Results visualization.
+- Multi-layer scenarios.
+- Interated dataset.
+- ...
+
 ## Usage samples
 
 ### Basic usage
