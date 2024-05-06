@@ -37,10 +37,12 @@ $ ./wf-async
 - Network topology visualization.
 - Results visualization.
 - Multi-layer scenarios.
-- Interated dataset.
+- Interated datasets.
 - ...
 
-## Usage samples
+## Examples
+### Create Heterogeneous devices
 
-### Basic usage
-
+### Create Tasks
+**Generate tasks randomly**
+**Generate tasks from files**
