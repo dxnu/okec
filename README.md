@@ -5,6 +5,7 @@
   \__/(__\_)(____)\___) A Realistic, Versatile, and Easily Customizable Edge Computing Simulator
 ```
 
+- [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Features](#features)
 - [Examples](#examples)
@@ -12,6 +13,14 @@
   - [Create Tasks](#create-tasks)
   - [Iterate through tasks](#iterate-through-tasks)
   - [Append attributes to tasks and modify the task attribute values](#append-attributes-to-tasks-and-modify-the-task-attribute-values)
+
+## Prerequisites
+|Library|Version|
+|---|---|
+|NS-3|3.41|
+|libtorch|cxx11 ABI|
+|fmtlib|N/A|
+|Matplot-cpp|N/A|
 
 ## Install
 ```console
