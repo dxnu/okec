@@ -5,6 +5,14 @@
   \__/(__\_)(____)\___) A Realistic, Versatile, and Easily Customizable Edge Computing Simulator
 ```
 
+- [Install](#install)
+- [Features](#features)
+- [Examples](#examples)
+  - [Create heterogeneous devices with custom resources](#create-heterogeneous-devices-with-custom-resources)
+  - [Create Tasks](#create-tasks)
+  - [Iterate through tasks](#iterate-through-tasks)
+  - [Append attributes to tasks and modify the task attribute values](#append-attributes-to-tasks-and-modify-the-task-attribute-values)
+
 ## Install
 ```console
 $ git clone https://github.com/lkimuk/okec.git
