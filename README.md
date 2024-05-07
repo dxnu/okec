@@ -172,7 +172,7 @@ t2:
 [  5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
 ```
 
-## Iterate through tasks
+### Iterate through tasks
 ```cpp
 #include <okec/okec.hpp>
 
@@ -218,7 +218,7 @@ task_id: 42CC12E43AEF2E9AC50C47E675050C1 group: dummy cpu: 0.77 deadline: 4
 task_id: 5BEE99DFF8F012C9FB10DA9E81C5DF9 group: dummy cpu: 0.76 deadline: 3
 ```
 
-## Append attributes to tasks or modify the task attribute values
+### Append attributes to tasks or modify the task attribute values
 ```cpp
 #include <okec/okec.hpp>
 
