@@ -1,11 +1,9 @@
 ![OKEC](images/okec.jpeg)
 
-```text
-   __  __ _  ____  ___ 
-  /  \(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)
- (  O ))  (  ) _)( (__  version 1.0.1
-  \__/(__\_)(____)\___) A Realistic, Versatile, and Easily Customizable Edge Computing Simulator
-```
+<p align="center">
+<h1 align="center">OKEC(a.k.a. EdgeSim++)</h1>
+<h6 align="center">A Realistic, Versatile, and Easily Customizable Edge Computing Simulator</h6>
+</p>
 
 [![Build status](https://ci.appveyor.com/api/projects/status/8b08rootot5dfrh2?svg=true)](https://ci.appveyor.com/project/lkimuk/okec)
 [![License](https://img.shields.io/github/license/lkimuk/okec.svg)](https://github.com/lkimuk/okec/blob/main/LICENSE)
