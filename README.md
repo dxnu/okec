@@ -125,3 +125,49 @@ The potential output:
 ```
 
 **Save tasks and Load them from files**
+```cpp
+#include <okec/okec.hpp>
+
+void generate_task(okec::task& t, int number, std::string const& group)
+{
+    for (auto i = number; i-- > 0;)
+    {
+        t.emplace_back({
+            { "task_id", okec::task::get_unique_id() },
+            { "group", group },
+            { "cpu", okec::rand_range(0.2, 1.2).to_string() },
+            { "deadline", okec::rand_range(1, 5).to_string() },
+        });
+    }
+}
+
+int main()
+{
+    okec::task t1;
+    generate_task(t1, 5, "dummy");
+    t1.save_to_file("task.json");
+
+    okec::task t2;
+    t2.load_from_file("task.json");
+
+    okec::print("t1:\n{:t}\n", t1);
+    okec::print("t2:\n{:t}", t2);
+}
+```
+
+The potential output:
+```text
+t1:
+[  1] cpu: 0.94 deadline: 3 group: dummy task_id: C8487480083EF6FA51A07F6786112B2
+[  2] cpu: 0.87 deadline: 3 group: dummy task_id: AA6E00D9D1D676999810EC793D4091F
+[  3] cpu: 0.70 deadline: 3 group: dummy task_id: D7C9B93D88725A6B0A7F24C8D5576E9
+[  4] cpu: 0.27 deadline: 4 group: dummy task_id: D8A72C409FC97BD9B8C6478CD69D23A
+[  5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
+
+t2:
+[  1] cpu: 0.94 deadline: 3 group: dummy task_id: C8487480083EF6FA51A07F6786112B2
+[  2] cpu: 0.87 deadline: 3 group: dummy task_id: AA6E00D9D1D676999810EC793D4091F
+[  3] cpu: 0.70 deadline: 3 group: dummy task_id: D7C9B93D88725A6B0A7F24C8D5576E9
+[  4] cpu: 0.27 deadline: 4 group: dummy task_id: D8A72C409FC97BD9B8C6478CD69D23A
+[  5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
+```
