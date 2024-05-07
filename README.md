@@ -1,3 +1,5 @@
+![OKEC](images/okec.jpeg)
+
 ```text
    __  __ _  ____  ___ 
   /  \(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)
