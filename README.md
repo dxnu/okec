@@ -5,6 +5,10 @@
   \__/(__\_)(____)\___) A Realistic, Versatile, and Easily Customizable Edge Computing Simulator
 ```
 
+[![License](https://img.shields.io/github/license/lkimuk/okec.svg)](https://github.com/lkimuk/okec/blob/main/LICENSE)
+![Language](https://img.shields.io/github/languages/top/lkimuk/okec.svg)
+![Last commit](https://img.shields.io/github/last-commit/lkimuk/okec.svg)
+
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Features](#features)
