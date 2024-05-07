@@ -17,10 +17,11 @@
 ## Prerequisites
 |Library|Version|
 |---|---|
-|NS-3|3.41|
-|libtorch|cxx11 ABI|
-|fmtlib|N/A|
-|Matplot-cpp|N/A|
+|[NS-3](https://www.nsnam.org/releases/ns-3-41/)|3.41|
+|[libtorch](https://pytorch.org/)|cxx11 ABI|
+|[fmtlib](https://github.com/fmtlib/fmt)|N/A|
+|[nlohmann\_json](https://github.com/nlohmann/json)|N/A|
+|[matplotlib-cpp](https://github.com/lava/matplotlib-cpp)|N/A|
 
 ## Install
 ```console
