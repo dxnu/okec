@@ -40,3 +40,8 @@ build/
 
 # Runtime data files
 /examples/data/
+
+# Temporary files
+temp/
+temp*.cc
+*temp.cc

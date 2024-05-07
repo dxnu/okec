@@ -98,6 +98,14 @@ public:
         return m_resources.end();
     }
 
+    auto cbegin() const {
+        return m_resources.cbegin();
+    }
+
+    auto cend() const {
+        return m_resources.cend();
+    }
+
     auto print(std::string title = "Resource Info" ) -> void;
 
     auto trace_resource() -> void;

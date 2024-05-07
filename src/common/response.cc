@@ -51,9 +51,9 @@ auto response::end() -> iterator
     return this->view().end();
 }
 
-auto response::dump() -> std::string
+auto response::dump(int indent) -> std::string
 {
-    return j_.dump();
+    return j_.dump(indent);
 }
 
 auto response::view() -> value_type&

@@ -152,7 +152,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
                 for (auto it = cs_res->begin(); it != cs_res->end(); ++it)
                     (*item)[it.key()] = it.value();
 
-            print_info(fmt::format("The decision engine got the resource information of cloud({}).", (*item)["ip"]));
+            log::debug("The decision engine got the resource information of cloud({}).", (*item)["ip"]);
         } else {
             // 说明设备此时还未绑定资源，通过网络询问一下
             ns3::Simulator::Schedule(ns3::Seconds(1.0), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {
@@ -214,7 +214,8 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
     // 捕获通过网络问询的信息，更新设备信息（能收到就一定存在资源信息）
     m_decision_device->set_request_handler(message_resource_information, 
         [this](okec::base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) {
-            print_info(fmt::format("The decision engine has received device resource information: {}", okec::packet_helper::to_string(packet)));
+            log::debug("The decision engine has received device resource information: {}", okec::packet_helper::to_string(packet));
+
             auto msg = message::from_packet(packet);
             auto es_resource = resource::from_msg_packet(packet);
             auto ip = msg.get_value("ip");
@@ -323,7 +324,8 @@ auto decision_engine::initialize_device(base_station_container* bs_container) ->
     // 捕获通过网络问询的信息，更新设备信息（能收到就一定存在资源信息）
     m_decision_device->set_request_handler(message_resource_information, 
         [this](okec::base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) {
-            print_info(fmt::format("The decision engine has received device resource information: {}", okec::packet_helper::to_string(packet)));
+            log::debug("The decision engine has received device resource information: {}", okec::packet_helper::to_string(packet));
+            
             auto msg = message::from_packet(packet);
             auto es_resource = resource::from_msg_packet(packet);
             auto ip = msg.get_value("ip");

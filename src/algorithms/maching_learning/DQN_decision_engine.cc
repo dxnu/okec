@@ -14,6 +14,7 @@
 #include <okec/devices/client_device.h>
 #include <okec/devices/cloud_server.h>
 #include <okec/devices/edge_device.h>
+#include <okec/utils/log.h>
 #include <functional> // std::bind_front
 
 namespace okec
@@ -446,7 +447,7 @@ auto DQN_decision_engine::on_bs_decision_message(
     base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
     ns3::InetSocketAddress inetRemoteAddress = ns3::InetSocketAddress::ConvertFrom(remote_address);
-    print_info(fmt::format("The base station[{:ip}] has received the decision request from {:ip}.", bs->get_address(), inetRemoteAddress.GetIpv4()));
+    log::debug("The base station[{:ip}] has received the decision request from {:ip}.", bs->get_address(), inetRemoteAddress.GetIpv4());
 
     auto item = okec::task_element::from_msg_packet(packet);
     bs->task_sequence(std::move(item));
@@ -502,7 +503,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
 
     auto self = shared_from_base<this_type>();
     env->when_done([self, &train_task, episode, episode_all, &total_times](const task& t, const device_cache& cache) {
-        print_info(std::format("train end (episode={})", episode_all - episode + 1));
+        log::debug("train end (episode={})", episode_all - episode + 1);
         double total_time = .0f;
         for (const auto& elem : t.elements()) {
             total_time += std::stod(elem.get_header("processing_time"));
@@ -519,7 +520,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
         self->train_start(train_task, episode - 1, episode_all);
     });
 
-    print_info(std::format("train begin (episode={})", episode_all - episode + 1));
+    log::debug("train begin (episode={})", episode_all - episode + 1);
     env->train();
 }
 

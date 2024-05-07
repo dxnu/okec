@@ -33,7 +33,50 @@ private:
     std::unordered_map<std::string, std::function<void(response&&)>> completion_;
 };
 
+namespace now {
 
+    inline auto years() -> double {
+        return ns3::Simulator::Now().GetYears();
+    }
+
+    inline auto days() -> double {
+        return ns3::Simulator::Now().GetDays();
+    }
+
+    inline auto hours() -> double {
+        return ns3::Simulator::Now().GetHours();
+    }
+
+    inline auto minutes() -> double {
+        return ns3::Simulator::Now().GetMinutes();
+    }
+
+    inline auto seconds() -> double {
+        return ns3::Simulator::Now().GetSeconds();
+    }
+
+    inline auto milli_seconds() -> double {
+        return ns3::Simulator::Now().GetMilliSeconds();
+    }
+
+    inline auto micro_seconds() -> double {
+        return ns3::Simulator::Now().GetMicroSeconds();
+    }
+
+    inline auto nano_seconds() -> double {
+        return ns3::Simulator::Now().GetNanoSeconds();
+    }
+
+    inline auto pico_seconds() -> double {
+        return ns3::Simulator::Now().GetPicoSeconds();
+    }
+
+    inline auto femto_seconds() -> double {
+        return ns3::Simulator::Now().GetFemtoSeconds();
+    }
+
+
+} // namespace now
 } // namespace okec
 
 #endif // OKEC_SIMULATOR_H_

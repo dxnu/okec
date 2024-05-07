@@ -12,6 +12,7 @@
 #define OKEC_FORMAT_HELPER_HPP_
 
 #include <okec/common/resource.h>
+#include <okec/common/response.h>
 #include <okec/common/task.h>
 #include <fmt/core.h>
 #include <fmt/color.h>
@@ -49,24 +50,43 @@ static inline auto to_string(const ns3::Ipv4Address& ipv4Address) {
 
 
 // formatting okec::task
-// template <>
-// struct fmt::formatter<okec::task> {
-//     constexpr auto parse(format_parse_context& ctx) {
-//         auto it = ctx.begin(), end = ctx.end();
-//         if (it != end && *it == 't') it++;
-//         if (it != end && *it != '}') throw fmt::format_error("invalid task_container format");
-//         return it;
-//     }
+template <>
+struct fmt::formatter<okec::task> {
+    constexpr auto parse(format_parse_context& ctx) {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && *it == 't') it++;
+        if (it != end && *it != '}') throw fmt::format_error("invalid task format");
+        return it;
+    }
 
-//     template <typename FormatContext>
-//     auto format(const okec::task& t, FormatContext& ctx) {
-//         return fmt::format_to(ctx.out(), 
-//                     "{0:=^{1}}\n{3:<{2}}{4:<{2}}{5:<{2}}{6:>{2}}\n{0:=^{1}}\n"
-//                     "{7:<{2}}{8:<{2}}{9:<{2}}{10:>{2}}\n{0:=^{1}}\n", 
-//                     "", 80, 80 / 4, "task_id", "memory", "cpu", "deadline",
-//                     t.id(), t.needed_memory(), t.needed_cpu_cycles(), t.deadline());
-//     }
-// };
+    template <typename FormatContext>
+    auto format(const okec::task& t, FormatContext& ctx) {
+        int index = 1;
+        std::string info;
+        for (const auto& item : t.data())
+        {
+            info += fmt::format("[{:>3}] ", index++);
+            if (item.contains("/header"_json_pointer))
+            {
+                for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
+                {
+                    info += fmt::format("{}: {} ", it.key(), it.value());
+                }
+            }
+
+            if (item.contains("/body"_json_pointer))
+            {
+                for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
+                {
+                    info += fmt::format("{}: {} ", it.key(), it.value());
+                }
+            }
+            info += "\n";
+        }
+
+        return fmt::format_to(ctx.out(), fmt::runtime(info));
+    }
+};
 
 // formatting okec::task_container
 // template <>
@@ -94,24 +114,24 @@ static inline auto to_string(const ns3::Ipv4Address& ipv4Address) {
 // };
 
 // formatting okec::resource
-template <>
-struct fmt::formatter<okec::resource> {
-    constexpr auto parse(format_parse_context& ctx) {
-        auto it = ctx.begin(), end = ctx.end();
-        if (it != end && *it == 'r') it++;
-        if (it != end && *it != '}') throw fmt::format_error("invalid task_container format");
-        return it;
-    }
+// template <>
+// struct fmt::formatter<okec::resource> {
+//     constexpr auto parse(format_parse_context& ctx) {
+//         auto it = ctx.begin(), end = ctx.end();
+//         if (it != end && *it == 'r') it++;
+//         if (it != end && *it != '}') throw fmt::format_error("invalid task_container format");
+//         return it;
+//     }
 
-    template <typename FormatContext>
-    auto format(const okec::resource& r, FormatContext& ctx) {
-        return fmt::format_to(ctx.out(), 
-                    "{0:=^{1}}\n{3:<{2}}{4:<{2}}{5:<{2}}{6:>{2}}\n{0:=^{1}}\n"
-                    "{7:<{2}}{8:<{2}}{9:<{2}}{10:>{2}}\n{0:=^{1}}\n", 
-                    "", 80, 80 / 4, "resource_id", "memory", "cpu", "price",
-                    r.get_value("id"), r.get_value("memory"), r.get_value("cpu_cycle"), r.get_value("price"));
-    }
-};
+//     template <typename FormatContext>
+//     auto format(const okec::resource& r, FormatContext& ctx) {
+//         return fmt::format_to(ctx.out(), 
+//                     "{0:=^{1}}\n{3:<{2}}{4:<{2}}{5:<{2}}{6:>{2}}\n{0:=^{1}}\n"
+//                     "{7:<{2}}{8:<{2}}{9:<{2}}{10:>{2}}\n{0:=^{1}}\n", 
+//                     "", 80, 80 / 4, "resource_id", "memory", "cpu", "price",
+//                     r.get_value("id"), r.get_value("memory"), r.get_value("cpu_cycle"), r.get_value("price"));
+//     }
+// };
 
 // formatting okec::resource_container
 template <>
@@ -119,29 +139,70 @@ struct fmt::formatter<okec::resource_container> {
     constexpr auto parse(format_parse_context& ctx) {
         auto it = ctx.begin(), end = ctx.end();
         if (it != end && (*it == 'r' && *(++it) == 's')) it++;
-        if (it != end && *it != '}') throw fmt::format_error("invalid task format");
+        if (it != end && *it != '}') throw fmt::format_error("invalid resource format");
         return it;
     }
 
     template <typename FormatContext>
-    auto format(okec::resource_container& rs, FormatContext& ctx) {
-        const int property_len = 80;
-        auto rs_info = fmt::format("{0:=^{1}}\n{3:<{2}}{4:<{2}}{5:<{2}}{6:>{2}}\n{0:=^{1}}\n",
-                    "", property_len, property_len / 4, "resource_id", "memory", "cpu", "price");
-        std::for_each(rs.begin(), rs.end(), [&rs_info](ns3::Ptr<okec::resource> r) {
-            rs_info += fmt::format("{1:<{0}}{2:<{0}}{3:<{0}}{4:>{0}}\n",
-                    property_len / 4, 
-                    r->get_value("id"), r->get_value("memory"), r->get_value("cpu_cycle"), r->get_value("price"));
-        });
+    auto format(const okec::resource_container& rs, FormatContext& ctx) {
+        int index = 1;
+        std::string info;
+        for (auto item = rs.cbegin(); item != rs.cend(); ++item) {
+            info += fmt::format("[{:>3}] ", index++);
+            for (auto it = (*item)->begin(); it != (*item)->end(); ++it)
+            {
+                info += fmt::format("{}: {} ", it.key(), it.value());
+            }
 
-        rs_info += fmt::format("{0:=^{1}}\n", "", property_len);
-        return fmt::format_to(ctx.out(), fmt::runtime(rs_info));
+            info += "\n";
+        }
+
+        return fmt::format_to(ctx.out(), fmt::runtime(info));
     }
 };
 
-inline static void print_info(std::string_view info)
-{
-    fmt::print("At time {:.2f} seconds {}\n", ns3::Simulator::Now().GetSeconds(), info);
+template <>
+struct fmt::formatter<okec::response> {
+    constexpr auto parse(format_parse_context& ctx) {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && *it == 'r') it++;
+        if (it != end && *it != '}') throw fmt::format_error("invalid response format");
+        return it;
+    }
+
+    template <typename FormatContext>
+    auto format(const okec::response& t, FormatContext& ctx) {
+        int index = 1;
+        std::string info;
+        for (const auto& item : t.data())
+        {
+            info += fmt::format("[{:>3}] ", index++);
+            for (auto it = item.begin(); it != item.end(); ++it)
+            {
+                info += fmt::format("{}: {} ", it.key(), it.value());
+            }
+
+            info += "\n";
+        }
+
+        return fmt::format_to(ctx.out(), fmt::runtime(info));
+    }
+};
+
+namespace okec {
+
+template <typename... Args>
+inline auto format(fmt::format_string<Args...>&& fmt, Args&&... args)
+    -> std::string {
+    return fmt::format(std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
 }
+
+template <typename... Args>
+inline auto print(fmt::format_string<Args...>&& fmt, Args&&... args)
+    -> void {
+    fmt::print(std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+}
+
+} // namespace okec
 
 #endif // OKEC_FORMAT_HELPER_HPP_

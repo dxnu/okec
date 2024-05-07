@@ -212,7 +212,7 @@ auto task::at(std::size_t index) const -> task_element
     return task_element(m_task["task"]["items"].at(index));
 }
 
-auto task::data() -> json
+auto task::data() const -> json
 {
     return m_task["task"]["items"];
 }
