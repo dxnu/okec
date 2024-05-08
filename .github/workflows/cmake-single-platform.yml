@@ -31,6 +31,14 @@ jobs:
     - name: Extract LibTorch
       run: unzip libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip -d ${{github.workspace}}
       
+    - name: Install fmtlib
+      run: |
+        git clone https://github.com/fmtlib/fmt.git libraries/fmtlib
+        cd libraries/fmtlib
+        mkdir build && cd build
+        cmake ..
+        sudo make install 
+        
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
