@@ -29,7 +29,7 @@ jobs:
       run: ls
       
     - name: Extract LibTorch
-      run: unzip libtorch-cxx11-abi-shared-with-deps-2.3.0+cpu.zip -d ${{github.workspace}}
+      run: unzip libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip -d ${{github.workspace}}
       
 
     - name: Configure CMake
