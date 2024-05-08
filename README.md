@@ -23,6 +23,7 @@
   - [Append attributes to tasks and modify the task attribute values](#append-attributes-to-tasks-and-modify-the-task-attribute-values)
 
 ## Prerequisites
+**Libraries**
 |Library|Version|
 |---|---|
 |[NS-3](https://www.nsnam.org/releases/ns-3-41/)|3.41|
@@ -30,6 +31,10 @@
 |[fmtlib](https://github.com/fmtlib/fmt)|N/A|
 |[nlohmann\_json](https://github.com/nlohmann/json)|N/A|
 |[matplotlib-cpp](https://github.com/lava/matplotlib-cpp)|N/A|
+
+**Compiler**
+- GCC 11 above
+- Clang 13 above
 
 ## Install
 ```console
@@ -138,16 +143,16 @@ int main()
 
 The potential output:
 ```text
-[  1] cpu: 1.02 deadline: 3 group: dummy task_id: CC5855F2FB5922492B34F37B994CD5D
-[  2] cpu: 1.14 deadline: 4 group: dummy task_id: 13E009115B674D4A50DD60CE847DFC2
-[  3] cpu: 0.76 deadline: 4 group: dummy task_id: 1F276AAFF89D17AAE219E987DA7998A
-[  4] cpu: 0.34 deadline: 1 group: dummy task_id: 5D3DDEB066A080C9AC3A9B9DF752A91
-[  5] cpu: 0.81 deadline: 2 group: dummy task_id: 3FC95B4E167FEF99957143D35D21463
-[  6] cpu: 1.00 deadline: 4 group: dummy task_id: 82D8F41470CD15DB51D28E1D3A859AF
-[  7] cpu: 1.03 deadline: 3 group: dummy task_id: 4273D1952CB9B0099D36904978E9B28
-[  8] cpu: 0.74 deadline: 3 group: dummy task_id: 8A201C54390FD95BA6A467F1426048B
-[  9] cpu: 0.29 deadline: 3 group: dummy task_id: F3FD22F2A9196DE93915ACEF0A612FA
-[ 10] cpu: 0.52 deadline: 4 group: dummy task_id: 072EA1D4AB870B2B15ABCC5DE036FBE
+[ 1] cpu: 1.02 deadline: 3 group: dummy task_id: CC5855F2FB5922492B34F37B994CD5D
+[ 2] cpu: 1.14 deadline: 4 group: dummy task_id: 13E009115B674D4A50DD60CE847DFC2
+[ 3] cpu: 0.76 deadline: 4 group: dummy task_id: 1F276AAFF89D17AAE219E987DA7998A
+[ 4] cpu: 0.34 deadline: 1 group: dummy task_id: 5D3DDEB066A080C9AC3A9B9DF752A91
+[ 5] cpu: 0.81 deadline: 2 group: dummy task_id: 3FC95B4E167FEF99957143D35D21463
+[ 6] cpu: 1.00 deadline: 4 group: dummy task_id: 82D8F41470CD15DB51D28E1D3A859AF
+[ 7] cpu: 1.03 deadline: 3 group: dummy task_id: 4273D1952CB9B0099D36904978E9B28
+[ 8] cpu: 0.74 deadline: 3 group: dummy task_id: 8A201C54390FD95BA6A467F1426048B
+[ 9] cpu: 0.29 deadline: 3 group: dummy task_id: F3FD22F2A9196DE93915ACEF0A612FA
+[10] cpu: 0.52 deadline: 4 group: dummy task_id: 072EA1D4AB870B2B15ABCC5DE036FBE
 ```
 
 **Save tasks and Load them from files**
@@ -184,18 +189,18 @@ int main()
 The potential output:
 ```text
 t1:
-[  1] cpu: 0.94 deadline: 3 group: dummy task_id: C8487480083EF6FA51A07F6786112B2
-[  2] cpu: 0.87 deadline: 3 group: dummy task_id: AA6E00D9D1D676999810EC793D4091F
-[  3] cpu: 0.70 deadline: 3 group: dummy task_id: D7C9B93D88725A6B0A7F24C8D5576E9
-[  4] cpu: 0.27 deadline: 4 group: dummy task_id: D8A72C409FC97BD9B8C6478CD69D23A
-[  5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
+[1] cpu: 0.94 deadline: 3 group: dummy task_id: C8487480083EF6FA51A07F6786112B2
+[2] cpu: 0.87 deadline: 3 group: dummy task_id: AA6E00D9D1D676999810EC793D4091F
+[3] cpu: 0.70 deadline: 3 group: dummy task_id: D7C9B93D88725A6B0A7F24C8D5576E9
+[4] cpu: 0.27 deadline: 4 group: dummy task_id: D8A72C409FC97BD9B8C6478CD69D23A
+[5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
 
 t2:
-[  1] cpu: 0.94 deadline: 3 group: dummy task_id: C8487480083EF6FA51A07F6786112B2
-[  2] cpu: 0.87 deadline: 3 group: dummy task_id: AA6E00D9D1D676999810EC793D4091F
-[  3] cpu: 0.70 deadline: 3 group: dummy task_id: D7C9B93D88725A6B0A7F24C8D5576E9
-[  4] cpu: 0.27 deadline: 4 group: dummy task_id: D8A72C409FC97BD9B8C6478CD69D23A
-[  5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
+[1] cpu: 0.94 deadline: 3 group: dummy task_id: C8487480083EF6FA51A07F6786112B2
+[2] cpu: 0.87 deadline: 3 group: dummy task_id: AA6E00D9D1D676999810EC793D4091F
+[3] cpu: 0.70 deadline: 3 group: dummy task_id: D7C9B93D88725A6B0A7F24C8D5576E9
+[4] cpu: 0.27 deadline: 4 group: dummy task_id: D8A72C409FC97BD9B8C6478CD69D23A
+[5] cpu: 0.30 deadline: 3 group: dummy task_id: 05019AFC1C46E9581755D2B819B5092
 ```
 
 ### Iterate through tasks
@@ -282,26 +287,79 @@ int main()
 The potential output:
 ```text
 Before:
-[  1] cpu: 1.14 deadline: 4 group: dummy task_id: 9AD1D88CE2E541198061EDEEAB10497 
-[  2] cpu: 0.91 deadline: 4 group: dummy task_id: 7CABEFFCD3065A384461F000B0225D5 
-[  3] cpu: 0.61 deadline: 4 group: dummy task_id: A41D4073CCFD0A0A815FD93D1EBFB85 
-[  4] cpu: 0.31 deadline: 2 group: dummy task_id: D83E435EF572337AAED1742252D218B 
-[  5] cpu: 0.87 deadline: 4 group: dummy task_id: 50C236D2D6D5EFB863B089CAAFD16DC 
-[  6] cpu: 0.99 deadline: 1 group: dummy task_id: 039D54B8EFB551B9AFE1BFD52E2FAD7 
-[  7] cpu: 0.41 deadline: 3 group: dummy task_id: F59EC4AF406CC6C9B8E7CED4457324A 
-[  8] cpu: 0.24 deadline: 2 group: dummy task_id: E8BFD48C35299B099FC7CE5C9A98784 
-[  9] cpu: 1.01 deadline: 1 group: dummy task_id: 1036DE54D22172C9CE3BD8A48353C78 
-[ 10] cpu: 1.08 deadline: 3 group: dummy task_id: 4C94DB3A661E42B9597E1E0373B62FE 
+[ 1] cpu: 0.91 deadline: 2 group: dummy task_id: D759A6B6161BCE3B25C7AC79064D082
+[ 2] cpu: 0.36 deadline: 1 group: dummy task_id: F058239672AD6108DF9CFBDA74B5628
+[ 3] cpu: 0.27 deadline: 2 group: dummy task_id: 109DC14559C70AB880E2AE44588E2B6
+[ 4] cpu: 1.05 deadline: 2 group: dummy task_id: 1D55F6D4EC004FBB0D449EF3FC325A2
+[ 5] cpu: 0.45 deadline: 4 group: dummy task_id: 5FC152A187472BCB51FEC24C1B34808
+[ 6] cpu: 1.03 deadline: 4 group: dummy task_id: 3811B94C6FB3E20817FA648746EEFB7
+[ 7] cpu: 0.43 deadline: 4 group: dummy task_id: 009A7DA8A7E0643B84391C790D0562B
+[ 8] cpu: 0.74 deadline: 2 group: dummy task_id: 486E9DD50B5AE6BA4DB76CB6CCAD057
+[ 9] cpu: 0.93 deadline: 3 group: dummy task_id: 770DE1C994C61ACBAAF8C708C0A90D8
+[10] cpu: 0.89 deadline: 1 group: dummy task_id: 026D7FF78ADDEC098EF62A6316DD75C
 
 After:
-[  1] cpu: 1.14 deadline: 4 group: dummy memory: 63.53 task_id: 9AD1D88CE2E541198061EDEEAB10497 
-[  2] cpu: 0.91 deadline: 4 group: dummy memory: 17.95 task_id: 7CABEFFCD3065A384461F000B0225D5 
-[  3] cpu: 0.61 deadline: 20 group: dummy memory: 51.57 task_id: A41D4073CCFD0A0A815FD93D1EBFB85 
-[  4] cpu: 0.31 deadline: 2 group: dummy memory: 39.79 task_id: D83E435EF572337AAED1742252D218B 
-[  5] cpu: 0.87 deadline: 4 group: dummy memory: 35.01 task_id: 50C236D2D6D5EFB863B089CAAFD16DC 
-[  6] cpu: 0.99 deadline: 1 group: dummy memory: 35.07 task_id: 039D54B8EFB551B9AFE1BFD52E2FAD7 
-[  7] cpu: 0.41 deadline: 3 group: dummy memory: 65.44 task_id: F59EC4AF406CC6C9B8E7CED4457324A 
-[  8] cpu: 0.24 deadline: 2 group: dummy memory: 78.54 task_id: E8BFD48C35299B099FC7CE5C9A98784 
-[  9] cpu: 1.01 deadline: 1 group: dummy memory: 92.91 task_id: 1036DE54D22172C9CE3BD8A48353C78 
-[ 10] cpu: 1.08 deadline: 3 group: dummy memory: 92.70 task_id: 4C94DB3A661E42B9597E1E0373B62FE
+[ 1] cpu: 0.91 deadline: 2 group: dummy memory: 12.29 task_id: D759A6B6161BCE3B25C7AC79064D082
+[ 2] cpu: 0.36 deadline: 1 group: dummy memory: 47.81 task_id: F058239672AD6108DF9CFBDA74B5628
+[ 3] cpu: 0.27 deadline: 20 group: dummy memory: 99.64 task_id: 109DC14559C70AB880E2AE44588E2B6
+[ 4] cpu: 1.05 deadline: 2 group: dummy memory: 17.39 task_id: 1D55F6D4EC004FBB0D449EF3FC325A2
+[ 5] cpu: 0.45 deadline: 4 group: dummy memory: 90.99 task_id: 5FC152A187472BCB51FEC24C1B34808
+[ 6] cpu: 1.03 deadline: 4 group: dummy memory: 45.24 task_id: 3811B94C6FB3E20817FA648746EEFB7
+[ 7] cpu: 0.43 deadline: 4 group: dummy memory: 41.11 task_id: 009A7DA8A7E0643B84391C790D0562B
+[ 8] cpu: 0.74 deadline: 2 group: dummy memory: 84.72 task_id: 486E9DD50B5AE6BA4DB76CB6CCAD057
+[ 9] cpu: 0.93 deadline: 3 group: dummy memory: 82.40 task_id: 770DE1C994C61ACBAAF8C708C0A90D8
+[10] cpu: 0.89 deadline: 1 group: dummy memory: 37.67 task_id: 026D7FF78ADDEC098EF62A6316DD75C
+```
+
+### Specify the default offloading strategy
+```cpp
+#include <okec/okec.hpp>
+
+
+int main()
+{
+    namespace log = okec::log;
+    log::set_level(log::level::debug);
+    okec::simulator sim;
+
+    // Create 1 base station
+    okec::base_station_container base_stations(sim, 1);
+    // Create 5 edge servers
+    okec::edge_device_container edge_servers(sim, 5);
+    // Create 2 user devices
+    okec::client_device_container user_devices(sim, 2);
+
+    // Connect the base stations and edge servers
+    base_stations.connect_device(edge_servers);
+
+    // Set the network model for every device
+    okec::multiple_and_single_LAN_WLAN_network_model model;
+    okec::network_initializer(model, user_devices, base_stations.get(0));
+
+    // Initialize the resources for each edge server.
+    okec::resource_container resources(edge_servers.size());
+    resources.initialize([](auto res) {
+        res->attribute("cpu", okec::rand_range(2.1, 2.2).to_string());
+    });
+
+    // Install each resource on each edge server.
+    edge_servers.install_resources(resources);
+
+    // Specify the default offloading strategy
+    auto decision_engine = std::make_shared<okec::worst_fit_decision_engine>(&user_devices, &base_stations);
+    decision_engine->initialize();
+
+    // Run the simulator
+    sim.run();
+}
+```
+
+When your program runs, the decision engine will automatically gather resource information from all edge servers that have installed resources.
+
+```text
+[+0.00000000s] █ The decision engine received resource information from edge server(10.1.1.2).
+[+0.00000000s] █ The decision engine received resource information from edge server(10.1.2.2).
+[+0.00000000s] █ The decision engine received resource information from edge server(10.1.2.3).
+[+0.00000000s] █ The decision engine received resource information from edge server(10.1.2.4).
+[+0.00000000s] █ The decision engine received resource information from edge server(10.1.2.5).
 ```

@@ -65,7 +65,7 @@ struct fmt::formatter<okec::task> {
         std::string info;
         for (const auto& item : t.data())
         {
-            info += fmt::format("[{:>3}] ", index++);
+            info += fmt::format("[{:>{}}] ", index++, std::to_string(t.size()).length());
             if (item.contains("/header"_json_pointer))
             {
                 for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
@@ -148,7 +148,7 @@ struct fmt::formatter<okec::resource_container> {
         int index = 1;
         std::string info;
         for (auto item = rs.cbegin(); item != rs.cend(); ++item) {
-            info += fmt::format("[{:>3}] ", index++);
+            info += fmt::format("[{:>{}}] ", index++, std::to_string(rs.size()).length());
             for (auto it = (*item)->begin(); it != (*item)->end(); ++it)
             {
                 info += fmt::format("{}: {} ", it.key(), it.value());
@@ -171,12 +171,12 @@ struct fmt::formatter<okec::response> {
     }
 
     template <typename FormatContext>
-    auto format(const okec::response& t, FormatContext& ctx) {
+    auto format(const okec::response& r, FormatContext& ctx) {
         int index = 1;
         std::string info;
-        for (const auto& item : t.data())
+        for (const auto& item : r.data())
         {
-            info += fmt::format("[{:>3}] ", index++);
+            info += fmt::format("[{:>{}}] ", index++, std::to_string(r.size()).length());
             for (auto it = item.begin(); it != item.end(); ++it)
             {
                 info += fmt::format("{}: {} ", it.key(), it.value());

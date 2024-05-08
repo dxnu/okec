@@ -11,7 +11,7 @@ namespace okec
 simulator::simulator(ns3::Time time)
     : stop_time_{std::move(time)}
 {
-    log::debug("C++ version: {}", __cplusplus);
+    // log::debug("C++ version: {}", __cplusplus);
     ns3::Time::SetResolution(ns3::Time::NS);
 }
 
