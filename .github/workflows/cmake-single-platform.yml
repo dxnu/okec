@@ -48,14 +48,14 @@ jobs:
         wget https://www.nsnam.org/releases/ns-allinone-3.41.tar.bz2
         tar xfj ns-allinone-3.41.tar.bz2
         cd ns-allinone-3.41/ns-3.41
-        ./ns3 configure --enable-examples --enable-tests --cxx-standard=23
+        ./ns3 configure --enable-examples --enable-tests --cxx-standard=23 --prefix=${{github.workspace}}/ns3
         ./ns3 build
-        sudo ./ns3 install
+        ./ns3 install
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH=${{github.workspace}}/libraries/libtorch
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{github.workspace}}/libraries/libtorch;${{github.workspace}}/ns3"
     
     - name: Build
       # Build your program with the given configuration
