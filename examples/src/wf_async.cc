@@ -25,8 +25,7 @@ void my_monitor(std::string_view address, std::string_view attr, std::string_vie
     file << okec::format("At time {:.2f}s,{},{},{}\n", okec::now::seconds(), address, old_val, new_val);
 }
 
-okec::awaitable
-offloading(std::shared_ptr<okec::client_device> user, okec::task t) {
+okec::awaitable offloading(auto user, okec::task t) {
     log::debug("offloading begin");
     
     co_await user->async_send(std::move(t));
