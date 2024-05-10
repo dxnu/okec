@@ -62,18 +62,18 @@ jobs:
         curl -LO https://github.com/fmtlib/fmt/releases/download/10.2.1/fmt-10.2.1.zip
         unzip fmt-10.2.1.zip -d ${{github.workspace}}/libraries
         cd ${{github.workspace}}/libraries/fmt-10.2.1
-        mkdir build && cd build
-        cmake ..
-        sudo make install --prefix=${{github.workspace}}/installed/fmtlib
+        cmake -S . -B build
+        cmake --build ./build
+        cmake --install ./build --prefix=${{github.workspace}}/installed/fmtlib
         
     - name: Install nlohmann json
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         git clone https://github.com/nlohmann/json.git libraries/nlohmann
         cd libraries/nlohmann
-        mkdir build && cd build
-        cmake ..
-        sudo make install --prefix=${{github.workspace}}/installed/nlohmann
+        cmake -S . -B build
+        cmake --build ./build
+        cmake --install ./build --prefix=${{github.workspace}}/installed/nlohmann
         
     - name: Install ns3
       if: steps.cache.outputs.cache-hit != 'true'
