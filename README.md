@@ -24,6 +24,7 @@
   - [Specify the default offloading strategy](#specify-the-default-offloading-strategy)
   - [Asynchronously offload your first set of tasks using the worst-fit decision engine with callbacks](#asynchronously-offload-your-first-set-of-tasks-using-the-worst-fit-decision-engine-with-callbacks)
   - [Asynchronously offload your first set of tasks using the worst-fit decision engine with coroutines](#asynchronously-offload-your-first-set-of-tasks-using-the-worst-fit-decision-engine-with-coroutines)
+  - [Discretely offload the task using the DQN decision engine](#discretely-offload-the-task-using-the-dqn-decision-engine)
 
 ## Prerequisites
 **Libraries**
@@ -39,6 +40,10 @@
 - GCC 13 above
 - Clang 13 above
 
+|OS|Compiler Version|Status|
+|---|---|---|
+|Ubuntu 22.04|GCC 13.1|N/A|
+
 ## Install
 ```console
 $ git clone https://github.com/lkimuk/okec.git
@@ -48,31 +53,46 @@ $ cmake --build build
 $ cmake --install ./build
 ```
 
+[!NOTE]
+If your prerequisite libraries are not installed in standard directories, you may need to specify multiple paths as follows:
+
+```console
+$ git clone https://github.com/lkimuk/okec.git
+$ cd okec
+$ cmake -S . -B build -DCMAKE_PREFIX_PATH:STRING="/absolute/path/to/your/libtorch;/absolute/path/to/your/other/libraries"
+$ cmake --build build
+$ cmake --install ./build
+```
+
+
 **Run examples**
 ```console
 $ cd examples
 $ cmake -S . -B build
 $ cmake --build build
 $ ./wf-async
+$ ./wf_discrete
+$ ./wf_net
+$ ./rf_discrete
 ```
 
 ## Features
 
-- Dynamic network modeling.
-- Mobility.
-- Multi-MEC architectures.
-- Dynamic Task/Resource attributes.
-- Resource monitoring.
-- Device interaction.
-- Decision engine
-  - Non-maching learning based offloading algorithms.
-  - Maching learning based offloading algorithms.
-- Linear/Discrete simulation.
-- Network topology visualization.
-- Results visualization.
-- Multi-layer scenarios.
-- Interated datasets.
-- ...
+- [x] Dynamic network modeling.
+- [x] Mobility.
+- [x] Multi-MEC architectures.
+- [x] Dynamic Task/Resource attributes.
+- [x] Resource monitoring.
+- [x] Device interaction.
+- [x] Decision engine
+  - [x] Non-maching learning based offloading algorithms.
+  - [x] Maching learning based offloading algorithms.
+- [x] Linear/Discrete simulation.
+- [x] Network topology visualization.
+- [x] Results visualization.
+- [x] Multi-layer scenarios.
+- [x] Interated datasets.
+- [ ] ...
 
 ## Examples
 ### Create heterogeneous devices with custom resources
@@ -515,3 +535,72 @@ int main()
 
 Output:
 ![offloading-your-first-set-of-tasks-using-the-worst-fit-decision-engine](images/offloading-your-first-set-of-tasks-using-the-worst-fit-decision-engine.png)
+
+### Discretely offload the task using the DQN decision engine
+
+```cpp
+#include <okec/okec.hpp>
+
+void generate_task(okec::task& t, int number, std::string const& group)
+{
+    for (auto i = number; i-- > 0;)
+    {
+        t.emplace_back({
+            { "task_id", okec::task::get_unique_id() },
+            { "group", group },
+            { "cpu", okec::rand_range(0.2, 1.2).to_string() },
+            { "deadline", okec::rand_range(1, 5).to_string() },
+        });
+    }
+}
+
+
+int main()
+{
+    okec::simulator sim;
+
+    // Create 1 base station
+    okec::base_station_container base_stations(sim, 1);
+    // Create 5 edge servers
+    okec::edge_device_container edge_servers(sim, 5);
+    // Create 2 user devices
+    okec::client_device_container user_devices(sim, 2);
+
+    // Connect the base stations and edge servers
+    base_stations.connect_device(edge_servers);
+
+    // Set the network model for every device
+    okec::multiple_and_single_LAN_WLAN_network_model model;
+    okec::network_initializer(model, user_devices, base_stations.get(0));
+
+    // Initialize the resources for each edge server.
+    okec::resource_container resources(edge_servers.size());
+    resources.initialize([](auto res) {
+        res->attribute("cpu", okec::rand_range(2.1, 2.2).to_string());
+    });
+
+    // Install each resource on each edge server.
+    edge_servers.install_resources(resources);
+
+    // Specify the default offloading strategy
+    auto decision_engine = std::make_shared<okec::DQN_decision_engine>(&user_devices, &base_stations);
+    decision_engine->initialize();
+
+
+    // Discretely offload the task using the DQN decision engine.
+    okec::task t;
+    generate_task(t, 5, "1st");
+    int episode = 5;
+    decision_engine->train(t, episode);
+
+
+    // Run the simulator
+    sim.run();
+}
+```
+
+Output:
+![discretely-offload-the-task-using-the-dqn-decision-engine](/images/discretely-offload-the-task-using-the-dqn-decision-engine.png)
+
+### Log
+This logging module is inspired by [Stargirl](https://x.com/theavalkyrie/status/1768787170137940141).

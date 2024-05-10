@@ -31,8 +31,9 @@ jobs:
       
     - name: Install fmtlib
       run: |
-        git clone https://github.com/fmtlib/fmt.git libraries/fmtlib
-        cd libraries/fmtlib
+        curl -LO https://github.com/fmtlib/fmt/releases/download/10.2.1/fmt-10.2.1.zip
+        unzip fmt-10.2.1.zip -d ${{github.workspace}}/libraries
+        cd ${{github.workspace}}/libraries/fmt-10.2.1
         mkdir build && cd build
         cmake ..
         sudo make install

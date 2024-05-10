@@ -80,10 +80,10 @@ auto worst_fit_decision_engine::make_decision(const task_element& header) -> res
     
     double cpu_demand = std::stod(header.get_header("cpu"));
     double cpu_supply = TO_DOUBLE(edge_max["cpu"]);
-    double tolorable_time = std::stod(header.get_header("deadline"));
+    // double tolorable_time = std::stod(header.get_header("deadline"));
     // If found a avaliable edge server
     if (cpu_supply >= cpu_demand) {
-        double processing_time = cpu_demand / cpu_supply;
+        // double processing_time = cpu_demand / cpu_supply;
 
         // 暂时不考虑 tolerable time
         // if (processing_time < tolorable_time) {
@@ -288,7 +288,7 @@ auto worst_fit_decision_engine::on_bs_decision_message(
 auto worst_fit_decision_engine::on_bs_response_message(
     base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
-    auto ipv4_remote = ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
+    // auto ipv4_remote = ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
     // log::success("bs({:ip}) has received a response from {:ip}", bs->get_address(), ipv4_remote);
 
     message msg(packet);

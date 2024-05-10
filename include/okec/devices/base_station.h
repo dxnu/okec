@@ -15,7 +15,7 @@
 #include <okec/common/message.h>
 #include <okec/devices/cloud_server.h>
 #include <okec/devices/edge_device.h>
-#include <okec/utils/format_helper.hpp>
+#include <okec/utils/log.h>
 #include <concepts>
 #include <functional>
 #include <ranges>
@@ -100,7 +100,7 @@ public:
     template <typename... EdgeDeviceContainers>
     auto connect_device(EdgeDeviceContainers&... containers) -> bool {
         if (sizeof...(containers) != size()) {
-            fmt::print(fg(fmt::color::red), "Error base_station_container::connect_device. Arguments size does not match the container size!\n");
+            log::error("Error base_station_container::connect_device. Arguments size does not match the container size!");
             return false;
         }
 

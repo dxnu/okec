@@ -17,6 +17,7 @@
 #include <okec/utils/log.h>
 #include <functional> // std::bind_front
 
+
 namespace okec
 {
 
@@ -157,7 +158,7 @@ auto Env::train_next(torch::Tensor observation) -> void
                     double cpu_demand = accessor[sizes[0]-1][sizes[1]-1]; // 状态中最后一位是任务需求
                     // std::cout << "任务需求: " << cpu_demand << "\n";
 
-                    double processing_time = cpu_demand / new_cpu;
+                    // double processing_time = cpu_demand / new_cpu;
                     // reward = -alpha * (cpu_demand / new_cpu) + beta * (new_cpu - cpu_demand);
                     reward = -alpha * (cpu_demand / new_cpu) + beta * new_cpu;
                     // reward = alpha * (average_processing_time - processing_time) + beta * (new_cpu - cpu_demand);
@@ -483,15 +484,13 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
         // RL->print_memory();
         // fmt::print("total times\n{}\n", total_times);
         auto total_time = std::accumulate(total_times.begin(), total_times.end(), .0);
-        fmt::print("average total times\n{}\n", total_time / total_times.size());
         auto [min, max] = std::ranges::minmax(total_times);
-        fmt::print("min: {}, max: {}\n", min, max);
+        log::info("Average total times: {}, min: {}, max: {}", total_time / total_times.size(), min, max);
         // RL->plot_cost();
         return;
     }
 
-    fmt::print(fg(fmt::color::blue), "At time {} seconds 正在训练第 {} 轮......\n", 
-        ns3::Simulator::Now().GetSeconds(), episode_all - episode + 1);
+    log::info("Training iteration {} is in progress.", episode_all - episode + 1);
 
 
     // 离散训练，必须每轮都创建一份对象，以隔离状态
@@ -510,9 +509,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
         }
         // t.print();
         total_times.push_back(total_time);
-        fmt::print(fg(fmt::color::yellow), "total processing time: {}\n", total_time);
-        // fmt::print(fg(fmt::color::yellow), "average processing time: {}\n", total_time / t.size());
-        fmt::print("\n");
+        log::success("Total processing time: {}", total_time);
         // t.print();
         // fmt::print("cache: \n {}\n", cache.dump(4));
         

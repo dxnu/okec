@@ -59,7 +59,8 @@ target_link_libraries(okec PUBLIC
     nlohmann_json::nlohmann_json
     ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi
 )
-    
+
+# target_compile_options(okec PRIVATE -Wall -Werror)
 target_compile_features(okec PUBLIC cxx_std_23)
 
 include(GNUInstallDirs)
