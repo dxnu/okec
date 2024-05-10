@@ -39,7 +39,7 @@ jobs:
 
     - name: Install python dev
       run: |
-        sudo apt-get install python-matplotlib python-numpy python-dev
+        sudo apt-get install python3-matplotlib python3-numpy python3-dev
 
     - name: Install Matplotlib-cpp
       if: steps.cache.outputs.cache-hit != 'true'
