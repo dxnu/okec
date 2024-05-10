@@ -122,6 +122,13 @@ inline auto error(fmt::format_string<Args...>&& fmt, Args&&... args)
 }
 
 
+inline auto indent_size() -> std::size_t {
+    constexpr std::string_view time_format = "[+{:.8f}s] ";
+    constexpr std::string_view solid_square_format = "\u2588 ";
+    return fmt::formatted_size(time_format, ns3::Simulator::Now().GetSeconds()) +
+           fmt::formatted_size(solid_square_format);;
+}
+
 } // namespace okec::log
 
 #endif // OKEC_LOG_H_
