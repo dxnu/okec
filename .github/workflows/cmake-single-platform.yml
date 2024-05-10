@@ -59,9 +59,8 @@ jobs:
     - name: Install fmtlib
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
-        curl -LO https://github.com/fmtlib/fmt/releases/download/10.2.1/fmt-10.2.1.zip
-        unzip fmt-10.2.1.zip -d ${{github.workspace}}/libraries
-        cd ${{github.workspace}}/libraries/fmt-10.2.1
+        git clone https://github.com/fmtlib/fmt.git libraries/fmtlib
+        cd libraries/fmtlib
         cmake -S . -B build
         cmake --build ./build
         cmake --install ./build --prefix=${{github.workspace}}/installed/fmtlib

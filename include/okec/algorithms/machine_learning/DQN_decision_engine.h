@@ -52,6 +52,7 @@ private:
     task t_;
     device_cache cache_;
     std::shared_ptr<DeepQNetwork> RL_;
+    std::size_t step_;
     std::vector<double> state_; // 初始状态
     torch::Tensor observation_;
     done_callback_t done_fn_;
@@ -99,6 +100,7 @@ private:
     base_station_container* base_stations_{};
 
     std::shared_ptr<DeepQNetwork> RL;
+    std::vector<double> total_times_;
 };
 
 

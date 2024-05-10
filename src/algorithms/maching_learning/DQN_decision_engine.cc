@@ -22,9 +22,10 @@ namespace okec
 {
 
 Env::Env(const device_cache& cache, const task& t, std::shared_ptr<DeepQNetwork> RL)
-    : cache_(cache)
-    , t_(t)
+    : t_(t)
+    , cache_(cache)
     , RL_(RL)
+    , step_(0)
 {
     // 先为所有任务设置处理标识
     for (auto& t : t_.elements_view()) {
@@ -71,7 +72,7 @@ auto Env::train() -> void
 // 任务量特别大时，是否会存在不会调用 train_next 的情况？？？ 需要思考一下
 auto Env::train_next(torch::Tensor observation) -> void
 {
-    static std::size_t step = 0;
+    // static std::size_t step = 0;
     // std::cout << "observation:\n" << observation << "\n";
     // fmt::print("train task:\n {}\n", t_.dump(4));
 
@@ -113,7 +114,7 @@ auto Env::train_next(torch::Tensor observation) -> void
             RL_->store_transition(observation, action, reward, observation); // 状态不曾改变
             // fmt::print("reward: {}, done: {}\n", reward, false);
 
-            this->learn(step++);
+            this->learn(step_++);
             // this->train_next(std::move(observation));
         } else { // 可以处理
             processing_time = cpu_demand / cpu_supply;
@@ -133,7 +134,7 @@ auto Env::train_next(torch::Tensor observation) -> void
 
             // 资源恢复
             auto self = shared_from_this();
-            ns3::Simulator::Schedule(ns3::Seconds(processing_time), [self, action, cpu_demand, &step, alpha, beta, average_processing_time]() {
+            ns3::Simulator::Schedule(ns3::Seconds(processing_time), [self, action, cpu_demand, alpha, beta, average_processing_time]() {
                 auto& edge_cache = self->cache_.view();
                 auto& server = edge_cache.at(action);
                 double cur_cpu = TO_DOUBLE(server["cpu"]);
@@ -165,7 +166,7 @@ auto Env::train_next(torch::Tensor observation) -> void
                     // reward = alpha * (average_processing_time - processing_time) + beta * new_cpu;
                     self->RL_->store_transition(observation, action, reward, observation);
 
-                    self->learn(step++);
+                    self->learn(self->step_++);
 
                     self->train_next(std::move(observation));
                 }
@@ -186,7 +187,7 @@ auto Env::train_next(torch::Tensor observation) -> void
                 RL_->store_transition(observation, action, reward, observation_new);
                 // std::cout << "new state\n" << observation_new << "\n";
 
-                this->learn(step++);
+                this->learn(step_++);
                 this->train_next(std::move(observation_new)); // 继续训练下一个
             }
         }
@@ -479,13 +480,13 @@ auto DQN_decision_engine::on_clients_reponse_message(
 
 auto DQN_decision_engine::train_start(const task& train_task, int episode, int episode_all) -> void
 {
-    static std::vector<double> total_times;
+    // static std::vector<double> total_times;
     if (episode <= 0) {
         // RL->print_memory();
         // fmt::print("total times\n{}\n", total_times);
-        auto total_time = std::accumulate(total_times.begin(), total_times.end(), .0);
-        auto [min, max] = std::ranges::minmax(total_times);
-        log::info("Average total times: {}, min: {}, max: {}", total_time / total_times.size(), min, max);
+        auto total_time = std::accumulate(total_times_.begin(), total_times_.end(), .0);
+        auto [min, max] = std::ranges::minmax(total_times_);
+        log::info("Average total times: {}, min: {}, max: {}", total_time / total_times_.size(), min, max);
         // RL->plot_cost();
         return;
     }
@@ -501,14 +502,14 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
     env->trace_resource(env->episode);
 
     auto self = shared_from_base<this_type>();
-    env->when_done([self, &train_task, episode, episode_all, &total_times](const task& t, const device_cache& cache) {
+    env->when_done([self, &train_task, episode, episode_all](const task& t, const device_cache& cache) {
         log::debug("train end (episode={})", episode_all - episode + 1);
         double total_time = .0f;
         for (const auto& elem : t.elements()) {
             total_time += std::stod(elem.get_header("processing_time"));
         }
         // t.print();
-        total_times.push_back(total_time);
+        self->total_times_.push_back(total_time);
         log::success("Total processing time: {}", total_time);
         // t.print();
         // fmt::print("cache: \n {}\n", cache.dump(4));
