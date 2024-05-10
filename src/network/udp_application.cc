@@ -18,7 +18,6 @@
 #include <ns3/ethernet-header.h>
 #include <ns3/ipv4.h>
 #include <ns3/ipv4-header.h>
-#include <ns3/log.h>
 #include <ns3/simulator.h>
 #include <ns3/udp-header.h>
 #include <ns3/udp-socket.h>

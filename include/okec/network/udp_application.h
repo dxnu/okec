@@ -12,7 +12,6 @@
 #define OKEC_UDP_APPLICATION_H_
 
 #include <okec/common/message_handler.hpp>
-#include <fmt/core.h>
 #include <ns3/application.h>
 #include <ns3/socket.h>
 

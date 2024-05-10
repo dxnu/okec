@@ -36,7 +36,7 @@
 |[matplotlib-cpp](https://github.com/lava/matplotlib-cpp)|N/A|
 
 **Compiler**
-- GCC 11 above
+- GCC 13 above
 - Clang 13 above
 
 ## Install
