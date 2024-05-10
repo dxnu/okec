@@ -152,7 +152,7 @@ auto decision_engine::initialize_device(base_station_container* bs_container, cl
                 for (auto it = cs_res->begin(); it != cs_res->end(); ++it)
                     (*item)[it.key()] = it.value();
 
-            log::debug("The decision engine got the resource information of cloud({}).", (*item)["ip"]);
+            log::debug("The decision engine got the resource information of cloud({}).", (*item)["ip"].template get<std::string>());
         } else {
             // 说明设备此时还未绑定资源，通过网络询问一下
             ns3::Simulator::Schedule(ns3::Seconds(1.0), +[](const std::shared_ptr<base_station> socket, const ns3::Ipv4Address& ip, uint16_t port) {
