@@ -36,7 +36,12 @@ auto simulator::stop_time() const -> ns3::Time
     return stop_time_;
 }
 
-auto simulator::submit(const std::string& ip, std::function<void(response&&)> fn) -> void
+auto simulator::enable_visualizer() -> void
+{
+    ns3::GlobalValue::Bind("SimulatorImplementationType", ns3::StringValue("ns3::VisualSimulatorImpl"));
+}
+
+auto simulator::submit(const std::string &ip, std::function<void(response &&)> fn) -> void
 {
     completion_[ip] = fn;
 }

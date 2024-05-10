@@ -19,6 +19,8 @@ public:
     auto stop_time(ns3::Time time) -> void;
     auto stop_time() const -> ns3::Time;
 
+    auto enable_visualizer() -> void;
+
     auto submit(const std::string& ip, std::function<void(response&&)> fn) -> void;
 
     auto complete(const std::string& ip, response&& r) -> void;

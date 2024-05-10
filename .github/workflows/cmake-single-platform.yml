@@ -24,7 +24,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # Step to cache downloaded dependencies
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          libraries/matplotlib-cpp
+          libraries/libtorch
+          libraries/fmt-10.2.1
+          libraries/nlohmann
+          ns-allinone-3.41
+        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
     - name: Install Matplotlib-cpp
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         git clone https://github.com/lava/matplotlib-cpp.git libraries/matplotlib-cpp
         cd libraries/matplotlib-cpp
@@ -33,11 +48,13 @@ jobs:
         sudo make install
 
     - name: Install LibTorch
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip
         unzip libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip -d ${{github.workspace}}/libraries
       
     - name: Install fmtlib
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         curl -LO https://github.com/fmtlib/fmt/releases/download/10.2.1/fmt-10.2.1.zip
         unzip fmt-10.2.1.zip -d ${{github.workspace}}/libraries
@@ -47,6 +64,7 @@ jobs:
         sudo make install
         
     - name: Install nlohmann json
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         git clone https://github.com/nlohmann/json.git libraries/nlohmann
         cd libraries/nlohmann
@@ -55,6 +73,7 @@ jobs:
         sudo make install
         
     - name: Install ns3
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         wget https://www.nsnam.org/releases/ns-allinone-3.41.tar.bz2
         tar xfj ns-allinone-3.41.tar.bz2

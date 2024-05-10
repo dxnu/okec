@@ -32,6 +32,7 @@ message(STATUS "Found Torch: ${TORCH_FOUND}")
 message(STATUS "Found fmtlib: ${fmt_FOUND}")
 message(STATUS "Found nlohmann_json: ${nlohmann_json_FOUND}")
 message(STATUS "Found ns3: ${ns3_FOUND}")
+message(STATUS "Found python libs: ${PYTHON_INCLUDE_DIRS}")
 
 # Found all source files
 file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cc")

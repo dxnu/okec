@@ -109,5 +109,6 @@ int main(int argc, char **argv)
 
     log::debug("main-2--");
 
+    // sim.enable_visualizer();
     sim.run();
 }
