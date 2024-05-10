@@ -59,7 +59,7 @@ target_link_libraries(okec PUBLIC
     ${PYTHON_LIBRARIES}
     fmt::fmt
     nlohmann_json::nlohmann_json
-    ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi ns3::libvisualizer
+    ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi
 )
 
 # target_compile_options(okec PRIVATE -Wall -Werror)
