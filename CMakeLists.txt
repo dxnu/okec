@@ -50,6 +50,7 @@ target_sources(okec PRIVATE ${SOURCE_FILES})
 target_include_directories(okec PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${PYTHON_INCLUDE_DIRS}
 )
 
 
@@ -58,7 +59,7 @@ target_link_libraries(okec PUBLIC
     ${PYTHON_LIBRARIES}
     fmt::fmt
     nlohmann_json::nlohmann_json
-    ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi
+    ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi ns3::libvisualizer
 )
 
 # target_compile_options(okec PRIVATE -Wall -Werror)
