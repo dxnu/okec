@@ -31,7 +31,7 @@ struct fmt::formatter<ns3::Ipv4Address> {
     }
 
     template <typename FormatContext>
-    auto format(const ns3::Ipv4Address& ipv4Address, FormatContext& ctx) {
+    auto format(const ns3::Ipv4Address& ipv4Address, FormatContext& ctx) const {
         std::ostringstream oss;
         uint32_t address = ipv4Address.Get();
         oss << ((address >> 24) & 0xff) << "." << ((address >> 16) & 0xff) << "."

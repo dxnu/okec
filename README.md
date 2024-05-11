@@ -543,6 +543,9 @@ Output:
 ```cpp
 #include <okec/okec.hpp>
 
+namespace olog =  okec::log;
+
+
 void generate_task(okec::task& t, int number, std::string const& group)
 {
     for (auto i = number; i-- > 0;)
@@ -559,6 +562,7 @@ void generate_task(okec::task& t, int number, std::string const& group)
 
 int main()
 {
+    olog::set_level(olog::level::all);
     okec::simulator sim;
 
     // Create 1 base station
