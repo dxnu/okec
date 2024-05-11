@@ -203,7 +203,7 @@ auto resource_container::trace_resource() -> void
     file << fmt::format("{:.2f}", ns3::Simulator::Now().GetSeconds());
     for (const auto& item : m_resources) {
         for (auto it = item->begin(); it != item->end(); ++it) {
-            file << fmt::format(",{}", it.value());
+            file << fmt::format(",{}", it.value().get<std::string>());
         }
     }
     file << "\n";

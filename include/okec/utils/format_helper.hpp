@@ -62,7 +62,7 @@ struct fmt::formatter<okec::task> {
             {
                 for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
                 {
-                    info += fmt::format("{}: {} ", it.key(), it.value());
+                    info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
                 }
             }
 
@@ -70,7 +70,7 @@ struct fmt::formatter<okec::task> {
             {
                 for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
                 {
-                    info += fmt::format("{}: {} ", it.key(), it.value());
+                    info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
                 }
             }
             info += "\n";
@@ -98,7 +98,7 @@ struct fmt::formatter<okec::resource_container> {
             info += fmt::format("[{:>{}}] ", index++, std::to_string(rs.size()).length());
             for (auto it = (*item)->begin(); it != (*item)->end(); ++it)
             {
-                info += fmt::format("{}: {} ", it.key(), it.value());
+                info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
             }
 
             info += "\n";
@@ -126,7 +126,7 @@ struct fmt::formatter<okec::response> {
             info += fmt::format("[{:>{}}] ", index++, std::to_string(r.size()).length());
             for (auto it = item.begin(); it != item.end(); ++it)
             {
-                info += fmt::format("{}: {} ", it.key(), it.value());
+                info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
             }
 
             info += "\n";
