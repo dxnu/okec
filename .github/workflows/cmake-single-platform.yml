@@ -61,7 +61,7 @@ jobs:
       run: |
         git clone https://github.com/fmtlib/fmt.git libraries/fmtlib
         cd libraries/fmtlib
-        cmake -S . -B build
+        cmake -S . -B build -DCMAKE_CXX_FLAGS="-fPIC"
         cmake --build ./build
         cmake --install ./build --prefix=${{github.workspace}}/installed/fmtlib
         
