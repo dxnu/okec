@@ -353,30 +353,30 @@ auto task::get_random_number(long min, long max) -> std::string
 
 auto task::print() const -> void
 {
-    fmt::print("{0:=^{1}}\n", "Task Info", 150);
-    int index{1};
-    for (const auto& item : m_task["task"]["items"])
-    {
-        fmt::print("[{:>3}] ", index++);
-        if (item.contains("/header"_json_pointer))
-        {
-            for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
-            {
-                fmt::print("{}: {} ", it.key(), it.value());
-            }
-        }
+    // fmt::print("{0:=^{1}}\n", "Task Info", 150);
+    // int index{1};
+    // for (const auto& item : m_task["task"]["items"])
+    // {
+    //     fmt::print("[{:>3}] ", index++);
+    //     if (item.contains("/header"_json_pointer))
+    //     {
+    //         for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
+    //         {
+    //             fmt::print("{}: {} ", it.key(), it.value());
+    //         }
+    //     }
 
-        if (item.contains("/body"_json_pointer))
-        {
-            for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
-            {
-                fmt::print("{}: {} ", it.key(), it.value());
-            }
-        }
-        fmt::print("\n");
-    }
+    //     if (item.contains("/body"_json_pointer))
+    //     {
+    //         for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
+    //         {
+    //             fmt::print("{}: {} ", it.key(), it.value());
+    //         }
+    //     }
+    //     fmt::print("\n");
+    // }
 
-    fmt::print("{0:=^{1}}\n", "", 150);
+    // fmt::print("{0:=^{1}}\n", "", 150);
 }
 
 auto task::save_to_file(const std::string& file_name) -> void
