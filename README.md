@@ -44,7 +44,7 @@
 
 |OS|Compiler Version|Status|
 |---|---|---|
-|Ubuntu 22.04|GCC 13.1|N/A|
+|Ubuntu 22.04|GCC 13.1|[![linux](https://github.com/lkimuk/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lkimuk/okec/actions/workflows/cmake-single-platform.yml)|
 
 ## Install
 ```console
