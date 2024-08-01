@@ -1,5 +1,5 @@
-site_name: OKEC
-site_url: https://okecsim.github.io/okec/
+site_name: OKEC(EdgeSim++)
+site_url: https://dxnu.github.io/okec/
 theme:
   name: material
   # logo: assets/logo.png
@@ -41,7 +41,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github-alt
-      link: https://github.com/okecsim
+      link: https://github.com/dxnu
       
 extra_css:
   - stylesheets/extra.css

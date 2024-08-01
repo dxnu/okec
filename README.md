@@ -30,17 +30,13 @@
 
 ## Prerequisites
 **Libraries**
-|Library|Version|
-|---|---|
-|[NS-3](https://www.nsnam.org/releases/ns-3-41/)|3.41|
-|[libtorch](https://pytorch.org/)|cxx11 ABI|
-|[fmtlib](https://github.com/fmtlib/fmt)|N/A|
-|[nlohmann\_json](https://github.com/nlohmann/json)|N/A|
-|[matplotlib-cpp](https://github.com/lava/matplotlib-cpp)|N/A|
+|Library|Version|Compiler|Version|Language|Version|
+|---|---|---|---|---|---|
+|[**NS-3**](https://www.nsnam.org/releases/ns-3-41/)|3.41|**GCC**|13.0 above|**C++**|23 above|
+|[**libtorch**](https://pytorch.org/)|cxx11 ABI|**Clang**|N/A|||
+|[**nlohmann\_json**](https://github.com/nlohmann/json)|N/A|**MSVC**|19.34 above|||
+|[**matplotlib-cpp**](https://github.com/lava/matplotlib-cpp)|N/A|||||
 
-**Compiler**
-- GCC 13 above
-- Clang 13 above
 
 |OS|Compiler Version|Status|
 |---|---|---|
