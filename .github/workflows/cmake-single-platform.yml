@@ -55,15 +55,6 @@ jobs:
       run: |
         curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip
         unzip libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip -d ${{github.workspace}}/installed
-      
-    - name: Install fmtlib
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: |
-        git clone https://github.com/fmtlib/fmt.git libraries/fmtlib
-        cd libraries/fmtlib
-        cmake -S . -B build -DCMAKE_CXX_FLAGS="-fPIC"
-        cmake --build ./build
-        cmake --install ./build --prefix=${{github.workspace}}/installed/fmtlib
         
     - name: Install nlohmann json
       if: steps.cache.outputs.cache-hit != 'true'

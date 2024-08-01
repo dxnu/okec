@@ -1,0 +1,103 @@
+site_name: OKEC
+site_url: https://okecsim.github.io/okec/
+theme:
+  name: material
+  # logo: assets/logo.png
+  # custom_dir: overrides
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.path # sponser only
+    - toc.follow
+    # - toc.integrate
+    # - navigation.tabs
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+      primary: teal
+      accent: purple
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+      primary: teal
+      accent: lime
+      
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/okecsim
+      
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Homepage: "index.md"
+  - Installation: "Installation.md"
+  - Tutorial:
+    - Getting started:
+      - "Formatting Output": "okec/getting-started/formatting.md"
+      - "Heterogeneous Devices": "okec/getting-started/heterogeneous-devices.md"
+      - "Log": "okec/getting-started/log.md"
+      - "Task": "okec/getting-started/task.md"
+      - "Task Offloading": "okec/getting-started/task-offloading.md"
+      - "Visualizer": "okec/getting-started/visualizer.md"
+    - Components:
+      - Algorithms:
+        - "BaseStation": "page2.md"
+      - Common:
+        - "simulator": "okec/components/common/simulator.md"
+        - "simulation time": "okec/components/common/simulation-time.md"
+        - "task": "okec/components/common/task.md"
+      - Config:
+        - "BaseStation": "page2.md"
+      - Devices:
+        - "BaseStation": "page2.md"
+      - Network:
+        - "BaseStation": "page2.md"
+      - Utils:
+        - "BaseStation": "page2.md"
+    - Customization:
+      - "Customizing tasks": "okec/customization/tasks.md"
+      - "Customizing resources": "okec/customization/resources.md"
+      - "Customizing responses": "okec/customization/responses.md"
+      - "Customizing network models": "okec/customization/network-models.md"
+      - "Customizing decision engines": "okec/customization/decision-engines.md"
+  - Miscellaneous:
+    - Network Models: "network/network-models.md"
+    - Decision Engines: "algorithms/decision-engines.md" 
+
+copyright: |
+ &copy; 2024 <a>Gaoxing Li</a>

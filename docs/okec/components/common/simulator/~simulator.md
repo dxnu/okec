@@ -1,0 +1,5 @@
+#simulator::~simulator
+
+```cpp
+~simulator();
+```
