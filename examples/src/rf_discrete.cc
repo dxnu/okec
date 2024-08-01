@@ -4,10 +4,10 @@
 void generate_task(okec::task &t, int number, const std::string& group) {
     for ([[maybe_unused]] auto _ : std::views::iota(0, number)) {
         t.emplace_back({
-            { "task_id", okec::task::get_unique_id() },
+            { "task_id", okec::task::unique_id() },
             { "group", group },
-            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
-            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
+            { "cpu", okec::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
+            { "deadline", okec::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
         });
     }
 
@@ -17,6 +17,8 @@ void generate_task(okec::task &t, int number, const std::string& group) {
 
 int main(int argc, char **argv)
 {
+    okec::log::set_level(okec::log::level::all);
+    
     std::size_t edge_num = 5;
     int task_num = 10;
     int episode = 1;
@@ -27,7 +29,7 @@ int main(int argc, char **argv)
 	cmd.AddValue("episode", "train episode", episode);
 	cmd.Parse(argc, argv);
 
-    fmt::print("edge_num: {}, task_num: {}, episode: {}\n", edge_num, task_num, episode);
+    okec::print("edge_num: {}, task_num: {}, episode: {}\n", edge_num, task_num, episode);
 
     okec::simulator sim;
 
@@ -53,7 +55,7 @@ int main(int argc, char **argv)
     okec::resource_container edge_resources1(edge_devices1.size());
     // okec::resource_container edge_resources2(edge_devices2.size());
     edge_resources1.initialize([](auto res) {
-        res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
+        res->attribute("cpu", okec::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
     });
     // edge_resources1.load_from_file("resource-" + std::to_string(edge_resources1.size()) + ".json");
     // edge_resources2.load_from_file("resource-" + std::to_string(edge_resources2.size()) + ".json");
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
     // device_1->send(t);
     // device_1->when_done([](okec::response res) {
     
-    //     fmt::print("task is done!\n");
+    //     okec::print("task is done!\n");
     // });
 
 

@@ -74,7 +74,7 @@ auto Env::train_next(torch::Tensor observation) -> void
 {
     // static std::size_t step = 0;
     // std::cout << "observation:\n" << observation << "\n";
-    // fmt::print("train task:\n {}\n", t_.dump(4));
+    // okec::print("train task:\n {}\n", t_.dump(4));
 
     float reward;
     auto task_elements = t_.elements_view();
@@ -84,8 +84,8 @@ auto Env::train_next(torch::Tensor observation) -> void
         auto& edge_cache = cache_.view();
         auto action = RL_->choose_action(observation);
         auto& server = edge_cache.at(action);
-        // fmt::print("choose action: {}\n", action);
-        // fmt::print("server:\n{}\n", server.dump(4));
+        // okec::print("choose action: {}\n", action);
+        // okec::print("server:\n{}\n", server.dump(4));
 
 
         float alpha = 0.8; // 6/4
@@ -104,7 +104,7 @@ auto Env::train_next(torch::Tensor observation) -> void
         double average_processing_time = std::accumulate(time.begin(), time.end(), .0) / time.size();
         double processing_time;
 
-        // fmt::print("正在处理 {}, supply: {}, demand: {}\n", it->get_header("task_id"), cpu_supply, cpu_demand);
+        // okec::print("正在处理 {}, supply: {}, demand: {}\n", it->get_header("task_id"), cpu_supply, cpu_demand);
 
         if (cpu_supply < cpu_demand) { // 无法处理
             processing_time = cpu_demand / cpu_supply;
@@ -112,7 +112,7 @@ auto Env::train_next(torch::Tensor observation) -> void
             reward = -alpha * processing_time + beta * cpu_supply;
             // reward = alpha * (average_processing_time - processing_time) + beta * (cpu_supply - cpu_demand);
             RL_->store_transition(observation, action, reward, observation); // 状态不曾改变
-            // fmt::print("reward: {}, done: {}\n", reward, false);
+            // okec::print("reward: {}, done: {}\n", reward, false);
 
             this->learn(step_++);
             // this->train_next(std::move(observation));
@@ -124,7 +124,7 @@ auto Env::train_next(torch::Tensor observation) -> void
 
             // 消耗资源
             server["cpu"] = std::to_string(new_cpu);
-            // fmt::print(fg(fmt::color::red), "[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
+            // okec::print("[{}] 消耗资源：{} --> {}\n", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
 
             this->trace_resource();
 
@@ -139,7 +139,7 @@ auto Env::train_next(torch::Tensor observation) -> void
                 auto& server = edge_cache.at(action);
                 double cur_cpu = TO_DOUBLE(server["cpu"]);
                 double new_cpu = cur_cpu + cpu_demand;
-                // print_info(fmt::format("[{}] 恢复资源：{} --> {:.2f}(demand: {})", TO_STR(server["ip"]), cur_cpu, new_cpu, cpu_demand));
+                // okec::format("[{}] 恢复资源：{} --> {:.2f}(demand: {})", TO_STR(server["ip"]), cur_cpu, new_cpu, cpu_demand);
                 
                 // 恢复资源
                 float reward;
@@ -175,13 +175,13 @@ auto Env::train_next(torch::Tensor observation) -> void
 
             // 结束或继续处理
             if (!t_.contains({"status", "0"})) {
-                // fmt::print("reward: {}, done: {}\n", reward, true);
+                // okec::print("reward: {}, done: {}\n", reward, true);
 
                 if (done_fn_) {
                     done_fn_(t_, cache_);
                 }
             } else {
-                // fmt::print("reward: {}, done: {}\n", reward, false);
+                // okec::print("reward: {}, done: {}\n", reward, false);
                 // 更新状态
                 auto observation_new = next_observation();
                 RL_->store_transition(observation, action, reward, observation_new);
@@ -201,8 +201,8 @@ auto Env::when_done(done_callback_t callback) -> void
 
 auto Env::print_cache() -> void
 {
-    fmt::print("print_cache:\n{}\n", cache_.dump(4));
-    fmt::print("tasks:\n{}\n", t_.dump(4));
+    okec::print("print_cache:\n{}\n", cache_.dump(4));
+    okec::print("tasks:\n{}\n", t_.dump(4));
 }
 
 auto Env::learn(std::size_t step) -> void
@@ -218,7 +218,7 @@ auto Env::trace_resource(int flag) -> void
 {
     static std::ofstream file;
     if (!file.is_open()) {
-        file.open("scene2-rf-resource_tracer.csv", std::ios::out/* | std::ios::app*/);
+        file.open("./data/rf-discrete-resource_tracer.csv", std::ios::out/* | std::ios::app*/);
         if (!file.is_open()) {
             return;
         }
@@ -229,14 +229,14 @@ auto Env::trace_resource(int flag) -> void
     }
 
     // for (const auto& item : m_resources) {
-    //     file << fmt::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
+    //     file << okec::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
     //     for (auto it = item->begin(); it != item->end(); ++it) {
-    //         file << fmt::format(",{}: {}", it.key(), it.value());
+    //         file << okec::format(",{}: {}", it.key(), it.value());
     //     }
     //     file << "\n";
     // }
     // file << "\n";
-    file << fmt::format("{:.2f} [episode={}]", ns3::Simulator::Now().GetSeconds(), episode);
+    file << okec::format("{:.2f} [episode={}]", ns3::Simulator::Now().GetSeconds(), episode);
     auto& edge_cache = this->cache_.view();
     for (const auto& edge : edge_cache) {
         file << "," << TO_DOUBLE(edge["cpu"]);
@@ -293,7 +293,7 @@ DQN_decision_engine::DQN_decision_engine(
         clients.set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
     }
 
-    fmt::print("{}\n", this->cache().dump(4));
+    okec::print("{}\n", this->cache().dump(4));
 }
 
 auto DQN_decision_engine::make_decision(const task_element& header) -> result_t
@@ -323,7 +323,7 @@ auto DQN_decision_engine::send(task_element t, std::shared_ptr<client_device> cl
 
     // 将所有任务都发送到决策设备，从而得到所有任务的信息
     // 追加任务发送地址信息
-    t.set_header("from_ip", fmt::format("{:ip}", client->get_address()));
+    t.set_header("from_ip", okec::format("{:ip}", client->get_address()));
     t.set_header("from_port", std::to_string(client->get_port()));
     message msg;
     msg.type(message_decision);
@@ -373,7 +373,7 @@ auto DQN_decision_engine::train(const task& train_task, int episode) -> void
 
     // auto env = std::make_shared<Env>(this->cache(), t);
 
-    // fmt::print(fg(fmt::color::yellow), "actions: {}, features: {}\n", env->n_actions(), env->n_features());
+    // okec::print("actions: {}, features: {}\n", env->n_actions(), env->n_features());
 
     // auto RL = DeepQNetwork(env->n_actions(), env->n_features(), 0.01, 0.9, 0.9, 200, 2000);
     
@@ -389,7 +389,7 @@ auto DQN_decision_engine::train(const task& train_task, int episode) -> void
     //         // RL choose action based on observation
     //         auto action = RL.choose_action(observation);
 
-    //         fmt::print("choose action: {}\n", action);
+    //         okec::print("choose action: {}\n", action);
 
     //         auto [observation_, reward, done] = env->step2(action);
             
@@ -413,7 +413,7 @@ auto DQN_decision_engine::train(const task& train_task, int episode) -> void
     //     }
     // }
 
-    // fmt::print("end of train\n");
+    // okec::print("end of train\n");
     // // RL.print_memory();
 
     // env->print_cache();
@@ -483,7 +483,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
     // static std::vector<double> total_times;
     if (episode <= 0) {
         // RL->print_memory();
-        // fmt::print("total times\n{}\n", total_times);
+        // okec::print("total times\n{}\n", total_times);
         auto total_time = std::accumulate(total_times_.begin(), total_times_.end(), .0);
         auto [min, max] = std::ranges::minmax(total_times_);
         log::info("Average total times: {}, min: {}, max: {}", total_time / total_times_.size(), min, max);
@@ -512,7 +512,7 @@ auto DQN_decision_engine::train_start(const task& train_task, int episode, int e
         self->total_times_.push_back(total_time);
         log::success("Total processing time: {}", total_time);
         // t.print();
-        // fmt::print("cache: \n {}\n", cache.dump(4));
+        // okec::print("cache: \n {}\n", cache.dump(4));
         
         // 继续训练下一轮
         self->train_start(train_task, episode - 1, episode_all);

@@ -10,11 +10,13 @@
 
 #include <okec/algorithms/classic/worst_fit_decision_engine.h>
 #include <okec/common/message.h>
+#include <okec/common/simulator.h>
 #include <okec/devices/base_station.h>
 #include <okec/devices/client_device.h>
 #include <okec/devices/edge_device.h>
 #include <okec/utils/log.h>
 #include <functional> // bind_front
+
 
 namespace okec {
 
@@ -65,7 +67,7 @@ worst_fit_decision_engine::worst_fit_decision_engine(
         clients.set_request_handler(message_response, std::bind_front(&this_type::on_clients_reponse_message, this));
     }
 
-    fmt::print("{}\n", this->cache().dump(4));
+    okec::print("{}\n", this->cache().dump(4));
 }
 
 auto worst_fit_decision_engine::make_decision(const task_element& header) -> result_t
@@ -76,7 +78,7 @@ auto worst_fit_decision_engine::make_decision(const task_element& header) -> res
             return TO_DOUBLE(lhs["cpu"]) < TO_DOUBLE(rhs["cpu"]);
         });
 
-    // fmt::print("edge max: {}\n", TO_STR(edge_max["ip"]));
+    // okec::print("edge max: {}\n", TO_STR(edge_max["ip"]));
     
     double cpu_demand = std::stod(header.get_header("cpu"));
     double cpu_supply = TO_DOUBLE(edge_max["cpu"]);
@@ -121,10 +123,10 @@ auto worst_fit_decision_engine::send(task_element t, std::shared_ptr<client_devi
         { "time_consuming", "" }
     });
 
-    // fmt::print("Received tasks:\n{}\n", t.j_data().dump(4));
+    // okec::print("Received tasks:\n{}\n", t.j_data().dump(4));
 
     // 不管本地，全部往边缘服务器卸载
-    t.set_header("from_ip", fmt::format("{:ip}", client->get_address()));
+    t.set_header("from_ip", okec::format("{:ip}", client->get_address()));
     t.set_header("from_port", std::to_string(client->get_port()));
     message msg;
     msg.type(message_decision);
@@ -158,7 +160,6 @@ auto worst_fit_decision_engine::initialize() -> void
 
 auto worst_fit_decision_engine::handle_next() -> void
 {
-
     auto& task_sequence = m_decision_device->task_sequence();
     // auto& task_sequence_status = m_decision_device->task_sequence_status();
     log::info("handle_next.... current task sequence size: {}", task_sequence.size());
@@ -201,73 +202,32 @@ auto worst_fit_decision_engine::handle_next() -> void
         it->set_header("status", "1"); // 更改任务分发状态
         m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
     }
-    
-    // 分发任务列表，每次拿出第一个未分发的任务
-    // for (std::size_t i = 0; i < task_sequence.size(); ++i)
-    // {
-    //     // 任务尚未分发
-    //     if (!static_cast<int>(task_sequence_status[i]))
-    //     {
-    //         auto target = make_decision(task_sequence[i]);
-    //         if (target.is_null()) {
-    //             print_info(fmt::format("No device can handle the task({})!", task_sequence[i].get_header("task_id")));
-    //             message response {
-    //                 { "msgtype", "response" },
-    //                 { "task_id", task_sequence[i].get_header("task_id") },
-    //                 { "group", task_sequence[i].get_header("group") },
-    //                 { "device_type", "null" },
-    //                 { "device_address", "null" },
-    //                 { "processing_time", "null" }
-    //             };
-    //             auto from_ip = task_sequence[i].get_header("from_ip");
-    //             auto from_port = task_sequence[i].get_header("from_port");
-    //             m_decision_device->write(response.to_packet(), Ipv4Address(from_ip.c_str()), std::stoi(from_port));
-    //             // 分发失败也要进行清除操作
-    //             task_sequence.erase(std::next(task_sequence.begin(), i), std::next(task_sequence.begin(), i + 1));
-    //             task_sequence_status.erase(std::next(task_sequence_status.begin(), i), std::next(task_sequence_status.begin(), i + 1));
-    //             continue; // 继续尝试处理下一个
-    //         }
+}
 
-    //         // print_info(fmt::format("Decision(task id:{}) is done. (target ip: {}, target port: {}.)", 
-    //         //     task_sequence[i].get_header("task_id"), TO_STR(target["ip"]), TO_INT(target["port"])));
-    //         // 计算并记录传输时间
-    //         Ptr<NetDevice> device = m_decision_device->get_node()->GetDevice(0);
-    //         Ptr<Channel> channel = device->GetChannel();
-    //         if (channel) {
-    //             StringValue band_width;
-    //             channel->GetAttribute("Delay", band_width);
+auto worst_fit_decision_engine::train(const task &t) -> void
+{
+    auto env = std::make_shared<DiscreteEnv>(this->cache(), t);
 
-    //             DataRateValue dataRateValue;
-    //             device->GetAttribute("DataRate", dataRateValue);
-    //             DataRate dataRate = dataRateValue.Get();
+    env->trace_resource();
 
-    //             // fmt::print("DataRate: {}Mbps, delay: {}ms\n", dataRate.GetBitRate() / 1000000, Time(band_width.Get()).GetMilliSeconds());
-    //         }
+    auto self = shared_from_base<this_type>();
+    env->when_done([self](const task& t_finished, const device_cache& cache) {
+        log::success("end of train"); // done
+        double total_time = .0f;
+        for (const auto& elem : t_finished.elements()) {
+            total_time += std::stod(elem.get_header("processing_time"));
+        }
+        log::success("total processing time: {}", total_time);
+        log::success("average processing time: {}", total_time / t_finished.size());
+        okec::print("{:t}\n", t_finished);
+    });
 
-    //         message msg;
-    //         msg.type(message_handling);
-    //         msg.content(task_sequence[i]);
-    //         msg.attribute("cpu_supply", TO_STR(target["cpu_supply"]));
-    //         // print_info(fmt::format("bs({:ip}) dispatchs the task(task_id = {}) to {}",
-    //         //     m_decision_device->get_address(), task_sequence[i].get_header("task_id"), TO_STR(target["ip"])));
-    //         m_decision_device->write(msg.to_packet(), ns3::Ipv4Address(TO_STR(target["ip"]).c_str()), TO_INT(target["port"]));
-            
-    //         task_sequence_status[i] = 1; // // 更改任务分发状态
-    //         task_sequence[i].set_header("status", "1");
-    //         break; // 若是继续处理下一个，处理任务的边缘设备资源变化信息可能还未收到，也许会导致错误决策
-    //     }
-    // }
+    env->train();
 }
 
 auto worst_fit_decision_engine::on_bs_decision_message(
-    base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
+    base_station *bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address &remote_address) -> void
 {
-    // static bool first_time = true;
-    // auto ipv4_remote = InetSocketAddress::ConvertFrom(remote_address).GetIpv4();
-    // print_info(fmt::format("The base station[{:ip}] has received the decision request from {:ip}", bs->get_address(), ipv4_remote));
-
-    // fmt::print("Resource cache:\n{}\n", this->cache().dump(4));
-
     // task_element 为单位
     auto item = okec::task_element::from_msg_packet(packet);
     item.set_header("status", "0"); // 增加处理状态信息 0: 未处理 1: 已处理
@@ -292,7 +252,6 @@ auto worst_fit_decision_engine::on_bs_response_message(
     // log::success("bs({:ip}) has received a response from {:ip}", bs->get_address(), ipv4_remote);
 
     message msg(packet);
-    // fmt::print("{}\n", msg.dump());
     auto& task_sequence = bs->task_sequence();
     // auto& task_sequence_status = bs->task_sequence_status();
 
@@ -369,7 +328,7 @@ auto worst_fit_decision_engine::on_es_handling_message(
         auto device_resource = es->get_resource();
         auto cur_cpu = std::stod(device_resource->get_value("cpu"));
         device_resource->reset_value("cpu", std::to_string(cur_cpu + cpu_demand));
-        auto device_address = fmt::format("{:ip}", es->get_address());
+        auto device_address = okec::format("{:ip}", es->get_address());
 
         log::info("edge server({}) restores resources: {} --> {:.2f}(demand: {})", device_address, cur_cpu, cur_cpu + cpu_demand, cpu_demand);
 
@@ -380,7 +339,7 @@ auto worst_fit_decision_engine::on_es_handling_message(
             { "task_id", task_id },
             { "device_type", "es" },
             { "device_address", device_address },
-            { "processing_time", fmt::format("{:.9f}", processing_time) }
+            { "processing_time", okec::format("{:.9f}", processing_time) }
         };
         es->write(response.to_packet(), ipv4_remote, es->get_port());
     });
@@ -422,5 +381,126 @@ auto worst_fit_decision_engine::on_clients_reponse_message(
 
 }
 
+DiscreteEnv::DiscreteEnv(const device_cache &cache, const task &t)
+    : t_(t)
+    , cache_(cache)
+{
+    // 先为所有任务设置处理标识
+    for (auto& t : t_.elements_view()) {
+        t.set_header("status", "0"); // 0: 未处理 1: 已处理
+    }
+}
+
+auto DiscreteEnv::train() -> void
+{
+    log::info("train begin");
+    train_next();
+}
+
+auto DiscreteEnv::train_next() -> void
+{
+    auto task_elements = t_.elements_view();
+    if (auto it = std::ranges::find_if(task_elements, [](auto const& item) {
+        return item.get_header("status") == "0";
+    }); it != std::end(task_elements)) {
+        auto& edge_cache = cache_.view();
+
+        ////////////////////////////////////////////////
+        std::vector<double> action_values;
+        for (const auto& edge : edge_cache) {
+            action_values.push_back(TO_DOUBLE(edge["cpu"]));
+        }
+        auto action = std::distance(action_values.begin(), std::max_element(action_values.begin(), action_values.end()));
+
+        auto& server = edge_cache.at(action);
+        // okec::print("choose action: {}\n", action);
+        // okec::print("server:\n{}\n", server.dump(4));
+
+        auto cpu_supply = TO_DOUBLE(server["cpu"]);
+        auto cpu_demand = std::stod(it->get_header("cpu"));
+
+        double processing_time;
+
+        // okec::print("正在处理 {}, supply: {}, demand: {}\n", it->get_header("task_id"), cpu_supply, cpu_demand);
+
+        if (cpu_supply < cpu_demand) { // 无法处理
+            log::error("No device can handle the task({})!", it->get_header("task_id"));
+            return;
+        } else { // 可以处理
+            processing_time = cpu_demand / cpu_supply;
+            double new_cpu = cpu_supply - cpu_demand;
+            it->set_header("status", "1");
+            it->set_header("processing_time", std::to_string(processing_time));
+
+            // 消耗资源
+            server["cpu"] = std::to_string(new_cpu);
+            this->trace_resource(); // 监控资源
+
+            log::info("[{}] 消耗资源：{} --> {}", TO_STR(server["ip"]), cpu_supply, TO_DOUBLE(server["cpu"]));
+            log::info("[{}] demand: {}, supply: {}, processing_time: {}", it->get_header("task_id"), cpu_demand, cpu_supply, processing_time);
+
+            
+
+            // 资源恢复
+            auto self = shared_from_this();
+            ns3::Simulator::Schedule(ns3::Seconds(processing_time), [self, action, cpu_demand]() {
+                auto& edge_cache = self->cache_.view();
+                auto& server = edge_cache.at(action);
+                double cur_cpu = TO_DOUBLE(server["cpu"]);
+                double new_cpu = cur_cpu + cpu_demand;
+                log::info("[{}] 恢复资源：{} --> {:.2f}(demand: {})", TO_STR(server["ip"]), cur_cpu, new_cpu, cpu_demand);
+
+                // self->t_.print();
+
+
+                server["cpu"] = std::to_string(new_cpu);
+                self->trace_resource(); // 监控资源
+
+                self->train_next();
+            });
+
+
+            // 结束或继续处理
+            if (!t_.contains({"status", "0"})) {
+                if (done_fn_) {
+                    done_fn_(t_, cache_);
+                }
+            } else {
+                this->train_next(); // 继续训练下一个
+            }
+        }
+    }
+}
+
+auto DiscreteEnv::when_done(done_callback_t callback) -> void
+{
+    done_fn_ = callback;
+}
+
+auto DiscreteEnv::trace_resource() -> void
+{
+    static std::ofstream file;
+    if (!file.is_open()) {
+        file.open("./data/wf-discrete-resource_tracer.csv", std::ios::out/* | std::ios::app*/);
+        if (!file.is_open()) {
+            return;
+        }
+    }
+
+    // for (const auto& item : m_resources) {
+    //     file << okec::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
+    //     for (auto it = item->begin(); it != item->end(); ++it) {
+    //         file << okec::format(",{}: {}", it.key(), it.value());
+    //     }
+    //     file << "\n";
+    // }
+    // file << "\n";
+    file << okec::format("{:.2f}", okec::now::seconds());
+    auto& edge_cache = this->cache_.view();
+    for (const auto& edge : edge_cache) {
+        file << "," << TO_DOUBLE(edge["cpu"]);
+    }
+    file << "\n";
+}
 
 } // namespace okec

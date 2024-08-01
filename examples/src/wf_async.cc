@@ -5,7 +5,7 @@ using namespace okec;
 void generate_task(okec::task &t, int number, const std::string& group) {
     for ([[maybe_unused]] auto _ : std::views::iota(0, number)) {
         t.emplace_back({
-            { "task_id", okec::task::get_unique_id() },
+            { "task_id", okec::task::unique_id() },
             { "group", group },
             { "cpu", okec::rand_range(0.2, 1.2).to_string() },
             { "deadline", okec::rand_range(10, 100).to_string() },
@@ -38,10 +38,10 @@ okec::awaitable offloading(auto user, okec::task t) {
     // double finished = 0;
     // int index = 1;
     // std::vector<double> time_points;
-    // fmt::print("{0:=^{1}}\n", "Response Info", okec::get_winsize().col);
+    // okec::print("{0:=^{1}}\n", "Response Info", okec::get_winsize().col);
     // for (const auto& item : resp.data()) {
-    //     fmt::print("[{:>3}] ", index++);
-    //     fmt::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
+    //     okec::print("[{:>3}] ", index++);
+    //     okec::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
     //         item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["finished"]);
     //     if (item["finished"] == "Y") {
     //         finished++;
@@ -50,10 +50,10 @@ okec::awaitable offloading(auto user, okec::task t) {
     // }
 
     // auto total_time = std::accumulate(time_points.begin(), time_points.end(), .0);
-    // fmt::print("Task completion rate: {:2.0f}%\n", finished / resp.size() * 100);
-    // fmt::print("Total processing time: {:.6f}\n", total_time);
-    // fmt::print("Average processing time: {:.6f}\n", total_time / time_points.size());
-    // fmt::print("{0:=^{1}}", "", okec::get_winsize().col);
+    // okec::print("Task completion rate: {:2.0f}%\n", finished / resp.size() * 100);
+    // okec::print("Total processing time: {:.6f}\n", total_time);
+    // okec::print("Average processing time: {:.6f}\n", total_time / time_points.size());
+    // okec::print("{0:=^{1}}", "", okec::get_winsize().col);
 }
 
 int main(int argc, char **argv)

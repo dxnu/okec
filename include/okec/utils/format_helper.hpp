@@ -14,19 +14,48 @@
 #include <okec/common/resource.h>
 #include <okec/common/response.h>
 #include <okec/common/task.h>
-#include <fmt/core.h>
-#include <fmt/ranges.h>
+#include <format>
+#include <iostream>
 #include <ns3/ipv4.h>
 #include <ns3/ipv4-header.h>
 
 
+namespace okec {
+
+template <typename T>
+auto unmove(T&& x) -> const T& {
+    return x;
+}
+
+template <typename... Args>
+inline auto format(std::format_string<Args...>&& fmt, Args&&... args)
+    -> std::string {
+    return std::format(std::forward<std::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+inline auto print(std::format_string<Args...>&& fmt, Args&&... args)
+    -> void {
+    std::cout << okec::format(std::forward<std::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+inline auto println(std::format_string<Args...>&& fmt, Args&&... args)
+    -> void {
+    print(std::forward<std::format_string<Args...>>(fmt), std::forward<Args>(args)...);
+    std::cout << '\n';
+}
+
+} // namespace okec
+
+
 // formatting Ipv4Address
 template <>
-struct fmt::formatter<ns3::Ipv4Address> {
+struct std::formatter<ns3::Ipv4Address> {
     constexpr auto parse(format_parse_context& ctx) {
         auto it = ctx.begin(), end = ctx.end();
         if (it != end && (*it == 'i' && *(++it) == 'p')) it++;
-        if (it != end && *it != '}') throw fmt::format_error("invalid format");
+        if (it != end && *it != '}') throw std::format_error("invalid format");
         return it;
     }
 
@@ -36,33 +65,36 @@ struct fmt::formatter<ns3::Ipv4Address> {
         uint32_t address = ipv4Address.Get();
         oss << ((address >> 24) & 0xff) << "." << ((address >> 16) & 0xff) << "."
             << ((address >> 8) & 0xff) << "." << ((address >> 0) & 0xff);
-        return fmt::format_to(ctx.out(), "{}", oss.str());
+        return std::vformat_to(ctx.out(), "{}", std::make_format_args(okec::unmove(oss.str())));
     }
 };
 
 
 // formatting okec::task
 template <>
-struct fmt::formatter<okec::task> {
+struct std::formatter<okec::task> {
     constexpr auto parse(format_parse_context& ctx) {
         auto it = ctx.begin(), end = ctx.end();
         if (it != end && *it == 't') it++;
-        if (it != end && *it != '}') throw fmt::format_error("invalid task format");
+        if (it != end && *it != '}') throw std::format_error("invalid task format");
         return it;
     }
 
     template <typename FormatContext>
-    auto format(const okec::task& t, FormatContext& ctx) {
+    auto format(const okec::task& t, FormatContext& ctx) const {
         int index = 1;
         std::string info;
         for (const auto& item : t.data())
         {
-            info += fmt::format("[{:>{}}] ", index++, std::to_string(t.size()).length());
+            info += std::vformat("[{:>{}}] ", std::make_format_args(
+                okec::unmove(index++), okec::unmove(std::to_string(t.size()).length())));
+
             if (item.contains("/header"_json_pointer))
             {
                 for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
                 {
-                    info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
+                    info += std::vformat("{}: {} ", std::make_format_args(
+                        it.key(), okec::unmove(it.value().template get<std::string>())));
                 }
             }
 
@@ -70,86 +102,75 @@ struct fmt::formatter<okec::task> {
             {
                 for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
                 {
-                    info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
+                    info += std::vformat("{}: {} ", std::make_format_args(
+                        it.key(), okec::unmove(it.value().template get<std::string>())));
                 }
             }
             info += "\n";
         }
 
-        return fmt::format_to(ctx.out(), fmt::runtime(info));
+        return std::vformat_to(ctx.out(), "{}", std::make_format_args(info));
     }
 };
 
-// formatting okec::resource_container
 template <>
-struct fmt::formatter<okec::resource_container> {
+struct std::formatter<okec::resource_container> {
     constexpr auto parse(format_parse_context& ctx) {
         auto it = ctx.begin(), end = ctx.end();
         if (it != end && (*it == 'r' && *(++it) == 's')) it++;
-        if (it != end && *it != '}') throw fmt::format_error("invalid resource format");
+        if (it != end && *it != '}') throw std::format_error("invalid resource format");
         return it;
     }
 
     template <typename FormatContext>
-    auto format(const okec::resource_container& rs, FormatContext& ctx) {
+    auto format(const okec::resource_container& rs, FormatContext& ctx) const {
         int index = 1;
         std::string info;
         for (auto item = rs.cbegin(); item != rs.cend(); ++item) {
-            info += fmt::format("[{:>{}}] ", index++, std::to_string(rs.size()).length());
+            info += std::vformat("[{:>{}}] ", std::make_format_args(
+                okec::unmove(index++), okec::unmove(std::to_string(rs.size()).length())));
             for (auto it = (*item)->begin(); it != (*item)->end(); ++it)
             {
-                info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
+                info += std::vformat("{}: {} ", std::make_format_args(
+                    it.key(), okec::unmove(it.value().template get<std::string>())));
             }
 
             info += "\n";
         }
 
-        return fmt::format_to(ctx.out(), fmt::runtime(info));
+        return std::vformat_to(ctx.out(), "{}", std::make_format_args(info));
     }
 };
 
 template <>
-struct fmt::formatter<okec::response> {
+struct std::formatter<okec::response> {
     constexpr auto parse(format_parse_context& ctx) {
         auto it = ctx.begin(), end = ctx.end();
         if (it != end && *it == 'r') it++;
-        if (it != end && *it != '}') throw fmt::format_error("invalid response format");
+        if (it != end && *it != '}') throw std::format_error("invalid response format");
         return it;
     }
 
     template <typename FormatContext>
-    auto format(const okec::response& r, FormatContext& ctx) {
+    auto format(const okec::response& r, FormatContext& ctx) const {
         int index = 1;
         std::string info;
         for (const auto& item : r.data())
         {
-            info += fmt::format("[{:>{}}] ", index++, std::to_string(r.size()).length());
+            info += std::vformat("[{:>{}}] ", std::make_format_args(
+                okec::unmove(index++), okec::unmove(std::to_string(r.size()).length())));
             for (auto it = item.begin(); it != item.end(); ++it)
             {
-                info += fmt::format("{}: {} ", it.key(), it.value().get<std::string>());
+                info += std::vformat("{}: {} ", std::make_format_args(
+                    it.key(), okec::unmove(it.value().template get<std::string>())));
             }
 
             info += "\n";
         }
 
-        return fmt::format_to(ctx.out(), fmt::runtime(info));
+        return std::vformat_to(ctx.out(), "{}", std::make_format_args(info));
     }
 };
 
-namespace okec {
-
-template <typename... Args>
-inline auto format(fmt::format_string<Args...>&& fmt, Args&&... args)
-    -> std::string {
-    return fmt::format(std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
-}
-
-template <typename... Args>
-inline auto print(fmt::format_string<Args...>&& fmt, Args&&... args)
-    -> void {
-    fmt::print(std::forward<fmt::format_string<Args...>>(fmt), std::forward<Args>(args)...);
-}
-
-} // namespace okec
 
 #endif // OKEC_FORMAT_HELPER_HPP_

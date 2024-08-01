@@ -3,10 +3,10 @@
 void generate_task(okec::task &t, int number, const std::string& group) {
     for ([[maybe_unused]] auto _ : std::views::iota(0, number)) {
         t.emplace_back({
-            { "task_id", okec::task::get_unique_id() },
+            { "task_id", okec::task::unique_id() },
             { "group", group },
-            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
-            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
+            { "cpu", okec::rand_range(0.2, 1.2).to_string() },
+            { "deadline", okec::rand_range(10, 100).to_string() }
         });
     }
 
@@ -23,8 +23,7 @@ void my_monitor(std::string_view address, std::string_view attr, std::string_vie
         }
     }
 
-    // file << fmt::format("At time {:.2f}s,{},{},{},{}\n", Simulator::Now().GetSeconds(), address, attr, old_val, new_val);
-    file << fmt::format("At time {:.2f}s,{},{},{}\n", ns3::Simulator::Now().GetSeconds(), address, old_val, new_val);
+    file << okec::format("At time {:.2f}s,{},{},{}\n", ns3::Simulator::Now().GetSeconds(), address, old_val, new_val);
 }
 
 int main(int argc, char **argv)
@@ -34,6 +33,7 @@ int main(int argc, char **argv)
     okec::log::set_level(okec::log::level::info);
 
     okec::simulator sim;
+    sim.enable_visualizer();
 
     // Create 1 base station
     okec::base_station_container bs(sim, 1);
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     // Initialize the resources for each edge server.
     okec::resource_container edge_resources(edge_servers.size());
     edge_resources.initialize([](auto res) {
-        res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
+        res->attribute("cpu", okec::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
     });
     // edge_resources.save_to_file("resource-" + std::to_string(edge_resources.size()) + ".json");
     // edge_resources.load_from_file("data/resource-" + std::to_string(edge_resources.size()) + ".json");
@@ -85,14 +85,14 @@ int main(int argc, char **argv)
     // Client request someone to handle the task.
     auto user = user_devices.get_device(0);
     user->async_read([&time_total_points, &time_average_points, &x_points, task_size = tasks.size()](okec::response response) {
-        fmt::print("{0:=^{1}}\n", "Response Info", 180);
+        okec::print("{0:=^{1}}\n", "Response Info", 180);
         double finished = 0;
         int index = 1;
         std::vector<double> time_points;
         for (const auto& item : response.data()) {
-            fmt::print("[{:>3}] ", index++);
-            fmt::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
-                item["task_id"], item["device_type"], item["device_address"], item["group"], item["time_consuming"], item["finished"]);
+            okec::print("[{:>3}] ", index++);
+            okec::print("task_id: {}, device_type: {:>5}, device_address: {:>10}, group: {}, time_consuming: {:>11}s, finished: {}\n",
+                TO_STR(item["task_id"]), TO_STR(item["device_type"]), TO_STR(item["device_address"]), TO_STR(item["group"]), TO_STR(item["time_consuming"]), TO_STR(item["finished"]));
             if (item["finished"] == "Y") {
                 finished++;
                 time_points.push_back(TO_DOUBLE(item["time_consuming"]));
@@ -100,20 +100,23 @@ int main(int argc, char **argv)
         }
         
         auto total_time = std::accumulate(time_points.begin(), time_points.end(), .0);
-        fmt::print("Task completion rate: {:2.0f}%\n", finished / response.size() * 100);
-        fmt::print("Total processing time: {:.6f}\n", total_time);
-        fmt::print("Average processing time: {:.6f}\n", total_time / time_points.size());
+        okec::print("Task completion rate: {:2.0f}%\n", finished / response.size() * 100);
+        okec::print("Total processing time: {:.6f}\n", total_time);
+        okec::print("Average processing time: {:.6f}\n", total_time / time_points.size());
 
-        fmt::print("{0:=^{1}}\n", "", 180);
+        okec::print("{0:=^{1}}\n", "", 180);
 
         // okec::draw(time_points, "Time Comsumption(Seconds)");
         time_total_points.push_back(total_time);
         time_average_points.push_back(total_time / time_points.size());
 
         if (time_total_points.size() == task_size) {
-            fmt::print("time_total_points: {}\n", time_total_points);
-            fmt::print("time_average_points: {}\n", time_average_points);
-            fmt::print("x_points: {}\n", x_points);
+            // std::format doesn't format ranges in C++20.
+            // Comment below 3 lines for compiling.
+            // okec::print("time_total_points: {}\n", time_total_points);
+            // okec::print("time_average_points: {}\n", time_average_points);
+            // okec::print("x_points: {}\n", x_points);
+
 
             // okec::draw(x_points, time_total_points, "Number of tasks", "Total Processing Time(Seconds)");
             // okec::draw(x_points, time_average_points, "Number of tasks", "Average Processing Time(Seconds)");

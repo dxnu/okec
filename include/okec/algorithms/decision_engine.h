@@ -89,6 +89,7 @@ public:
     virtual ~decision_engine() {}
 
     auto calculate_distance(const ns3::Vector& pos) -> double;
+    auto calculate_distance(double x, double y, double z) -> double;
 
     auto initialize_device(base_station_container* bs_container, cloud_server* cs) -> void;
     auto initialize_device(base_station_container* bs_container) -> void;

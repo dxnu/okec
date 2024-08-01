@@ -11,7 +11,7 @@
 #ifndef OKEC_RL_BRAIN_HPP_
 #define OKEC_RL_BRAIN_HPP_
 
-#include <okec/utils/visulizer.hpp>
+#include <okec/utils/visualizer.hpp>
 #include <torch/torch.h>
 
 

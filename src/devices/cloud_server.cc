@@ -108,9 +108,9 @@ auto cloud_server::on_get_resource_information(ns3::Ptr<ns3::Packet> packet, con
     message msg {
         { "msgtype", "resource_information" },
         { "device_type", "cs" },
-        { "pos_x", fmt::format("{}", get_position().x) },
-        { "pos_y", fmt::format("{}", get_position().y) },
-        { "pos_z", fmt::format("{}", get_position().z) }
+        { "pos_x", okec::format("{}", get_position().x) },
+        { "pos_y", okec::format("{}", get_position().y) },
+        { "pos_z", okec::format("{}", get_position().z) }
     };
     msg.content(*device_resource);
     m_udp_application->write(msg.to_packet(), ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4(), 8860);

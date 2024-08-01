@@ -36,7 +36,7 @@ struct multiple_LAN_WLAN_network_model {
         base_station_container& base_stations) -> void {
         int APs = base_stations.size();
         if (APs != static_cast<int>(clients.size())) {
-            fmt::print(fg(fmt::color::red), "Fatal error! (network_initializer) Client size does not match the BS size!\n");
+            log::error("Fatal error! (network_initializer) Client size does not match the BS size!");
             return;
         }
 

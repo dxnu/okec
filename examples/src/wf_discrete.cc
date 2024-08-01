@@ -4,10 +4,10 @@
 void generate_task(okec::task &t, int number, const std::string& group) {
     for ([[maybe_unused]] auto _ : std::views::iota(0, number)) {
         t.emplace_back({
-            { "task_id", okec::task::get_unique_id() },
+            { "task_id", okec::task::unique_id() },
             { "group", group },
-            { "cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
-            { "deadline", fmt::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
+            { "cpu", okec::format("{:.2f}", torch::rand({1}).uniform_(0.2, 1.2).item<double>()) },
+            { "deadline", okec::format("{:.2f}", torch::rand({1}).uniform_(10, 100).item<double>()) },
         });
     }
 
@@ -17,6 +17,7 @@ void generate_task(okec::task &t, int number, const std::string& group) {
 
 int main(int argc, char **argv)
 {
+    okec::log::set_level(okec::log::level::all);
 
     std::size_t edge_num = 5;
     std::size_t task_num = 10;
@@ -26,7 +27,7 @@ int main(int argc, char **argv)
 	cmd.AddValue("task_num", "task number", task_num);
 	cmd.Parse(argc, argv);
 
-    fmt::print("edge_num: {}, task_num: {}\n", edge_num, task_num);
+    okec::print("edge_num: {}, task_num: {}\n", edge_num, task_num);
 
 
     okec::simulator sim;
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
     // Create resources.
     okec::resource_container edge_resources1(edge_devices1.size());
     edge_resources1.initialize([](auto res) {
-        res->attribute("cpu", fmt::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
+        res->attribute("cpu", okec::format("{:.2f}", torch::rand({1}).uniform_(2.1, 2.2).item<double>()));
     });
     // edge_resources1.save_to_file("resource-" + std::to_string(edge_resources1.size()) + ".json");
     // edge_resources1.load_from_file("resource-" + std::to_string(edge_resources1.size()) + ".json");
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
     edge_devices1.install_resources(edge_resources1);   // 一键为所有边缘设备安装资源
     // edge_devices2.install_resources(edge_resources2);   // 一键为所有边缘设备安装资源
 
-    auto decision_engine = std::make_shared<okec::DQN_decision_engine>(&user_devices, &base_stations);
+    auto decision_engine = std::make_shared<okec::worst_fit_decision_engine>(&user_devices, &base_stations);
     decision_engine->initialize();
 
     okec::task t;
@@ -72,12 +73,12 @@ int main(int argc, char **argv)
 
     auto device_1 = user_devices.get_device(0);
     // device_1->send(t);
-    decision_engine->train(t, 1);
+    decision_engine->train(t);
     // decision_engine->train(t, device_1, base_stations);
     // device_1->send(t);
     // device_1->when_done([](okec::response res) {
     
-    //     fmt::print("task is done!\n");
+    //     okec::print("task is done!\n");
     // });
 
 

@@ -77,8 +77,8 @@ namespace now {
         return ns3::Simulator::Now().GetFemtoSeconds();
     }
 
-
 } // namespace now
+
 } // namespace okec
 
 #endif // OKEC_SIMULATOR_H_

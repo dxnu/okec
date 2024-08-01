@@ -2,26 +2,29 @@
 //   __  __ _  ____  ___ 
 //  /  \(  / )(  __)/ __) OKEC(a.k.a. EdgeSim++)
 // (  O ))  (  ) _)( (__  version 1.0.1
-//  \__/(__\_)(____)\___) https://github.com/dxnu/okec
+//  \__/(__\_)(____)\___) https://github.com/okecsim/okec
 // 
 // Copyright (C) 2023-2024 Gaoxing Li
 // Licenced under Apache-2.0 license. See LICENSE.txt for details.
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef OKEC_MULTIPLE_AND_SINGLE_LAN_WLAN_NETWORK_MODEL_HPP_
-#define OKEC_MULTIPLE_AND_SINGLE_LAN_WLAN_NETWORK_MODEL_HPP_
+#ifndef OKEC_CLOUD_EDGE_END_HPP_
+#define OKEC_CLOUD_EDGE_END_HPP_
 
-#include "network_model.hpp"
+#include <okec/network/network_model.hpp>
+#include <okec/utils/random.hpp>
 
 
 namespace okec
 {
 
-struct multiple_and_single_LAN_WLAN_network_model {
-
+// okec::cloud_edge_end_model model;
+// okec::network_initializer(model, user_devices, base_stations, cloud_server);
+struct cloud_edge_end_model {
     auto network_initializer(
         client_device_container& clients,
         base_station_container::pointer_t base_station,
+        cloud_server& cloud,
         ns3::Ipv4AddressHelper& address,
         bool routing = true) -> void {
         
@@ -37,6 +40,21 @@ struct multiple_and_single_LAN_WLAN_network_model {
 
         ns3::NetDeviceContainer p2pDevices;
         p2pDevices = pointToPoint.Install(p2pNodes);
+
+        ///////////////////////////////////
+        // base station and cloud
+        ns3::NodeContainer p2pCloudNodes;
+        p2pCloudNodes.Add(cloud.get_node());
+        p2pCloudNodes.Add(base_station->get_node());
+
+        ns3::PointToPointHelper p2pCloudHelper;
+        p2pCloudHelper.SetDeviceAttribute("DataRate", ns3::StringValue("50Mbps"));
+        p2pCloudHelper.SetChannelAttribute("Delay", ns3::StringValue("5ms"));
+
+        ns3::NetDeviceContainer p2pCloudDevice;
+        p2pCloudDevice = p2pCloudHelper.Install(p2pCloudNodes);
+
+        //////////////////////////////////        
 
         
         ns3::CsmaHelper csma;
@@ -73,34 +91,47 @@ struct multiple_and_single_LAN_WLAN_network_model {
         wifiDevice->GetMac()->SetBssid(bssid, linkId);
         ////////////////////////////////////////
 
-        ns3::MobilityHelper mobility;
+        // ns3::MobilityHelper mobility;
 
-        mobility.SetPositionAllocator("ns3::GridPositionAllocator",
-                                    "MinX",
-                                    ns3::DoubleValue(0.0),
-                                    "MinY",
-                                    ns3::DoubleValue(0.0),
-                                    "DeltaX",
-                                    ns3::DoubleValue(5.0),
-                                    "DeltaY",
-                                    ns3::DoubleValue(10.0),
-                                    "GridWidth",
-                                    ns3::UintegerValue(3),
-                                    "LayoutType",
-                                    ns3::StringValue("RowFirst"));
+        // mobility.SetPositionAllocator("ns3::GridPositionAllocator",
+        //                             "MinX",
+        //                             ns3::DoubleValue(0.0),
+        //                             "MinY",
+        //                             ns3::DoubleValue(0.0),
+        //                             "DeltaX",
+        //                             ns3::DoubleValue(5.0),
+        //                             "DeltaY",
+        //                             ns3::DoubleValue(10.0),
+        //                             "GridWidth",
+        //                             ns3::UintegerValue(100),
+        //                             "LayoutType",
+        //                             ns3::StringValue("RowFirst"));
 
-        mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                                "Bounds",
-                                ns3::RectangleValue(ns3::Rectangle(-50, 50, -50, 50)));
-        mobility.Install(wifiStaNodes);
+        // // 设置节点移动速度范围
+        // ns3::Ptr<ns3::UniformRandomVariable> speedVar = ns3::CreateObject<ns3::UniformRandomVariable>();
+        // speedVar->SetAttribute("Min", ns3::DoubleValue(5.0));
+        // speedVar->SetAttribute("Max", ns3::DoubleValue(10.0));
 
-        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-        mobility.Install(wifiApNode);
+        // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+        //                         "Bounds",
+        //                         ns3::RectangleValue(ns3::Rectangle(-100, 100, -100, 100)),
+        //                         "Speed",
+        //                         ns3::PointerValue(speedVar));
+        // mobility.Install(wifiStaNodes);
+
+        // // 随机设置每个用户设备的位置
+        // for (auto client = clients.begin(); client != clients.end(); ++client) {
+        //     (*client)->set_position(rand_range(5.0, 10.0), rand_range(10.0, 20.0), .0);
+        // }
+
+        // mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+        // mobility.Install(wifiApNode);
 
         ns3::InternetStackHelper stack;
         stack.Install(edgeNodes);
         stack.Install(wifiApNode);
         stack.Install(wifiStaNodes);
+        stack.Install(cloud.get_node());
 
         // Initialize addresses.
         address.Assign(p2pDevices);
@@ -113,6 +144,9 @@ struct multiple_and_single_LAN_WLAN_network_model {
         address.Assign(apDevices);
         address.NewNetwork();
 
+        address.Assign(p2pCloudDevice);
+        address.NewNetwork();
+
         if (routing)
             ns3::Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     }
@@ -120,17 +154,19 @@ struct multiple_and_single_LAN_WLAN_network_model {
     // Set up scenarios with a single base station serving clients from the same network segments
     auto network_initializer(
         client_device_container& clients,
-        base_station_container::pointer_t base_station) -> void {
+        base_station_container::pointer_t base_station,
+        cloud_server& cloud) -> void {
 
         ns3::Ipv4AddressHelper address;
         address.SetBase("10.1.1.0", "255.255.255.0");
-        network_initializer(clients, base_station, address);
+        network_initializer(clients, base_station, cloud, address);
     }
 
     // Set up scenarios with multiple base stations serving clients from different network segments
     auto network_initializer(
         std::vector<client_device_container>& clients,
-        base_station_container& base_stations) -> void {
+        base_station_container& base_stations,
+        cloud_server& cloud) -> void {
 
         int APs = base_stations.size();
         if (APs != static_cast<int>(clients.size())) {
@@ -143,7 +179,7 @@ struct multiple_and_single_LAN_WLAN_network_model {
         address.SetBase("10.1.1.0", "255.255.255.0");
 
         for (auto i : std::views::iota(0, APs)) {
-            network_initializer(clients[i], base_stations[i], address, false);
+            network_initializer(clients[i], base_stations[i], cloud, address, false);
         }
 
         // Connect all base stations
@@ -173,9 +209,9 @@ struct multiple_and_single_LAN_WLAN_network_model {
     }
 };
 
-template<> inline constexpr bool enable_network_model<multiple_and_single_LAN_WLAN_network_model> = true;
+
+template<> inline constexpr bool enable_network_model<cloud_edge_end_model> = true;
 
 } // namespace okec
 
-
-#endif // OKEC_MULTIPLE_AND_SINGLE_LAN_WLAN_NETWORK_MODEL_HPP_
+#endif // OKEC_CLOUD_EDGE_END_HPP_

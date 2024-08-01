@@ -21,6 +21,27 @@ class client_device;
 class client_device_container;
 class edge_device;
 
+class DiscreteEnv : public std::enable_shared_from_this<DiscreteEnv> {
+    using this_type       = DiscreteEnv;
+    using done_callback_t = std::function<void(const task&, const device_cache&)>;
+
+public:
+    DiscreteEnv(const device_cache& cache, const task& t);
+
+    auto train() -> void;
+    auto train_next() -> void;
+
+    auto when_done(done_callback_t callback) -> void;
+
+    auto trace_resource() -> void;
+
+private:
+    task t_;
+    device_cache cache_;
+    std::vector<double> state_; // 初始状态
+    done_callback_t done_fn_;
+};
+
 
 class worst_fit_decision_engine : public decision_engine
 {
@@ -40,6 +61,8 @@ public:
     auto initialize() -> void override;
 
     auto handle_next() -> void override;
+
+    auto train(const task& t) -> void;
 
 private:
     auto on_bs_decision_message(base_station* bs, ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void;

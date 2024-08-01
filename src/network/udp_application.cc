@@ -78,7 +78,7 @@ auto udp_application::read_handler(ns3::Ptr<ns3::Socket> socket) -> void
             auto msg_type = get_message_type(packet);
             log::debug("{:ip} is processing [{}] message...", this->get_address(), msg_type);
             auto dispatched = m_msg_handler.dispatch(msg_type, packet, remote_address);
-            NS_ASSERT_MSG(dispatched, "Invalid message type");
+            NS_ASSERT_MSG(dispatched, "Invalid message type: " << msg_type);
         }
     }
 }

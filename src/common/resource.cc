@@ -54,7 +54,7 @@ auto resource::reset_value(std::string_view key, std::string_view value) -> std:
 {
     auto old_value = std::exchange(j_["resource"][key], value);
     if (monitor_) {
-        monitor_(fmt::format("{:ip}", get_address()), key, old_value.get<std::string>(), value);
+        monitor_(okec::format("{:ip}", get_address()), key, old_value.get<std::string>(), value);
     }
     
     return old_value;
@@ -157,21 +157,21 @@ std::size_t resource_container::size() const
 
 auto resource_container::print(std::string title) -> void
 {
-    // fmt::print("{0:=^{1}}\n", title, 150);
+    // okec::print("{0:=^{1}}\n", title, 150);
 
     // int index = 1;
     // for (const auto& item : m_resources)
     // {
-    //     fmt::print("[{:>3}] ", index++);
+    //     okec::print("[{:>3}] ", index++);
     //     for (auto it = item->begin(); it != item->end(); ++it)
     //     {
-    //         fmt::print("{}: {} ", it.key(), it.value());
+    //         okec::print("{}: {} ", it.key(), it.value());
     //     }
 
-    //     fmt::print("\n");
+    //     okec::print("\n");
     // }
 
-    // fmt::print("{0:=^{1}}\n", "", 150);
+    // okec::print("{0:=^{1}}\n", "", 150);
 }
 
 auto resource_container::trace_resource() -> void
@@ -193,17 +193,17 @@ auto resource_container::trace_resource() -> void
     }
 
     // for (const auto& item : m_resources) {
-    //     file << fmt::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
+    //     file << okec::format("At time {:.2f}s,{:ip}", Simulator::Now().GetSeconds(), item->get_address());
     //     for (auto it = item->begin(); it != item->end(); ++it) {
-    //         file << fmt::format(",{}: {}", it.key(), it.value());
+    //         file << okec::format(",{}: {}", it.key(), it.value());
     //     }
     //     file << "\n";
     // }
     // file << "\n";
-    file << fmt::format("{:.2f}", ns3::Simulator::Now().GetSeconds());
+    file << okec::format("{:.2f}", ns3::Simulator::Now().GetSeconds());
     for (const auto& item : m_resources) {
         for (auto it = item->begin(); it != item->end(); ++it) {
-            file << fmt::format(",{}", it.value().get<std::string>());
+            file << okec::format(",{}", it.value().get<std::string>());
         }
     }
     file << "\n";
@@ -234,10 +234,10 @@ auto resource_container::load_from_file(const std::string& file) -> bool
         return false;
     
     
-    fmt::print("Items: \n");
+    okec::print("Items: \n");
     auto&& items = data["resource"]["items"];
     for (auto i = 0uz; i < size(); ++i) {
-        fmt::print("{}\n", items[i].dump(4));
+        okec::print("{}\n", items[i].dump(4));
         m_resources[i]->set_data(std::move(items[i]));
     }
 

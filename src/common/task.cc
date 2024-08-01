@@ -17,9 +17,6 @@
 #include <ns3/ptr.h>
 
 
-#define CHECK_INDEX(index) \
-if (index > size()) throw std::out_of_range{"index out of range"}
-
 
 namespace okec
 {
@@ -112,6 +109,17 @@ auto task_element::get_body(const std::string& key) const -> std::string
     return result;
 }
 
+auto task_element::set_body(std::string_view key, std::string_view value) -> bool
+{
+    if (elem_) {
+        json::json_pointer j_key{ "/body/" + std::string(key) };
+        (*elem_)[j_key] = value;
+        return true;
+    }
+
+    return false;
+}
+
 auto task_element::j_data() const -> json
 {
     return elem_ ? *elem_ : json{};
@@ -160,7 +168,7 @@ auto task::from_msg_packet(ns3::Ptr<ns3::Packet> packet) -> task
     return task{};
 }
 
-auto task::emplace_back(task_header_t header_attrs, task_body_t body_attrs) -> void
+auto task::emplace_back(task_header header_attrs, task_body body_attrs) -> void
 {
     json item;
     // Set header attributes
@@ -202,12 +210,12 @@ auto task::elements() const -> std::vector<task_element>
     return items;
 }
 
-auto task::at(std::size_t index) -> task_element
+auto task::at(std::size_t index) noexcept -> task_element
 {
     return task_element(&m_task["task"]["items"].at(index));
 }
 
-auto task::at(std::size_t index) const -> task_element
+auto task::at(std::size_t index) const noexcept -> task_element
 {
     return task_element(m_task["task"]["items"].at(index));
 }
@@ -310,7 +318,7 @@ auto task::get_body(const json& element, const std::string& key) -> std::string
     return result;
 }
 
-auto task::get_unique_id() -> std::string
+auto task::unique_id() -> std::string
 {
     static std::random_device              rd;
     static std::mt19937                    gen(rd());
@@ -343,42 +351,6 @@ auto task::get_unique_id() -> std::string
     return ss.str();
 }
 
-auto task::get_random_number(long min, long max) -> std::string
-{
-    using rng = std::default_random_engine;
-    static rng dre{ (rng::result_type)time(0) };
-    std::uniform_int_distribution<int> uid(min, max);
-    return std::to_string(uid(dre));
-}
-
-auto task::print() const -> void
-{
-    // fmt::print("{0:=^{1}}\n", "Task Info", 150);
-    // int index{1};
-    // for (const auto& item : m_task["task"]["items"])
-    // {
-    //     fmt::print("[{:>3}] ", index++);
-    //     if (item.contains("/header"_json_pointer))
-    //     {
-    //         for (auto it = item["header"].begin(); it != item["header"].end(); ++it)
-    //         {
-    //             fmt::print("{}: {} ", it.key(), it.value());
-    //         }
-    //     }
-
-    //     if (item.contains("/body"_json_pointer))
-    //     {
-    //         for (auto it = item["body"].begin(); it != item["body"].end(); ++it)
-    //         {
-    //             fmt::print("{}: {} ", it.key(), it.value());
-    //         }
-    //     }
-    //     fmt::print("\n");
-    // }
-
-    // fmt::print("{0:=^{1}}\n", "", 150);
-}
-
 auto task::save_to_file(const std::string& file_name) -> void
 {
     std::ofstream fout(file_name);
@@ -401,7 +373,17 @@ auto task::load_from_file(const std::string& file_name) -> bool
     return true;
 }
 
-auto task::push_back(const json& sub) -> void
+auto task::operator[](std::size_t index) noexcept -> task_element
+{
+    return this->at(index);
+}
+
+auto task::operator[](std::size_t index) const noexcept -> task_element
+{
+    return this->at(index);
+}
+
+auto task::push_back(const json &sub) -> void
 {
     m_task.push_back(sub);
 }

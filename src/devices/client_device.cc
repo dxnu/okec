@@ -15,9 +15,6 @@
 #include <okec/common/awaitable.h>
 #include <okec/common/response.h>
 #include <okec/common/simulator.h>
-#include <boost/multiprecision/cpp_int.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include <boost/multiprecision/number.hpp>
 #include <ns3/mobility-module.h>
 
 
@@ -84,7 +81,7 @@ auto client_device::async_send(task t) -> std::suspend_never
 
 auto client_device::async_read() -> response_awaiter
 {
-    return response_awaiter{sim_, fmt::format("{:ip}", this->get_address())};
+    return response_awaiter{sim_, okec::format("{:ip}", this->get_address())};
 }
 
 auto client_device::async_read(done_callback_t fn) -> void
@@ -94,7 +91,7 @@ auto client_device::async_read(done_callback_t fn) -> void
 
 auto client_device::when_done(response_type resp) -> void
 {
-    auto ip = fmt::format("{:ip}", this->get_address());
+    auto ip = okec::format("{:ip}", this->get_address());
     if (sim_.is_valid(ip)) {
         sim_.complete(ip, std::move(resp));
     }
@@ -114,6 +111,12 @@ auto client_device::set_position(double x, double y, double z) -> void
     } else {
         mobility->SetPosition(ns3::Vector(x, y, z));
     }
+}
+
+auto client_device::get_position() -> ns3::Vector
+{
+    ns3::Ptr<ns3::MobilityModel> mobility = m_node->GetObject<ns3::MobilityModel>();
+    return mobility ? mobility->GetPosition() : ns3::Vector(-1.0, -1.0, -1.0);
 }
 
 auto client_device::set_decision_engine(std::shared_ptr<decision_engine> engine) -> void
@@ -152,6 +155,16 @@ auto client_device::done_callback(response_type res) -> void
 auto client_device::write(ns3::Ptr<ns3::Packet> packet, ns3::Ipv4Address destination, uint16_t port) const -> void
 {
     m_udp_application->write(packet, destination, port);
+}
+
+auto client_device_container::operator[](std::size_t index) -> pointer_type
+{
+    return this->get_device(index);
+}
+
+auto client_device_container::operator()(std::size_t index) -> pointer_type
+{
+    return this->get_device(index);
 }
 
 auto client_device_container::get_device(std::size_t index) -> pointer_type

@@ -42,9 +42,9 @@ base_station::~base_station()
 {
     // auto& task_sequence = this->task_sequence();
     // if (!task_sequence.empty()) {
-    //     fmt::print("任务列表还余{}任务未处理\n", task_sequence.size());
+    //     okec::print("任务列表还余{}任务未处理\n", task_sequence.size());
     // } else {
-    //     fmt::print("任务已全部完成\n");
+    //     okec::print("任务已全部完成\n");
     // }
 }
 
@@ -151,10 +151,10 @@ auto base_station::task_sequence_status() -> std::vector<char>&
 
 auto base_station::print_task_info() -> void
 {
-    fmt::print("Task sequence size: {}\n", m_task_sequence.size());
-    for (const auto& item : m_task_sequence) {
-        fmt::print("Item: {}\n", item.dump());
-    }
+    // okec::print("Task sequence size: {}\n", m_task_sequence.size());
+    // for (const auto& item : m_task_sequence) {
+    //     okec::print("Item: {}\n", item.dump());
+    // }
 }
 
 auto base_station::handle_next() -> void
@@ -168,7 +168,7 @@ auto base_station::handle_next() -> void
     //     {
     //         // auto [target_ip, target_port, distance] = dmaker.make_decision(m_task_sequence[i]);
     //         auto [target_ip, target_port, distance] = m_decision_engine->make_decision(m_task_sequence[i]);
-    //         print_info(fmt::format("The base station([{:ip}]) has made the decision. (target ip: {}, target port: {}, distance:{}m)", 
+    //         print_info(okec::format("The base station([{:ip}]) has made the decision. (target ip: {}, target port: {}, distance:{}m)", 
     //             this->get_address(), target_ip, target_port, distance));
             
     //         // 计算并记录传输时间
@@ -180,7 +180,7 @@ auto base_station::handle_next() -> void
     //             long long size = std::stoll(m_task_sequence[i].get_header("input_size")) * 8; // 转换为 bits
     //             double trans_time = (double)size / std::stold(bandwidth.Get());
     //             double stime = distance * 1000 / 200000000; // 2 * 10^8
-    //             print_info(fmt::format("The base station([{:ip}]) has calculated the transmission time. (distance: {}, bandwidth: {}, trans_time: {}, send_time: {})", 
+    //             print_info(okec::format("The base station([{:ip}]) has calculated the transmission time. (distance: {}, bandwidth: {}, trans_time: {}, send_time: {})", 
     //                 this->get_address(), distance, bandwidth.Get(), trans_time, stime));
     //             m_task_sequence[i].set_header("send_time", std::to_string(trans_time + stime));
     //         }
@@ -188,7 +188,7 @@ auto base_station::handle_next() -> void
     //         message msg;
     //         msg.type(message_handling);
     //         msg.content(m_task_sequence[i]);
-    //         print_info(fmt::format("The base station([{:ip}]) dispatchs the task(task_id = {}) to {}",
+    //         print_info(okec::format("The base station([{:ip}]) dispatchs the task(task_id = {}) to {}",
     //             this->get_address(), m_task_sequence[i].get_header("task_id"), target_ip));
     //         m_udp_application->write(msg.to_packet(), ns3::Ipv4Address(target_ip.c_str()), target_port);
 

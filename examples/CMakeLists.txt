@@ -5,6 +5,10 @@ find_package(okec 1.0 CONFIG REQUIRED)
 
 message(STATUS "okec found: ${okec_FOUND}")
 
+# add_executable(sixth "src/sixth.cc")
+# target_link_libraries(sixth PRIVATE okec::okec)
+# target_compile_options(sixth PRIVATE -Wall -g)
+
 file(GLOB SOURCE_FILES src/*.cc)
 list(LENGTH SOURCE_FILES SRC_FILES_SIZE)
 message(STATUS "Found ${SRC_FILES_SIZE} source files of examples")

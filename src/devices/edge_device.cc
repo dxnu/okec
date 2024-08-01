@@ -97,7 +97,7 @@ auto edge_device::write(ns3::Ptr<ns3::Packet> packet, ns3::Ipv4Address destinati
 
 auto edge_device::on_get_resource_information(ns3::Ptr<ns3::Packet> packet, const ns3::Address& remote_address) -> void
 {
-    // fmt::print("on_get_resource_information from {:ip}\n", InetSocketAddress::ConvertFrom(remote_address).GetIpv4());
+    // okec::print("on_get_resource_information from {:ip}\n", InetSocketAddress::ConvertFrom(remote_address).GetIpv4());
     auto device_resource = get_resource();
     if (!device_resource || device_resource->empty())
         return; // 没有安装资源，或资源为空，都不返回任何消息
@@ -106,11 +106,11 @@ auto edge_device::on_get_resource_information(ns3::Ptr<ns3::Packet> packet, cons
     message msg {
         { "msgtype", message_resource_information },
         { "device_type", "es" },
-        { "ip", fmt::format("{:ip}", this->get_address()) },
-        { "port", fmt::format("{}", this->get_port()) },
-        { "pos_x", fmt::format("{}", get_position().x) },
-        { "pos_y", fmt::format("{}", get_position().y) },
-        { "pos_z", fmt::format("{}", get_position().z) }
+        { "ip", okec::format("{:ip}", this->get_address()) },
+        { "port", okec::format("{}", this->get_port()) },
+        { "pos_x", okec::format("{}", get_position().x) },
+        { "pos_y", okec::format("{}", get_position().y) },
+        { "pos_z", okec::format("{}", get_position().z) }
     };
     msg.content(*device_resource);
     this->write(msg.to_packet(), ns3::InetSocketAddress::ConvertFrom(remote_address).GetIpv4(), 8860);
