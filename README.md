@@ -10,8 +10,8 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/59115bd1e93745ed97be7dec7d82d336)](https://app.codacy.com/gh/dxnu/okec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Language](https://img.shields.io/github/languages/top/dxnu/okec.svg)
 ![Last commit](https://img.shields.io/github/last-commit/dxnu/okec.svg)
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/lkimuk/okec.svg)](http://isitmaintained.com/project/lkimuk/okec "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/lkimuk/okec.svg)](http://isitmaintained.com/project/lkimuk/okec "Percentage of issues still open")
+[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/dxnu/okec.svg)](http://isitmaintained.com/project/dxnu/okec "Average time to resolve an issue")
+[![Percentage of issues still open](http://isitmaintained.com/badge/open/dxnu/okec.svg)](http://isitmaintained.com/project/dxnu/okec "Percentage of issues still open")
 
 - [Prerequisites](#prerequisites)
 - [Install](#install)
@@ -40,7 +40,7 @@
 
 |OS|Compiler Version|Status|
 |---|---|---|
-|Ubuntu 22.04|GCC 13.1|[![linux](https://github.com/lkimuk/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lkimuk/okec/actions/workflows/cmake-single-platform.yml)|
+|Ubuntu 22.04|GCC 13.1|[![linux](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lkimuk/okec/actions/workflows/cmake-single-platform.yml)|
 
 ## Install
 ```console
