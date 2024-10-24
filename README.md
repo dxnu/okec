@@ -5,8 +5,8 @@
 <h6 align="center">A Realistic, Versatile, and Easily Customizable Edge Computing Simulator</h6>
 </p>
 
-[![Build status](https://ci.appveyor.com/api/projects/status/8b08rootot5dfrh2?svg=true)](https://ci.appveyor.com/project/lkimuk/okec)
-[![License](https://img.shields.io/github/license/lkimuk/okec.svg)](https://github.com/lkimuk/okec/blob/main/LICENSE)
+[![Build status](https://ci.appveyor.com/api/projects/status/cvkjg22cxf31hu3n?svg=true)](https://ci.appveyor.com/project/dxnu/okec)
+[![License](https://img.shields.io/github/license/dxnu/okec.svg)](https://github.com/dxnu/okec/blob/main/LICENSE)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/5b7112a2f3be475a86eeb6247bbb864c)](https://app.codacy.com/gh/lkimuk/okec/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Language](https://img.shields.io/github/languages/top/lkimuk/okec.svg)
 ![Last commit](https://img.shields.io/github/last-commit/lkimuk/okec.svg)
