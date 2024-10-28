@@ -40,11 +40,11 @@
 
 |OS|Compiler Version|Status|
 |---|---|---|
-|Ubuntu 22.04|GCC 13.1|[![linux](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/lkimuk/okec/actions/workflows/cmake-single-platform.yml)|
+|Ubuntu 22.04|GCC 13.1|[![linux](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml)|
 
 ## Install
 ```console
-$ git clone https://github.com/lkimuk/okec.git
+$ git clone https://github.com/dxnu/okec.git
 $ cd okec
 $ cmake -S . -B build -DCMAKE_PREFIX_PATH:STRING=/absolute/path/to/your/libtorch
 $ cmake --build build
@@ -55,7 +55,7 @@ $ cmake --install ./build
 > If your prerequisite libraries are not installed in standard directories, you may need to specify multiple paths as follows:
 
 ```console
-$ git clone https://github.com/lkimuk/okec.git
+$ git clone https://github.com/dxnu/okec.git
 $ cd okec
 $ cmake -S . -B build -DCMAKE_PREFIX_PATH:STRING="/absolute/path/to/your/libtorch;/absolute/path/to/your/other/libraries"
 $ cmake --build build
