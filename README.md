@@ -40,7 +40,7 @@
 
 |OS|Compiler Version|Status|
 |---|---|---|
-|Ubuntu 22.04|GCC 13.1|[![linux](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml)|
+|Ubuntu 24.04|Default GNU 13.2.0|[![linux](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/dxnu/okec/actions/workflows/cmake-single-platform.yml)|
 
 ## Install
 ```console
