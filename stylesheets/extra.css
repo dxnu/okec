@@ -1,0 +1,25 @@
+:root {
+    --md-primary-fg-color:        #343333;
+    --md-primary-fg-color--light: #ECB7B7;
+    --md-primary-fg-color--dark:  #90030C;
+  }
+
+thead th:empty {
+  display: none;
+}
+
+tbody td:empty {
+  padding: 0 !important;
+}
+
+.md-typeset table:not([class]) {
+  border: none !important;
+}
+
+table code {
+  background: none !important;
+}
+
+table {
+  font-size: 16px !important;
+}
