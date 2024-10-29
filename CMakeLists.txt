@@ -21,7 +21,6 @@ message("\
 
 # Find the dependencies
 find_package(Torch REQUIRED)
-find_package(fmt REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(ns3 3.41 COMPONENTS libcore REQUIRED)
 find_package(PythonLibs REQUIRED)
@@ -29,7 +28,6 @@ find_package(PythonLibs REQUIRED)
 # message(${TORCH_CXX_FLAGS})
 message("Welcome to the installation wizard for OKEC")
 message(STATUS "Found Torch: ${TORCH_FOUND}")
-message(STATUS "Found fmtlib: ${fmt_FOUND}")
 message(STATUS "Found nlohmann_json: ${nlohmann_json_FOUND}")
 message(STATUS "Found ns3: ${ns3_FOUND}")
 message(STATUS "Found python libs: ${PYTHON_INCLUDE_DIRS}")
@@ -57,7 +55,6 @@ target_include_directories(okec PUBLIC
 target_link_libraries(okec PUBLIC
     ${TORCH_LIBRARIES}
     ${PYTHON_LIBRARIES}
-    fmt::fmt
     nlohmann_json::nlohmann_json
     ns3::libcore ns3::libinternet ns3::libpoint-to-point ns3::libcsma ns3::libwifi
 )
@@ -94,7 +91,7 @@ configure_package_config_file(
 )
 
 file(APPEND "${CMAKE_CURRENT_BINARY_DIR}/okec-config.cmake"
-    "include(CMakeFindDependencyMacro)\nfind_dependency(fmt)\nfind_dependency(nlohmann_json)\nfind_dependency(ns3)\nlist(APPEND CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})\nfind_package(Torch)"
+    "include(CMakeFindDependencyMacro)\nfind_dependency(nlohmann_json)\nfind_dependency(ns3)\nlist(APPEND CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH})\nfind_package(Torch)"
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/okec-config.cmake"
