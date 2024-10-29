@@ -56,6 +56,20 @@ jobs:
         if [ -d "${{github.workspace}}/installed/libtorch" ]; then
           echo "LIBTORCH_EXISTS=true" >> $GITHUB_ENV
         fi
+    
+    - name: Check if nlohmann json exists
+      id: check_nlohmann
+      run: |
+        if [ -d "${{github.workspace}}/installed/nlohmann" ]; then
+          echo "NLOHMANN_EXISTS=true" >> $GITHUB_ENV
+        fi
+  
+    - name: Check if ns3 exists
+      id: check_ns3
+      run: |
+        if [ -d "${{github.workspace}}/installed/ns3" ]; then
+          echo "NS3_EXISTS=true" >> $GITHUB_ENV
+        fi
 
     - name: Install LibTorch
       if: steps.cache.outputs.cache-hit != 'true' && !contains(env.LIBTORCH_EXISTS, 'true')
@@ -64,7 +78,7 @@ jobs:
         unzip libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip -d ${{github.workspace}}/installed
         
     - name: Install nlohmann json
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: steps.cache.outputs.cache-hit != 'true' && env.NLOHMANN_EXISTS != 'true'
       run: |
         git clone https://github.com/nlohmann/json.git libraries/nlohmann
         cd libraries/nlohmann
@@ -73,7 +87,7 @@ jobs:
         cmake --install ./build --prefix=${{github.workspace}}/installed/nlohmann
         
     - name: Install ns3
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: steps.cache.outputs.cache-hit != 'true' && env.NS3_EXISTS != 'true'
       run: |
         wget https://www.nsnam.org/releases/ns-allinone-3.41.tar.bz2
         tar xfj ns-allinone-3.41.tar.bz2
